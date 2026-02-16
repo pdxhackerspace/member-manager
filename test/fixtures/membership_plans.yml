@@ -1,0 +1,23 @@
+monthly_standard:
+  name: Monthly Standard
+  cost: 50.00
+  billing_frequency: monthly
+  plan_type: primary
+  visible: true
+  manual: false
+
+yearly_standard:
+  name: Yearly Standard
+  cost: 500.00
+  billing_frequency: yearly
+  plan_type: primary
+  visible: true
+  manual: false
+
+supplementary_storage:
+  name: Storage Locker
+  cost: 25.00
+  billing_frequency: monthly
+  plan_type: supplementary
+  visible: true
+  manual: false

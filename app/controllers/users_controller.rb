@@ -35,6 +35,11 @@ class UsersController < AuthenticatedController
     @payment_type_recharge = member_users.where(payment_type: 'recharge').count
     @payment_type_cash = member_users.where(payment_type: 'cash').count
 
+    # Payment plan counts (non-service accounts only)
+    @membership_plans = MembershipPlan.ordered.to_a
+    @plan_counts = @membership_plans.map { |plan| [plan, member_users.where(membership_plan_id: plan.id).count] }
+    @no_plan_count = member_users.where(membership_plan_id: nil).count
+
     # Dues status counts (non-service accounts only)
     @dues_status_current = member_users.where(dues_status: 'current').count
     @dues_status_lapsed = member_users.where(dues_status: 'lapsed').count
@@ -70,6 +75,13 @@ class UsersController < AuthenticatedController
     if params[:dues_status].present?
       @users = @users.non_service_accounts.where(dues_status: params[:dues_status])
     end
+    if params[:membership_plan_id].present?
+      if params[:membership_plan_id] == 'none'
+        @users = @users.non_service_accounts.where(membership_plan_id: nil)
+      else
+        @users = @users.non_service_accounts.where(membership_plan_id: params[:membership_plan_id])
+      end
+    end
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
 
     # Apply account type filter
@@ -94,7 +106,8 @@ class UsersController < AuthenticatedController
     # Track if any filter is active
     @filter_active = params[:membership_status].present? || params[:payment_type].present? ||
                      params[:dues_status].present? || params[:active].present? ||
-                     params[:missing].present? || params[:account_type].present?
+                     params[:missing].present? || params[:account_type].present? ||
+                     params[:membership_plan_id].present?
     @filtered_count = @users.count if @filter_active
 
     # Store filter/sort params for passing to user profile links
@@ -103,6 +116,7 @@ class UsersController < AuthenticatedController
     @list_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
     @list_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
     @list_params[:active] = params[:active] if params[:active].present?
+    @list_params[:membership_plan_id] = params[:membership_plan_id] if params[:membership_plan_id].present?
     @list_params[:missing] = params[:missing] if params[:missing].present?
     @list_params[:account_type] = params[:account_type] if params[:account_type].present?
     @list_params[:sort] = params[:sort] if params[:sort].present?

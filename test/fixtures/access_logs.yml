@@ -1,0 +1,27 @@
+linked_entry:
+  name: Example User One
+  logged_at: <%= 1.day.ago %>
+  location: Front Door
+  action: entry
+  raw_text: "Example User One entered Front Door"
+  user: one
+
+unlinked_entry:
+  name: Unknown Person
+  logged_at: <%= 2.hours.ago %>
+  location: Back Door
+  action: entry
+  raw_text: "Unknown Person entered Back Door"
+
+another_unlinked:
+  name: Unknown Person
+  logged_at: <%= 1.hour.ago %>
+  location: Side Door
+  action: entry
+  raw_text: "Unknown Person entered Side Door"
+
+no_name_entry:
+  logged_at: <%= 3.hours.ago %>
+  location: Gate
+  action: entry
+  raw_text: "unknown entry at Gate"

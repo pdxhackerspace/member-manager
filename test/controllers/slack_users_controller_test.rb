@@ -1,0 +1,132 @@
+require 'test_helper'
+
+class SlackUsersControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
+    sign_in_as_local_admin
+  end
+
+  teardown do
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
+  end
+
+  # ─── Index ─────────────────────────────────────────────────────────
+
+  test 'index loads successfully' do
+    get slack_users_path
+    assert_response :success
+  end
+
+  test 'index shows linked and unlinked counts' do
+    get slack_users_path
+    assert_response :success
+    assert_match 'Linked', response.body
+    assert_match 'Unlinked', response.body
+  end
+
+  # ─── Link User ─────────────────────────────────────────────────────
+
+  test 'link_user links slack user to a member' do
+    slack_user = slack_users(:with_dept)
+    user = users(:two)
+
+    post link_user_slack_user_path(slack_user), params: { user_id: user.id }
+
+    slack_user.reload
+    assert_equal user.id, slack_user.user_id
+  end
+
+  test 'link_user adds real_name as alias if different' do
+    slack_user = slack_users(:with_dept)
+    user = users(:two)
+    user.update_columns(aliases: [])
+
+    post link_user_slack_user_path(slack_user), params: { user_id: user.id }
+
+    user.reload
+    assert_includes user.aliases, 'John Smith'
+  end
+
+  test 'link_user from index redirects back to index' do
+    slack_user = slack_users(:with_dept)
+    user = users(:two)
+
+    post link_user_slack_user_path(slack_user), params: { user_id: user.id, from_index: 'true' }
+    assert_redirected_to slack_users_path
+  end
+
+  # ─── Toggle Don't Link ─────────────────────────────────────────────
+
+  test 'toggle_dont_link sets dont_link flag' do
+    slack_user = slack_users(:with_dept)
+    slack_user.update_columns(dont_link: false)
+
+    post toggle_dont_link_slack_user_path(slack_user)
+
+    slack_user.reload
+    assert slack_user.dont_link?, 'dont_link should be set to true'
+  end
+
+  test 'toggle_dont_link unsets dont_link flag' do
+    slack_user = slack_users(:with_dept)
+    slack_user.update_columns(dont_link: true)
+
+    post toggle_dont_link_slack_user_path(slack_user)
+
+    slack_user.reload
+    assert_not slack_user.dont_link?, 'dont_link should be set to false'
+  end
+
+  # ─── Create Member ─────────────────────────────────────────────────
+
+  test 'create_member creates a new member from slack user' do
+    slack_user = slack_users(:with_other_dept)
+    slack_user.update_columns(user_id: nil)
+
+    assert_difference 'User.count', 1 do
+      post create_member_slack_user_path(slack_user)
+    end
+
+    slack_user.reload
+    assert_not_nil slack_user.user_id
+
+    new_user = User.find(slack_user.user_id)
+    assert_equal 'Mary Jane', new_user.full_name
+    assert_equal slack_user.email, new_user.email
+    assert_equal slack_user.slack_id, new_user.slack_id
+  end
+
+  test 'create_member redirects to new member profile' do
+    slack_user = slack_users(:with_other_dept)
+    slack_user.update_columns(user_id: nil)
+
+    post create_member_slack_user_path(slack_user)
+
+    slack_user.reload
+    new_user = User.find(slack_user.user_id)
+    assert_redirected_to user_path(new_user)
+  end
+
+  test 'create_member rejects already-linked slack user' do
+    slack_user = slack_users(:with_dept)
+    slack_user.update_columns(user_id: users(:one).id)
+
+    assert_no_difference 'User.count' do
+      post create_member_slack_user_path(slack_user)
+    end
+
+    assert_redirected_to slack_users_path
+    follow_redirect!
+    assert_match(/already linked/, response.body)
+  end
+
+  private
+
+  def sign_in_as_local_admin
+    account = local_accounts(:active_admin)
+    post local_login_path, params: {
+      session: { email: account.email, password: 'localpassword123' }
+    }
+  end
+end

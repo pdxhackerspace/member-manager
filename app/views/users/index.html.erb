@@ -32,6 +32,9 @@
       <% if params[:dues_status].present? %>
         — Dues: <strong><%= params[:dues_status].humanize %></strong>
       <% end %>
+      <% if params[:membership_plan_id].present? %>
+        — Plan: <strong><%= params[:membership_plan_id] == 'none' ? 'No Plan' : MembershipPlan.find_by(id: params[:membership_plan_id])&.name || 'Unknown' %></strong>
+      <% end %>
       <% if params[:active].present? %>
         — <%= params[:active] == 'true' ? 'Active only' : 'Inactive only' %>
       <% end %>
@@ -91,6 +94,21 @@
       <% end %>
     </div>
     
+    <h2 class="h6 mb-3">Payment Plan</h2>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <% @plan_counts.each do |plan, count| %>
+        <% next if count.zero? %>
+        <%= link_to users_path(membership_plan_id: plan.id), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:membership_plan_id] == plan.id.to_s}" do %>
+          <%= plan.name %>: <strong><%= count %></strong>
+        <% end %>
+      <% end %>
+      <% if @no_plan_count.positive? %>
+        <%= link_to users_path(membership_plan_id: 'none'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:membership_plan_id] == 'none'}" do %>
+          No Plan: <strong><%= @no_plan_count %></strong>
+        <% end %>
+      <% end %>
+    </div>
+
     <h2 class="h6 mb-3">Dues Status</h2>
     <div class="d-flex flex-wrap gap-2 mb-3">
       <%= link_to users_path(dues_status: 'current'), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:dues_status] == 'current'}" do %>

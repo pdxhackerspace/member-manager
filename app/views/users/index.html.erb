@@ -10,6 +10,9 @@
       <%= link_to users_path(active: 'false'), class: "text-decoration-none" do %>
         <strong><%= @inactive_count %></strong> inactive
       <% end %>
+      <% if @legacy_count.positive? %>
+        <span class="text-muted ms-2">(+ <%= link_to "#{@legacy_count} legacy", users_path(account_type: 'legacy'), class: "text-decoration-none" %>)</span>
+      <% end %>
     </p>
   </div>
   <div class="d-flex gap-2">
@@ -42,7 +45,11 @@
         — Missing: <strong><%= params[:missing] == 'rfid' ? 'No RFID' : 'No Email' %></strong>
       <% end %>
       <% if params[:account_type].present? %>
-        — <strong><%= params[:account_type] == 'service' ? 'Service Accounts' : 'Members Only' %></strong>
+        — <strong><%= case params[:account_type]
+                       when 'service' then 'Service Accounts'
+                       when 'legacy' then 'Legacy Members'
+                       else 'Members Only'
+                       end %></strong>
       <% end %>
     </div>
     <%= link_to "Clear filters", users_path(sort: @sort_column, direction: @sort_direction), class: "btn btn-outline-secondary btn-sm" %>
@@ -133,6 +140,11 @@
       <%= link_to users_path(account_type: 'service'), class: "badge text-bg-info text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'service'}" do %>
         <i class="bi bi-gear-fill me-1"></i>Service Accounts: <strong><%= @service_account_count %></strong>
       <% end %>
+      <% if @legacy_count.positive? %>
+        <%= link_to users_path(account_type: 'legacy'), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:account_type] == 'legacy'}" do %>
+          <i class="bi bi-archive me-1"></i>Legacy: <strong><%= @legacy_count %></strong>
+        <% end %>
+      <% end %>
     </div>
 
     <h2 class="h6 mb-3">Missing Data</h2>
@@ -190,6 +202,9 @@
               <%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none" %>
               <% if user.service_account? %>
                 <span class="badge text-bg-info ms-1"><i class="bi bi-gear-fill me-1"></i>Service</span>
+              <% end %>
+              <% if user.legacy? %>
+                <span class="badge text-bg-secondary ms-1"><i class="bi bi-archive me-1"></i>Legacy</span>
               <% end %>
             </td>
             <td>

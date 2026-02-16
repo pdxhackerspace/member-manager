@@ -67,6 +67,8 @@ class User < ApplicationRecord
   scope :admin, -> { where(is_admin: true) }
   scope :service_accounts, -> { where(service_account: true) }
   scope :non_service_accounts, -> { where(service_account: false) }
+  scope :legacy, -> { where(legacy: true) }
+  scope :non_legacy, -> { where(legacy: false) }
   scope :authentik_dirty, -> { where(authentik_dirty: true) }
   scope :with_attribute, ->(key, value) { where('authentik_attributes ->> ? = ?', key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {
@@ -403,6 +405,7 @@ class User < ApplicationRecord
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
   before_save :compute_active_status
+  before_save :clear_legacy_if_meaningful_data
   before_save :mark_authentik_dirty_if_needed
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
@@ -497,8 +500,16 @@ class User < ApplicationRecord
   end
 
   def journal_updated!
-    # Skip if only updated_at changed
-    return if saved_changes.except('updated_at').empty?
+    # Skip if only noisy/internal fields changed
+    return if saved_changes.except('updated_at', 'authentik_dirty').empty?
+
+    # Skip journal when only change is marking as legacy (legacy false -> true).
+    # We DO want a journal entry when un-marking legacy (true -> false).
+    if saved_changes.key?('legacy')
+      from, to = saved_changes['legacy']
+      other_changes = saved_changes.except('updated_at', 'authentik_dirty', 'legacy')
+      return if to == true && other_changes.empty?
+    end
 
     changes = saved_changes_to_json_hash
     # Ensure changes_json is never empty
@@ -516,7 +527,7 @@ class User < ApplicationRecord
   def saved_changes_to_json_hash
     # Convert saved_changes to a { attr => { from: old, to: new } } structure,
     # and filter out noisy attributes.
-    filtered = saved_changes.except('updated_at', 'created_at', 'last_synced_at')
+    filtered = saved_changes.except('updated_at', 'created_at', 'last_synced_at', 'authentik_dirty')
     filtered.to_h do |attr, (from, to)|
       [attr, { 'from' => from, 'to' => to }]
     end
@@ -549,6 +560,21 @@ class User < ApplicationRecord
                   end
 
     self.payment_type = 'inactive' if membership_status == 'deceased'
+  end
+
+  # Auto-remove legacy flag when the account gets meaningful payment/membership data.
+  # This triggers a journal entry (un-marking legacy is journaled).
+  def clear_legacy_if_meaningful_data
+    return unless legacy?
+
+    has_plan = membership_plan_id.present?
+    has_non_unknown_dues = dues_status.present? && dues_status != 'unknown'
+    has_payment_date = last_payment_date.present? || recharge_most_recent_payment_date.present?
+    has_paying_status = membership_status.in?(%w[paying sponsored])
+
+    if has_plan || has_non_unknown_dues || has_payment_date || has_paying_status
+      self.legacy = false
+    end
   end
 
   def clear_greeting_name_if_do_not_greet

@@ -9,16 +9,24 @@ class UsersController < AuthenticatedController
   SORTABLE_COLUMNS = %w[username full_name email membership_status payment_type last_synced_at].freeze
 
   def index
-    # Start with all users for counts (before filtering)
+    # Start with all users for the "all" count
     all_users = User.all
+    @all_user_count = all_users.count
 
-    # Calculate counts from ALL users (not filtered)
-    @user_count = all_users.count
-    @active_count = all_users.where(active: true).count
+    # Legacy count (from all users)
+    @legacy_count = all_users.legacy.count
+
+    # Default view excludes legacy members unless explicitly filtering for them
+    @showing_legacy = params[:account_type] == 'legacy'
+    default_users = @showing_legacy ? all_users.legacy : all_users.non_legacy
+
+    # Calculate counts from the default (non-legacy) view
+    @user_count = default_users.count
+    @active_count = default_users.where(active: true).count
     @inactive_count = @user_count - @active_count
 
-    # Exclude service accounts from membership/payment/dues/missing counts
-    member_users = all_users.non_service_accounts
+    # Exclude service accounts and legacy from membership/payment/dues/missing counts
+    member_users = default_users.non_service_accounts
 
     # Membership status counts (non-service accounts only)
     @membership_status_unknown = member_users.where(membership_status: 'unknown').count
@@ -50,11 +58,11 @@ class UsersController < AuthenticatedController
     @no_rfid_count = member_users.left_joins(:rfids).where(rfids: { id: nil }).count
     @no_email_count = member_users.where("email IS NULL OR email = ''").count
 
-    # Account type counts
-    @service_account_count = all_users.service_accounts.count
+    # Account type counts (from non-legacy users for service account count)
+    @service_account_count = default_users.service_accounts.count
 
     # Now build filtered query
-    @users = all_users
+    @users = default_users
 
     # Apply search filter if provided
     if params[:q].present?
@@ -84,7 +92,7 @@ class UsersController < AuthenticatedController
     end
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
 
-    # Apply account type filter
+    # Apply account type filter (legacy is handled above via default_users)
     if params[:account_type] == 'service'
       @users = @users.service_accounts
     elsif params[:account_type] == 'member'
@@ -434,7 +442,7 @@ class UsersController < AuthenticatedController
     ]
 
     if current_user_admin?
-      permitted += %i[membership_status payment_type notes membership_plan_id aliases_text service_account]
+      permitted += %i[membership_status payment_type notes membership_plan_id aliases_text service_account legacy]
       permitted << :is_admin
       # Only allow manual active toggle for service accounts
       permitted << :active if @user&.service_account?

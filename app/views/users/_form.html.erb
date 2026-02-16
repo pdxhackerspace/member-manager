@@ -11,6 +11,11 @@
       <%= f.label :service_account, "Service Account", class: "form-check-label" %>
       <div class="form-text">Service accounts are used for access control and applications. They don't have payment plans or membership info.</div>
     </div>
+    <div class="form-check mb-2">
+      <%= f.check_box :legacy, class: "form-check-input", id: "user_legacy" %>
+      <%= f.label :legacy, "Legacy Member", class: "form-check-label" %>
+      <div class="form-text">Legacy members are former members with little information. They are hidden from the default member list.</div>
+    </div>
   <% end %>
 
   <div>

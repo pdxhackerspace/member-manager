@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_145250) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -616,6 +616,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_200000) do
     t.datetime "last_login_at"
     t.date "last_payment_date"
     t.datetime "last_synced_at"
+    t.boolean "legacy", default: false, null: false
     t.date "membership_ended_date"
     t.bigint "membership_plan_id"
     t.date "membership_start_date"
@@ -640,6 +641,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_200000) do
     t.index ["authentik_dirty"], name: "index_users_on_authentik_dirty"
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["legacy"], name: "index_users_on_legacy"
     t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"

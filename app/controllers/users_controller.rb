@@ -17,30 +17,33 @@ class UsersController < AuthenticatedController
     @active_count = all_users.where(active: true).count
     @inactive_count = @user_count - @active_count
 
-    # Membership status counts (from all users)
-    @membership_status_unknown = all_users.where(membership_status: 'unknown').count
-    @membership_status_sponsored = all_users.where(membership_status: 'sponsored').count
-    @membership_status_paying = all_users.where(membership_status: 'paying').count
-    @membership_status_banned = all_users.where(membership_status: 'banned').count
-    @membership_status_deceased = all_users.where(membership_status: 'deceased').count
-    @membership_status_applicant = all_users.where(membership_status: 'applicant').count
+    # Exclude service accounts from membership/payment/dues/missing counts
+    member_users = all_users.non_service_accounts
 
-    # Payment type counts (from all users)
-    @payment_type_unknown = all_users.where(payment_type: 'unknown').count
-    @payment_type_sponsored = all_users.where(payment_type: 'sponsored').count
-    @payment_type_paypal = all_users.where(payment_type: 'paypal').count
-    @payment_type_recharge = all_users.where(payment_type: 'recharge').count
-    @payment_type_cash = all_users.where(payment_type: 'cash').count
+    # Membership status counts (non-service accounts only)
+    @membership_status_unknown = member_users.where(membership_status: 'unknown').count
+    @membership_status_sponsored = member_users.where(membership_status: 'sponsored').count
+    @membership_status_paying = member_users.where(membership_status: 'paying').count
+    @membership_status_banned = member_users.where(membership_status: 'banned').count
+    @membership_status_deceased = member_users.where(membership_status: 'deceased').count
+    @membership_status_applicant = member_users.where(membership_status: 'applicant').count
 
-    # Dues status counts (from all users)
-    @dues_status_current = all_users.where(dues_status: 'current').count
-    @dues_status_lapsed = all_users.where(dues_status: 'lapsed').count
-    @dues_status_inactive = all_users.where(dues_status: 'inactive').count
-    @dues_status_unknown = all_users.where(dues_status: 'unknown').count
+    # Payment type counts (non-service accounts only)
+    @payment_type_unknown = member_users.where(payment_type: 'unknown').count
+    @payment_type_sponsored = member_users.where(payment_type: 'sponsored').count
+    @payment_type_paypal = member_users.where(payment_type: 'paypal').count
+    @payment_type_recharge = member_users.where(payment_type: 'recharge').count
+    @payment_type_cash = member_users.where(payment_type: 'cash').count
 
-    # Missing data counts (from all users)
-    @no_rfid_count = all_users.left_joins(:rfids).where(rfids: { id: nil }).count
-    @no_email_count = all_users.where("email IS NULL OR email = ''").count
+    # Dues status counts (non-service accounts only)
+    @dues_status_current = member_users.where(dues_status: 'current').count
+    @dues_status_lapsed = member_users.where(dues_status: 'lapsed').count
+    @dues_status_inactive = member_users.where(dues_status: 'inactive').count
+    @dues_status_unknown = member_users.where(dues_status: 'unknown').count
+
+    # Missing data counts (non-service accounts only)
+    @no_rfid_count = member_users.left_joins(:rfids).where(rfids: { id: nil }).count
+    @no_email_count = member_users.where("email IS NULL OR email = ''").count
 
     # Account type counts
     @service_account_count = all_users.service_accounts.count
@@ -57,12 +60,18 @@ class UsersController < AuthenticatedController
       )
     end
 
-    # Apply status filters
-    @users = @users.where(membership_status: params[:membership_status]) if params[:membership_status].present?
-    @users = @users.where(payment_type: params[:payment_type]) if params[:payment_type].present?
-    @users = @users.where(dues_status: params[:dues_status]) if params[:dues_status].present?
+    # Apply status filters (exclude service accounts since these don't apply to them)
+    if params[:membership_status].present?
+      @users = @users.non_service_accounts.where(membership_status: params[:membership_status])
+    end
+    if params[:payment_type].present?
+      @users = @users.non_service_accounts.where(payment_type: params[:payment_type])
+    end
+    if params[:dues_status].present?
+      @users = @users.non_service_accounts.where(dues_status: params[:dues_status])
+    end
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
-    
+
     # Apply account type filter
     if params[:account_type] == 'service'
       @users = @users.service_accounts
@@ -70,11 +79,11 @@ class UsersController < AuthenticatedController
       @users = @users.non_service_accounts
     end
 
-    # Apply missing data filters
+    # Apply missing data filters (exclude service accounts)
     if params[:missing] == 'rfid'
-      @users = @users.left_joins(:rfids).where(rfids: { id: nil })
+      @users = @users.non_service_accounts.left_joins(:rfids).where(rfids: { id: nil })
     elsif params[:missing] == 'email'
-      @users = @users.where("email IS NULL OR email = ''")
+      @users = @users.non_service_accounts.where("email IS NULL OR email = ''")
     end
 
     # Apply sorting

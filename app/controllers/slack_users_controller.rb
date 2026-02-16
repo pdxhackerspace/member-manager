@@ -79,7 +79,7 @@ class SlackUsersController < AdminController
                   notice: "Linked #{@slack_user.display_name} to #{user.display_name}."
     else
       redirect_to slack_user_path(@slack_user),
-                  notice: "Linked to user #{user.display_name} and updated their Slack information."
+                  notice: "Linked to #{user.display_name} and updated their Slack information."
     end
   end
 

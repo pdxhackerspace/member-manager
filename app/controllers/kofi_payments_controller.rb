@@ -65,9 +65,9 @@ class KofiPaymentsController < AdminController
       # Update last_payment_date to the most recent payment date
       updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
 
-      # If payment is within the last 32 days, mark user as active, set membership_status to basic, and dues_status to current
+      # If payment is within the last 32 days, update membership and dues status
+      # (active is computed automatically by the User before_save callback)
       if payment_date >= 32.days.ago.to_date
-        updates[:active] = true unless user.active?
         updates[:membership_status] = 'paying' if user.membership_status != 'paying'
         updates[:dues_status] = 'current' if user.dues_status != 'current'
       end
@@ -76,7 +76,7 @@ class KofiPaymentsController < AdminController
     user.update!(updates) if updates.present?
 
     redirect_to kofi_payment_path(@payment),
-                notice: "Linked to user #{user.display_name}."
+                notice: "Linked to #{user.display_name}."
   end
 
   def import_csv

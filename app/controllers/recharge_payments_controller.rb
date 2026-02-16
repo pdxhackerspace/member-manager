@@ -146,13 +146,13 @@ class RechargePaymentsController < AdminController
         @all_users = User.ordered_by_display_name
         
         respond_to do |format|
-          format.html { redirect_to reports_path(tab: 'unmatched-recharge'), notice: "Linked to user #{user.display_name}." }
+          format.html { redirect_to reports_path(tab: 'unmatched-recharge'), notice: "Linked to #{user.display_name}." }
           format.turbo_stream
         end
       else
         extra_msg = linked_count > 0 ? " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same customer ID." : ""
         redirect_to recharge_payment_path(@payment),
-                    notice: "Linked to user #{user.display_name}.#{extra_msg}"
+                    notice: "Linked to #{user.display_name}.#{extra_msg}"
       end
     else
       if params[:from_reports] == 'true'

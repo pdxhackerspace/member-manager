@@ -83,7 +83,7 @@ class ApplicationGroupsController < AdminController
   def add_user
     if @application_group.uses_default_group?
       redirect_to application_application_group_path(@application, @application_group),
-                  alert: 'Cannot add users to a group that uses a default group.'
+                  alert: 'Cannot add members to a group that uses a default group.'
       return
     end
 
@@ -91,13 +91,13 @@ class ApplicationGroupsController < AdminController
 
     if @application_group.users.include?(user)
       redirect_to application_application_group_path(@application, @application_group),
-                  alert: 'User is already in this group.'
+                  alert: 'Member is already in this group.'
     else
       @application_group.users << user
 
       # Sync membership to Authentik
       sync_result = sync_group_members(@application_group)
-      notice = build_sync_notice('User added to group.', sync_result)
+      notice = build_sync_notice('Member added to group.', sync_result)
 
       redirect_to application_application_group_path(@application, @application_group), notice: notice
     end
@@ -106,7 +106,7 @@ class ApplicationGroupsController < AdminController
   def remove_user
     if @application_group.uses_default_group?
       redirect_to application_application_group_path(@application, @application_group),
-                  alert: 'Cannot remove users from a group that uses a default group.'
+                  alert: 'Cannot remove members from a group that uses a default group.'
       return
     end
 
@@ -115,7 +115,7 @@ class ApplicationGroupsController < AdminController
 
     # Sync membership to Authentik
     sync_result = sync_group_members(@application_group)
-    notice = build_sync_notice('User removed from group.', sync_result)
+    notice = build_sync_notice('Member removed from group.', sync_result)
 
     redirect_to application_application_group_path(@application, @application_group), notice: notice
   end

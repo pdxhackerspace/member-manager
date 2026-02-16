@@ -235,7 +235,6 @@ namespace :payments do
 
         # If payment is within 32 days, user should be active with current dues
         if most_recent_date >= cutoff_date
-          updates[:active] = true unless user.active?
           updates[:membership_status] = 'paying' unless user.membership_status == 'paying'
           updates[:dues_status] = 'current' unless user.dues_status == 'current'
         else

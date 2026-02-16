@@ -205,7 +205,7 @@ class UsersController < AuthenticatedController
 
   def update
     if @user.update(user_params)
-      redirect_to user_path(@user), notice: 'User updated successfully.'
+      redirect_to user_path(@user), notice: 'Member updated successfully.'
     else
       flash.now[:alert] = 'Unable to update user.'
       render :edit, status: :unprocessable_content
@@ -223,33 +223,41 @@ class UsersController < AuthenticatedController
   end
 
   def activate
+    unless @user.service_account?
+      redirect_to user_path(@user), alert: 'Active status for non-service accounts is determined by membership and dues status.'
+      return
+    end
     @user.update!(active: true)
-    redirect_to user_path(@user), notice: 'User activated.'
+    redirect_to user_path(@user), notice: 'Account activated.'
   end
 
   def deactivate
+    unless @user.service_account?
+      redirect_to user_path(@user), alert: 'Active status for non-service accounts is determined by membership and dues status.'
+      return
+    end
     @user.update!(active: false)
-    redirect_to user_path(@user), notice: 'User deactivated.'
+    redirect_to user_path(@user), notice: 'Account deactivated.'
   end
 
   def ban
-    @user.update!(membership_status: 'banned', active: false)
-    redirect_to user_path(@user), notice: 'User banned.'
+    @user.update!(membership_status: 'banned')
+    redirect_to user_path(@user), notice: 'Member banned.'
   end
 
   def mark_deceased
-    @user.update!(membership_status: 'deceased', active: false)
-    redirect_to user_path(@user), notice: 'User marked as deceased.'
+    @user.update!(membership_status: 'deceased')
+    redirect_to user_path(@user), notice: 'Member marked as deceased.'
   end
 
   def destroy
     @user.destroy!
-    redirect_to users_path, notice: 'User deleted successfully.'
+    redirect_to users_path, notice: 'Member deleted successfully.'
   end
 
   def sync_to_authentik
     if @user.authentik_id.blank?
-      redirect_to user_path(@user), alert: 'User does not have an Authentik ID.'
+      redirect_to user_path(@user), alert: 'Member does not have an Authentik ID.'
       return
     end
 
@@ -258,7 +266,7 @@ class UsersController < AuthenticatedController
 
     case result[:status]
     when 'synced'
-      redirect_to user_path(@user), notice: 'User synced to Authentik successfully.'
+      redirect_to user_path(@user), notice: 'Member synced to Authentik successfully.'
     when 'skipped'
       redirect_to user_path(@user), notice: "Sync skipped: #{result[:reason]}"
     when 'error'
@@ -268,7 +276,7 @@ class UsersController < AuthenticatedController
 
   def sync_from_authentik
     if @user.authentik_id.blank?
-      redirect_to user_path(@user), alert: 'User does not have an Authentik ID.'
+      redirect_to user_path(@user), alert: 'Member does not have an Authentik ID.'
       return
     end
 
@@ -280,7 +288,7 @@ class UsersController < AuthenticatedController
 
     case result[:status]
     when 'updated'
-      redirect_to user_path(@user), notice: "User updated from Authentik: #{result[:changes].join(', ')}"
+      redirect_to user_path(@user), notice: "Member updated from Authentik: #{result[:changes].join(', ')}"
     when 'no_changes'
       redirect_to user_path(@user), notice: 'No changes from Authentik.'
     when 'error'
@@ -403,8 +411,10 @@ class UsersController < AuthenticatedController
     ]
 
     if current_user_admin?
-      permitted += %i[membership_status payment_type notes active membership_plan_id aliases_text service_account]
+      permitted += %i[membership_status payment_type notes membership_plan_id aliases_text service_account]
       permitted << :is_admin
+      # Only allow manual active toggle for service accounts
+      permitted << :active if @user&.service_account?
     end
 
     params.require(:user).permit(permitted)

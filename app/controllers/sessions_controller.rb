@@ -127,7 +127,7 @@ class SessionsController < ApplicationController
         session[:user_id] = user.id
         redirect_to root_path, notice: "Signed in via keyfob as #{user.display_name}."
       else
-        redirect_to login_path, alert: 'User not found. Please try again.'
+        redirect_to login_path, alert: 'Member not found. Please try again.'
       end
     else
       redirect_to rfid_verify_path, alert: 'Invalid code. Please try again.'
@@ -298,8 +298,9 @@ class SessionsController < ApplicationController
     # Update admin status from Authentik (only if we got a value from Authentik)
     user.is_admin = is_admin unless is_admin.nil?
 
-    # Always update these fields on login
-    user.active = true
+    # For service accounts, explicitly activate on login
+    # For non-service accounts, active is computed by the before_save callback
+    user.active = true if user.service_account?
     user.last_synced_at = Time.current
 
     user.save!

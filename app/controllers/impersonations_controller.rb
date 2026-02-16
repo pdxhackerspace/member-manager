@@ -7,7 +7,7 @@ class ImpersonationsController < ApplicationController
     user = User.find_by_param(params[:user_id])
 
     if user.nil?
-      redirect_back fallback_location: users_path, alert: 'User not found.'
+      redirect_back fallback_location: users_path, alert: 'Member not found.'
       return
     end
 
@@ -60,7 +60,7 @@ class ImpersonationsController < ApplicationController
   def require_true_admin!
     # Must be a real admin (not impersonating into admin)
     unless true_user&.is_admin?
-      redirect_to root_path, alert: 'Only administrators can impersonate users.'
+      redirect_to root_path, alert: 'Only administrators can impersonate members.'
     end
   end
 end

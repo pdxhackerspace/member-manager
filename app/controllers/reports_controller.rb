@@ -132,16 +132,24 @@ class ReportsController < AdminController
 
     case action_type
     when 'activate'
-      user.update!(active: true)
-      notice = "#{user.display_name} activated."
+      if user.service_account?
+        user.update!(active: true)
+        notice = "#{user.display_name} activated."
+      else
+        notice = "Active status for #{user.display_name} is determined by membership and dues status."
+      end
     when 'deactivate'
-      user.update!(active: false)
-      notice = "#{user.display_name} deactivated."
+      if user.service_account?
+        user.update!(active: false)
+        notice = "#{user.display_name} deactivated."
+      else
+        notice = "Active status for #{user.display_name} is determined by membership and dues status."
+      end
     when 'ban'
-      user.update!(membership_status: 'banned', active: false)
+      user.update!(membership_status: 'banned')
       notice = "#{user.display_name} banned."
     when 'deceased'
-      user.update!(membership_status: 'deceased', active: false, payment_type: 'inactive')
+      user.update!(membership_status: 'deceased')
       notice = "#{user.display_name} marked as deceased."
     when 'paying'
       user.update!(membership_status: 'paying')

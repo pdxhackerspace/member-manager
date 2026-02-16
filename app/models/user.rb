@@ -329,9 +329,9 @@ class User < ApplicationRecord
     # Update last_payment_date if this payment is more recent
     updates[:last_payment_date] = payment_date if last_payment_date.nil? || payment_date > last_payment_date
 
-    # If payment is within the last 32 days, activate user and update status
+    # If payment is within the last 32 days, update membership and dues status
+    # (active will be computed automatically by the before_save callback)
     if payment_date >= 32.days.ago.to_date
-      updates[:active] = true unless active?
       updates[:membership_status] = 'paying' if membership_status != 'paying'
       updates[:dues_status] = 'current' if dues_status != 'current'
       # Clear membership_ended_date if payment is recent
@@ -402,7 +402,7 @@ class User < ApplicationRecord
   before_save :ensure_greeting_name_mutual_exclusivity
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
-  before_save :deactivate_if_deceased
+  before_save :compute_active_status
   before_save :mark_authentik_dirty_if_needed
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
@@ -530,11 +530,25 @@ class User < ApplicationRecord
     end
   end
 
-  def deactivate_if_deceased
-    return unless membership_status == 'deceased'
+  # For non-service accounts, compute `active` from membership_status and dues_status.
+  # Service accounts manage their own active flag manually.
+  def compute_active_status
+    return if service_account?
 
-    self.active = false
-    self.payment_type = 'inactive'
+    self.active = case membership_status
+                  when 'banned', 'deceased'
+                    false
+                  when 'sponsored', 'guest'
+                    true
+                  when 'paying', 'cancelled', 'unknown'
+                    dues_status == 'current'
+                  when 'applicant'
+                    false
+                  else
+                    false
+                  end
+
+    self.payment_type = 'inactive' if membership_status == 'deceased'
   end
 
   def clear_greeting_name_if_do_not_greet

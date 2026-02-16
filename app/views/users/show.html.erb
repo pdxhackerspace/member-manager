@@ -70,7 +70,7 @@
           </span>
         <% end %>
         
-        <%= link_to "Edit user", edit_user_path(@user), class: "btn btn-outline-secondary" %>
+        <%= link_to "Edit member", edit_user_path(@user), class: "btn btn-outline-secondary" %>
         <% unless impersonating? || @user == true_user %>
           <%= button_to impersonate_user_path(@user), method: :post, class: "btn btn-outline-info", 
               data: { turbo: false, confirm_message: "View the site as #{@user.display_name}? You can stop impersonating at any time." },
@@ -81,28 +81,32 @@
       </div>
       
       <div>
-        <%= link_to "&larr; Back to users".html_safe, users_path(@nav_params), class: "text-decoration-none" %>
+        <%= link_to "&larr; Back to members".html_safe, users_path(@nav_params), class: "text-decoration-none" %>
       </div>
     </div>
     
     <div class="d-flex gap-2 justify-content-center">
-      <% if @user.active? %>
-        <%= button_to "Deactivate", deactivate_user_path(@user), method: :post, class: "btn btn-outline-warning", 
-            data: { turbo: false, confirm_message: "Are you sure you want to deactivate #{@user.display_name}?" },
-            onclick: "return confirm(this.dataset.confirmMessage);" %>
-      <% else %>
-        <%= button_to "Activate", activate_user_path(@user), method: :post, class: "btn btn-outline-success", 
-            data: { turbo: false, confirm_message: "Are you sure you want to activate #{@user.display_name}?" },
-            onclick: "return confirm(this.dataset.confirmMessage);" %>
+      <% if @user.service_account? %>
+        <% if @user.active? %>
+          <%= button_to "Deactivate", deactivate_user_path(@user), method: :post, class: "btn btn-outline-warning", 
+              data: { turbo: false, confirm_message: "Are you sure you want to deactivate #{@user.display_name}?" },
+              onclick: "return confirm(this.dataset.confirmMessage);" %>
+        <% else %>
+          <%= button_to "Activate", activate_user_path(@user), method: :post, class: "btn btn-outline-success", 
+              data: { turbo: false, confirm_message: "Are you sure you want to activate #{@user.display_name}?" },
+              onclick: "return confirm(this.dataset.confirmMessage);" %>
+        <% end %>
       <% end %>
       
-      <%= button_to "Ban", ban_user_path(@user), method: :post, class: "btn btn-outline-danger", 
-          data: { turbo: false, confirm_message: "Are you sure you want to ban #{@user.display_name}?" },
-          onclick: "return confirm(this.dataset.confirmMessage);" %>
-      
-      <%= button_to "Deceased", mark_deceased_user_path(@user), method: :post, class: "btn btn-outline-secondary", 
-          data: { turbo: false, confirm_message: "Are you sure you want to mark #{@user.display_name} as deceased?" },
-          onclick: "return confirm(this.dataset.confirmMessage);" %>
+      <% unless @user.service_account? %>
+        <%= button_to "Ban", ban_user_path(@user), method: :post, class: "btn btn-outline-danger", 
+            data: { turbo: false, confirm_message: "Are you sure you want to ban #{@user.display_name}?" },
+            onclick: "return confirm(this.dataset.confirmMessage);" %>
+        
+        <%= button_to "Deceased", mark_deceased_user_path(@user), method: :post, class: "btn btn-outline-secondary", 
+            data: { turbo: false, confirm_message: "Are you sure you want to mark #{@user.display_name} as deceased?" },
+            onclick: "return confirm(this.dataset.confirmMessage);" %>
+      <% end %>
       
       <span class="ms-4"></span>
       

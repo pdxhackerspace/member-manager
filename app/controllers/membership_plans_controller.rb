@@ -40,7 +40,7 @@ class MembershipPlansController < AdminController
     has_users = @membership_plan.primary? ? @membership_plan.users.any? : @membership_plan.supplementary_users.any?
     if has_users
       redirect_to membership_plans_path,
-                  alert: 'Cannot delete membership plan that has users assigned to it.'
+                  alert: 'Cannot delete membership plan that has members assigned to it.'
     else
       @membership_plan.destroy
       redirect_to membership_plans_path, notice: 'Membership plan deleted successfully.'
@@ -80,7 +80,6 @@ class MembershipPlansController < AdminController
     user.update!(
       dues_status: 'current',
       last_payment_date: Date.current,
-      active: true,
       membership_status: 'paying'
     )
     Journal.create!(

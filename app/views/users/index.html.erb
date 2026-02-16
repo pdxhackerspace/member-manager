@@ -182,26 +182,34 @@
               <% end %>
             </td>
             <td>
-              <% badge_class = case user.membership_status
-                 when "paying" then "success"
-                 when "guest" then "warning"
-                 when "banned" then "danger"
-                 when "deceased" then "dark"
-                 when "sponsored" then "primary"
-                 when "applicant" then "light text-dark"
-                 when "cancelled" then "secondary"
-                 when "unknown" then "secondary"
-                 else "secondary"
-                 end %>
-              <span class="badge text-bg-<%= badge_class %>">
-                <%= user.membership_status.humanize %>
-              </span>
-              <% if user.active? %>
-                <span class="badge text-bg-success ms-1">Active</span>
+              <% if user.service_account? %>
+                <span class="text-muted">–</span>
+              <% else %>
+                <% badge_class = case user.membership_status
+                   when "paying" then "success"
+                   when "guest" then "warning"
+                   when "banned" then "danger"
+                   when "deceased" then "dark"
+                   when "sponsored" then "primary"
+                   when "applicant" then "light text-dark"
+                   when "cancelled" then "secondary"
+                   when "unknown" then "secondary"
+                   else "secondary"
+                   end %>
+                <span class="badge text-bg-<%= badge_class %>">
+                  <%= user.membership_status.humanize %>
+                </span>
+                <% if user.active? %>
+                  <span class="badge text-bg-success ms-1">Active</span>
+                <% end %>
               <% end %>
             </td>
             <td>
-              <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
+              <% if user.service_account? %>
+                <span class="text-muted">–</span>
+              <% else %>
+                <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
+              <% end %>
             </td>
             <td><%= user.last_synced_at ? l(user.last_synced_at, format: :long) : "n/a" %></td>
           </tr>

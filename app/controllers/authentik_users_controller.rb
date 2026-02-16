@@ -61,7 +61,7 @@ class AuthentikUsersController < AdminController
 
   def accept_changes
     unless @authentik_user.user
-      redirect_to @authentik_user, alert: 'No linked user to update.'
+      redirect_to @authentik_user, alert: 'No linked member to update.'
       return
     end
 
@@ -96,7 +96,7 @@ class AuthentikUsersController < AdminController
 
   def push_to_authentik
     unless @authentik_user.user
-      redirect_to @authentik_user, alert: 'No linked user to push.'
+      redirect_to @authentik_user, alert: 'No linked member to push.'
       return
     end
 

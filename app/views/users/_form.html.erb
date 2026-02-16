@@ -94,10 +94,24 @@
           { class: "form-select" } %>
     </div>
 
-    <div class="form-check">
-      <%= f.check_box :active, class: "form-check-input" %>
-      <%= f.label :active, "Active member", class: "form-check-label" %>
-    </div>
+    <% if @user.service_account? %>
+      <div class="form-check">
+        <%= f.check_box :active, class: "form-check-input" %>
+        <%= f.label :active, "Active", class: "form-check-label" %>
+      </div>
+    <% else %>
+      <div>
+        <label class="form-label">Active Status</label>
+        <div>
+          <% if @user.active? %>
+            <span class="badge text-bg-success">Active</span>
+          <% else %>
+            <span class="badge text-bg-secondary">Inactive</span>
+          <% end %>
+          <span class="form-text ms-2">Determined automatically by membership and dues status.</span>
+        </div>
+      </div>
+    <% end %>
 
     <div>
       <%= f.label :payment_type, class: "form-label" %>

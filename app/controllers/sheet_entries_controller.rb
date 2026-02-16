@@ -945,7 +945,7 @@ class SheetEntriesController < AdminController
     else
       # Multiple matches - can't determine which one to link to
       redirect_to sheet_entry_path(@sheet_entry),
-                  alert: 'Multiple users match this sheet entry. Cannot automatically sync.'
+                  alert: 'Multiple members match this sheet entry. Cannot automatically sync.'
       return
     end
 

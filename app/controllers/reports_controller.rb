@@ -12,11 +12,47 @@ class ReportsController < AdminController
     @dues_status_unknown_count = User.where(dues_status: 'unknown', active: true).count
     @dues_status_lapsed = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name.limit(LIMIT)
     @dues_status_lapsed_count = User.where(dues_status: 'lapsed', active: true).count
-    
+
+    # Lapsed members with access after lapse
+    prepare_lapsed_with_access(limit: LIMIT)
+
     # Prepare chart data
     prepare_chart_data
   end
   
+  def prepare_lapsed_with_access(limit: nil)
+    # Find members whose dues have lapsed and who have access log entries after their last payment
+    lapsed_users = User.where(dues_status: 'lapsed')
+                       .where.not(membership_status: %w[banned deceased])
+                       .non_service_accounts
+                       .non_legacy
+                       .includes(:access_logs)
+
+    @lapsed_with_access = []
+
+    lapsed_users.find_each do |user|
+      last_payment = user.most_recent_payment_date
+      next unless last_payment.present?
+
+      # Find access logs after the last payment date
+      accesses_after_lapse = user.access_logs.where('logged_at > ?', last_payment.end_of_day).order(logged_at: :desc)
+      next unless accesses_after_lapse.exists?
+
+      @lapsed_with_access << {
+        user: user,
+        last_payment_date: last_payment,
+        access_count: accesses_after_lapse.count,
+        most_recent_access: accesses_after_lapse.first,
+        recent_accesses: accesses_after_lapse.limit(5)
+      }
+    end
+
+    # Sort by most recent access descending
+    @lapsed_with_access.sort_by! { |entry| entry[:most_recent_access].logged_at }.reverse!
+    @lapsed_with_access_count = @lapsed_with_access.size
+    @lapsed_with_access = @lapsed_with_access.first(limit) if limit
+  end
+
   def prepare_chart_data
     # Active members per month
     # Count users who have activity (payments) in or before each month and are currently active
@@ -119,6 +155,11 @@ class ReportsController < AdminController
     when 'dues-status-lapsed'
       @users = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name
       @title = 'Dues Status: Lapsed'
+    when 'lapsed-with-access'
+      prepare_lapsed_with_access
+      @title = 'Lapsed Members with Access'
+      render 'reports/lapsed_with_access_full'
+      return
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return

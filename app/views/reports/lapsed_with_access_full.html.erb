@@ -1,0 +1,24 @@
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h1 class="h3 mb-1"><%= @title %></h1>
+      <p class="text-muted mb-0">Members whose dues have lapsed but who have accessed the space after their last payment.</p>
+    </div>
+    <div>
+      <%= link_to "&larr; Back to Reports".html_safe, reports_path(tab: 'lapsed-with-access'), class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0">Lapsed Members with Access (<%= @lapsed_with_access_count %>)</h2>
+  </div>
+  <div class="card-body">
+    <% if @lapsed_with_access.any? %>
+      <%= render partial: 'lapsed_access_table', locals: { entries: @lapsed_with_access } %>
+    <% else %>
+      <p class="text-muted mb-0">No lapsed members with access records after their lapse.</p>
+    <% end %>
+  </div>
+</div>

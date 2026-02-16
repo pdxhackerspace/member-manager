@@ -29,7 +29,8 @@ class UsersController < AuthenticatedController
     member_users = default_users.non_service_accounts
 
     # Membership status counts (non-service accounts only)
-    @membership_status_unknown = member_users.where(membership_status: 'unknown').count
+    # Exclude is_sponsored members from "unknown" — they have a known status
+    @membership_status_unknown = member_users.where(membership_status: 'unknown', is_sponsored: false).count
     @membership_status_sponsored = member_users.where(membership_status: 'sponsored').count
     @membership_status_paying = member_users.where(membership_status: 'paying').count
     @membership_status_banned = member_users.where(membership_status: 'banned').count
@@ -46,7 +47,11 @@ class UsersController < AuthenticatedController
     # Payment plan counts (non-service accounts only)
     @membership_plans = MembershipPlan.ordered.to_a
     @plan_counts = @membership_plans.map { |plan| [plan, member_users.where(membership_plan_id: plan.id).count] }
-    @no_plan_count = member_users.where(membership_plan_id: nil).count
+    # Exclude guests and sponsored from "No Plan" — they aren't expected to have one
+    @no_plan_count = member_users.where(membership_plan_id: nil)
+                                 .where.not(membership_status: %w[guest sponsored])
+                                 .where(is_sponsored: false)
+                                 .count
 
     # Dues status counts (non-service accounts only)
     @dues_status_current = member_users.where(dues_status: 'current').count

@@ -31,6 +31,8 @@ Rails.application.routes.draw do
       post :deactivate
       post :ban
       post :mark_deceased
+      post :mark_sponsored
+      post :unmark_sponsored
       post :sync_to_authentik
       post :sync_from_authentik
       post :mark_help_seen

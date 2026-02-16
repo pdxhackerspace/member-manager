@@ -51,7 +51,8 @@ class LegacyMarker
     # Skip active paying members
     return false if user.membership_status == 'paying' && user.dues_status == 'current'
 
-    # Skip sponsored members (check both membership status and payment type)
+    # Skip sponsored members (check flag, membership status, and payment type)
+    return false if user.is_sponsored?
     return false if user.membership_status == 'sponsored'
     return false if user.payment_type == 'sponsored'
 

@@ -580,8 +580,8 @@ class MembershipCleanup
     all_payments = collect_payments(user)
     latest = all_payments.last
 
-    # 1. Sponsored users — always active
-    if user.membership_status == 'sponsored' || user.sheet_entry&.status.to_s.downcase.include?('sponsored')
+    # 1. Sponsored users — always active (check is_sponsored flag, membership_status, or sheet entry)
+    if user.is_sponsored? || user.membership_status == 'sponsored' || user.sheet_entry&.status.to_s.downcase.include?('sponsored')
       if user.membership_status != 'sponsored' || user.payment_type != 'sponsored' || user.dues_status != 'current'
         apply(user, membership_status: 'sponsored', payment_type: 'sponsored', dues_status: 'current')
         actions << "set sponsored/active"

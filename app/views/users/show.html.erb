@@ -99,6 +99,16 @@
       <% end %>
       
       <% unless @user.service_account? %>
+        <% if @user.is_sponsored? %>
+          <%= button_to "Remove Sponsorship", unmark_sponsored_user_path(@user), method: :post, class: "btn btn-outline-warning",
+              data: { turbo: false, confirm_message: "Are you sure you want to remove sponsorship from #{@user.display_name}?" },
+              onclick: "return confirm(this.dataset.confirmMessage);" %>
+        <% else %>
+          <%= button_to "Sponsor", mark_sponsored_user_path(@user), method: :post, class: "btn btn-outline-primary",
+              data: { turbo: false, confirm_message: "Are you sure you want to mark #{@user.display_name} as sponsored?" },
+              onclick: "return confirm(this.dataset.confirmMessage);" %>
+        <% end %>
+
         <%= button_to "Ban", ban_user_path(@user), method: :post, class: "btn btn-outline-danger", 
             data: { turbo: false, confirm_message: "Are you sure you want to ban #{@user.display_name}?" },
             onclick: "return confirm(this.dataset.confirmMessage);" %>

@@ -9,8 +9,15 @@
       </div>
     <% end %>
 
-    <%# Legacy Badge %>
-    <% if user.legacy? %>
+    <%# Sponsored Badge - visible to everyone %>
+    <% if user.is_sponsored? %>
+      <div class="mb-3">
+        <span class="badge text-bg-primary fs-6"><i class="bi bi-heart-fill me-1"></i>Sponsored</span>
+      </div>
+    <% end %>
+
+    <%# Legacy Badge - admin only %>
+    <% if user.legacy? && current_user_admin? %>
       <div class="mb-3">
         <span class="badge text-bg-secondary fs-6"><i class="bi bi-archive me-1"></i>Legacy Member</span>
       </div>
@@ -53,17 +60,14 @@
     <%# Membership Details - hidden for service accounts %>
     <div class="text-start">
       <% unless user.service_account? %>
-        <% if user.membership_status == 'sponsored' %>
+        <% sponsored_no_payment = user.is_sponsored? && user.payment_type.in?(%w[unknown sponsored inactive]) && user.membership_plan.blank? && user.supplementary_plans.empty? %>
+
+        <% unless sponsored_no_payment %>
           <div class="mb-3">
-            <small class="text-muted d-block">Sponsorship</small>
-            <span class="badge text-bg-primary fs-6">Sponsored</span>
+            <small class="text-muted d-block">Payment Type</small>
+            <span class="badge text-bg-info fs-6"><%= user.payment_type.humanize %></span>
           </div>
         <% end %>
-
-        <div class="mb-3">
-          <small class="text-muted d-block">Payment Type</small>
-          <span class="badge text-bg-info fs-6"><%= user.payment_type.humanize %></span>
-        </div>
 
         <% if user.membership_plan.present? || user.supplementary_plans.any? %>
           <div class="mb-3">

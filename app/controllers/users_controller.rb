@@ -1,7 +1,7 @@
 class UsersController < AuthenticatedController
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
-  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :destroy, :sync_to_authentik, :sync_from_authentik, :mark_help_seen]
+  before_action :set_user, only: [:edit, :update, :activate, :deactivate, :ban, :mark_deceased, :mark_sponsored, :unmark_sponsored, :destroy, :sync_to_authentik, :sync_from_authentik, :mark_help_seen]
   before_action :require_admin!, except: [:show, :edit, :update, :mark_help_seen]
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: [:edit, :update]
@@ -279,6 +279,16 @@ class UsersController < AuthenticatedController
   def mark_deceased
     @user.update!(membership_status: 'deceased')
     redirect_to user_path(@user), notice: 'Member marked as deceased.'
+  end
+
+  def mark_sponsored
+    @user.update!(is_sponsored: true)
+    redirect_to user_path(@user), notice: 'Member marked as sponsored.'
+  end
+
+  def unmark_sponsored
+    @user.update!(is_sponsored: false)
+    redirect_to user_path(@user), notice: 'Member sponsorship removed.'
   end
 
   def destroy

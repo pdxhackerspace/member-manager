@@ -69,6 +69,7 @@ class User < ApplicationRecord
   scope :non_service_accounts, -> { where(service_account: false) }
   scope :legacy, -> { where(legacy: true) }
   scope :non_legacy, -> { where(legacy: false) }
+  scope :is_sponsored, -> { where(is_sponsored: true) }
   scope :authentik_dirty, -> { where(authentik_dirty: true) }
   scope :with_attribute, ->(key, value) { where('authentik_attributes ->> ? = ?', key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {
@@ -543,8 +544,15 @@ class User < ApplicationRecord
 
   # For non-service accounts, compute `active` from membership_status and dues_status.
   # Service accounts manage their own active flag manually.
+  # Sponsored accounts (via the sponsored flag) are always active.
   def compute_active_status
     return if service_account?
+
+    # Sponsored flag overrides everything — always active
+    if is_sponsored?
+      self.active = true
+      return
+    end
 
     self.active = case membership_status
                   when 'banned', 'deceased'

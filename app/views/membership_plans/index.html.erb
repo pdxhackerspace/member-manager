@@ -109,6 +109,9 @@
                   <% unless plan.visible? %>
                     <span class="badge text-bg-dark">Hidden</span>
                   <% end %>
+                  <% unless plan.has_payment_link? %>
+                    <span class="badge text-bg-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>No Payment Link</span>
+                  <% end %>
                   <span class="text-muted small">#<%= plan.display_order %></span>
                 </div>
               </button>
@@ -139,7 +142,7 @@
                         <% if plan.payment_link.present? %>
                           <%= link_to truncate(plan.payment_link, length: 40), plan.payment_link, target: "_blank", rel: "noopener" %>
                         <% else %>
-                          <span class="text-muted fst-italic">Not set</span>
+                          <span class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Not set</span>
                         <% end %>
                       </dd>
 

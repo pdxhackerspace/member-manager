@@ -67,7 +67,7 @@ class Journal < ApplicationRecord
   private
 
   def determine_highlight
-    # Skip if already explicitly set to true
+    # Skip if already explicitly set to true (e.g., incident reports)
     return if highlight?
 
     self.highlight = should_highlight?

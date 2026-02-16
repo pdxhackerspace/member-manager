@@ -299,7 +299,7 @@ module Authentik
           }
         },
         changed_at: Time.current,
-        highlight: true
+        highlight: false
       )
     end
   end

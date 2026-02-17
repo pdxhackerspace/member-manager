@@ -16,6 +16,17 @@ class ReportsController < AdminController
     # Lapsed members with access after lapse
     prepare_lapsed_with_access(limit: LIMIT)
 
+    # Sponsored members who are also paying
+    @sponsored_and_paying = User.where(is_sponsored: true, membership_status: 'paying')
+                                 .non_service_accounts
+                                 .non_legacy
+                                 .ordered_by_display_name
+                                 .limit(LIMIT)
+    @sponsored_and_paying_count = User.where(is_sponsored: true, membership_status: 'paying')
+                                      .non_service_accounts
+                                      .non_legacy
+                                      .count
+
     # Active members with no email
     @no_email = User.where(email: [nil, ''])
                      .where(membership_status: %w[paying sponsored guest])
@@ -180,6 +191,12 @@ class ReportsController < AdminController
                     .non_legacy
                     .ordered_by_display_name
       @title = 'Members with No Email'
+    when 'sponsored-and-paying'
+      @users = User.where(is_sponsored: true, membership_status: 'paying')
+                    .non_service_accounts
+                    .non_legacy
+                    .ordered_by_display_name
+      @title = 'Sponsored & Paying Members'
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return

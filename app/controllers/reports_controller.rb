@@ -40,6 +40,14 @@ class ReportsController < AdminController
                           .non_legacy
                           .count
 
+    # Paying members with no access log entries
+    no_access_scope = User.where(membership_status: 'paying')
+                          .non_service_accounts
+                          .non_legacy
+                          .where.not(id: AccessLog.where.not(user_id: nil).select(:user_id))
+    @no_access = no_access_scope.ordered_by_display_name.limit(LIMIT)
+    @no_access_count = no_access_scope.count
+
     # Prepare chart data
     prepare_chart_data
   end
@@ -197,6 +205,13 @@ class ReportsController < AdminController
                     .non_legacy
                     .ordered_by_display_name
       @title = 'Sponsored & Paying Members'
+    when 'no-access'
+      @users = User.where(membership_status: 'paying')
+                    .non_service_accounts
+                    .non_legacy
+                    .where.not(id: AccessLog.where.not(user_id: nil).select(:user_id))
+                    .ordered_by_display_name
+      @title = 'Paying Members with No Access Records'
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return

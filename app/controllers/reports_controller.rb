@@ -40,13 +40,16 @@ class ReportsController < AdminController
                           .non_legacy
                           .count
 
-    # Paying members with no access log entries
-    no_access_scope = User.where(membership_status: 'paying')
-                          .non_service_accounts
-                          .non_legacy
-                          .where.not(id: AccessLog.where.not(user_id: nil).select(:user_id))
-    @no_access = no_access_scope.ordered_by_display_name.limit(LIMIT)
-    @no_access_count = no_access_scope.count
+    # Paying members with fewer than 3 access log entries
+    few_access_ids = User.where(membership_status: 'paying')
+                         .non_service_accounts
+                         .non_legacy
+                         .left_joins(:access_logs)
+                         .group('users.id')
+                         .having('COUNT(access_logs.id) < 3')
+                         .pluck('users.id')
+    @no_access = User.where(id: few_access_ids).ordered_by_display_name.limit(LIMIT)
+    @no_access_count = few_access_ids.size
 
     # Prepare chart data
     prepare_chart_data
@@ -169,6 +172,50 @@ class ReportsController < AdminController
     @active_members_counts = all_months.map { |m| @active_members_data[m] }
     @paypal_revenue = all_months.map { |m| @revenue_data[:paypal][m] }
     @recharge_revenue = all_months.map { |m| @revenue_data[:recharge][m] }
+
+    # Membership duration distribution for ended memberships
+    ended_members = User.where.not(membership_start_date: nil)
+                        .where.not(membership_ended_date: nil)
+                        .non_service_accounts
+                        .pluck(:membership_start_date, :membership_ended_date)
+
+    @duration_total = ended_members.size
+    duration_months = ended_members.map { |s, e| ((e - s).to_f / 30.44).round }
+
+    buckets = {
+      '< 1 month' => 0,
+      '1-3 months' => 0,
+      '3-6 months' => 0,
+      '6-12 months' => 0,
+      '1-2 years' => 0,
+      '2-3 years' => 0,
+      '3-5 years' => 0,
+      '5+ years' => 0
+    }
+
+    duration_months.each do |m|
+      case m
+      when ...1 then buckets['< 1 month'] += 1
+      when 1...3 then buckets['1-3 months'] += 1
+      when 3...6 then buckets['3-6 months'] += 1
+      when 6...12 then buckets['6-12 months'] += 1
+      when 12...24 then buckets['1-2 years'] += 1
+      when 24...36 then buckets['2-3 years'] += 1
+      when 36...60 then buckets['3-5 years'] += 1
+      else buckets['5+ years'] += 1
+      end
+    end
+
+    @duration_labels = buckets.keys
+    @duration_counts = buckets.values
+
+    if duration_months.any?
+      @duration_median = duration_months.sort[duration_months.size / 2]
+      @duration_avg = (duration_months.sum.to_f / duration_months.size).round(1)
+    else
+      @duration_median = 0
+      @duration_avg = 0
+    end
   end
 
   def view_all
@@ -206,12 +253,15 @@ class ReportsController < AdminController
                     .ordered_by_display_name
       @title = 'Sponsored & Paying Members'
     when 'no-access'
-      @users = User.where(membership_status: 'paying')
-                    .non_service_accounts
-                    .non_legacy
-                    .where.not(id: AccessLog.where.not(user_id: nil).select(:user_id))
-                    .ordered_by_display_name
-      @title = 'Paying Members with No Access Records'
+      few_access_ids = User.where(membership_status: 'paying')
+                           .non_service_accounts
+                           .non_legacy
+                           .left_joins(:access_logs)
+                           .group('users.id')
+                           .having('COUNT(access_logs.id) < 3')
+                           .pluck('users.id')
+      @users = User.where(id: few_access_ids).ordered_by_display_name
+      @title = 'Paying Members with Few Access Records'
     else
       redirect_to reports_path, alert: 'Invalid report type.'
       return

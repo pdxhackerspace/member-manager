@@ -498,8 +498,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-  // Update URL when tab changes
-  document.addEventListener('DOMContentLoaded', function() {
+  var _reportCharts = {};
+
+  function destroyCharts() {
+    Object.keys(_reportCharts).forEach(function(key) {
+      if (_reportCharts[key]) { _reportCharts[key].destroy(); }
+    });
+    _reportCharts = {};
+  }
+
+  function setupReportsPage() {
+    destroyCharts();
+
     const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
     tabButtons.forEach(function(button) {
       button.addEventListener('shown.bs.tab', function(event) {
@@ -507,28 +517,23 @@
         const url = new URL(window.location);
         url.searchParams.set('tab', tabId);
         window.history.pushState({}, '', url);
-        
-        // Initialize charts when charts tab is shown
+
         if (tabId === 'charts') {
           initializeCharts();
         }
       });
     });
-    
-    // Set active tab from URL parameter
+
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab') || 'charts';
     const tabButton = document.querySelector('[data-bs-target="#' + tabParam + '-pane"]');
     if (tabButton) {
       const tab = new bootstrap.Tab(tabButton);
       tab.show();
-      
-      // Initialize charts if charts tab is active
       if (tabParam === 'charts') {
         setTimeout(initializeCharts, 100);
       }
     } else {
-      // Default to charts tab
       const chartsTab = document.querySelector('[data-bs-target="#charts-pane"]');
       if (chartsTab) {
         const tab = new bootstrap.Tab(chartsTab);
@@ -536,13 +541,18 @@
         setTimeout(initializeCharts, 100);
       }
     }
-  });
-  
+  }
+
+  document.addEventListener('DOMContentLoaded', setupReportsPage);
+  document.addEventListener('turbo:load', setupReportsPage);
+
   function initializeCharts() {
+    destroyCharts();
+
     // Active Members Chart
     const activeMembersCtx = document.getElementById('activeMembersChart');
     if (activeMembersCtx && typeof Chart !== 'undefined') {
-      new Chart(activeMembersCtx, {
+      _reportCharts.activeMembers = new Chart(activeMembersCtx, {
         type: 'line',
         data: {
           labels: <%= raw @chart_months.to_json %>,
@@ -583,7 +593,7 @@
     // Revenue Chart
     const revenueCtx = document.getElementById('revenueChart');
     if (revenueCtx && typeof Chart !== 'undefined') {
-      new Chart(revenueCtx, {
+      _reportCharts.revenue = new Chart(revenueCtx, {
         type: 'bar',
         data: {
           labels: <%= raw @chart_months.to_json %>,
@@ -642,7 +652,7 @@
     // Membership Duration Chart
     const durationCtx = document.getElementById('durationChart');
     if (durationCtx && typeof Chart !== 'undefined') {
-      new Chart(durationCtx, {
+      _reportCharts.duration = new Chart(durationCtx, {
         type: 'bar',
         data: {
           labels: <%= raw @duration_labels.to_json %>,

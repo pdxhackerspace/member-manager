@@ -88,9 +88,10 @@ module Authentik
         return { status: 'error', error: e.message }
       end
 
-      # Get desired members (only those with Authentik IDs)
+      # Get desired members (only those with valid numeric Authentik IDs)
       desired_members = application_group.syncable_members
-      desired_user_pks = desired_members.pluck(:authentik_id).map(&:to_i)
+      desired_user_pks = desired_members.pluck(:authentik_id)
+                                         .filter_map { |id| id.to_i if id.present? && id.to_s.match?(/\A\d+\z/) && id.to_i > 0 }
 
       # Calculate differences
       to_add = desired_user_pks - current_user_pks

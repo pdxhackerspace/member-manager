@@ -75,7 +75,7 @@
                 <%= group.note.presence || content_tag(:span, "No note", class: "text-muted fst-italic") %>
               </td>
               <td>
-                <span class="badge text-bg-info"><%= group.users.count %> users</span>
+                <span class="badge text-bg-info"><%= group.effective_members.count %> members</span>
               </td>
               <td>
                 <%= link_to "Manage", application_application_group_path(@application, group), class: "btn btn-sm btn-outline-primary" %>

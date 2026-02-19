@@ -12,7 +12,8 @@
   <div class="row g-3">
     <div class="col-md-6">
       <%= f.label :user_id, "Member", class: "form-label" %>
-      <% users_with_personal_plans = User.joins(:personal_membership_plans).distinct.ordered_by_display_name %>
+      <% user_ids_with_plans = MembershipPlan.personal.select(:user_id).distinct %>
+      <% users_with_personal_plans = User.where(id: user_ids_with_plans).ordered_by_display_name %>
       <%= f.select :user_id,
           options_from_collection_for_select(users_with_personal_plans, :id, :display_name, cash_payment.user_id),
           { prompt: "Select a member" },

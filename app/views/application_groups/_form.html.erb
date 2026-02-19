@@ -11,13 +11,13 @@
 
   <div class="mb-3">
     <%= f.label :name, class: "form-label" %>
-    <%= f.text_field :name, class: "form-control", required: true %>
+    <%= f.text_field :name, class: "form-control", required: true, id: "application_group_name" %>
   </div>
 
   <div class="mb-3">
     <%= f.label :authentik_name, "Authentik Group Name", class: "form-label" %>
     <%= f.text_field :authentik_name, class: "form-control", required: true, id: "application_group_authentik_name" %>
-    <div class="form-text">The name of this group in Authentik.</div>
+    <div class="form-text">The name of this group in Authentik. Auto-generated from the Name field above.</div>
   </div>
 
   <h5 class="mt-4 mb-3">Group Members</h5>
@@ -106,31 +106,20 @@
   const syncGroupWrapper = document.getElementById('sync_group_select_wrapper');
   const syncGroupCombined = document.getElementById('sync_group_combined');
   const trainingTopicWrapper = document.getElementById('training_topic_wrapper');
-  const trainingTopicSelect = document.getElementById('application_group_training_topic_id');
+  const nameField = document.getElementById('application_group_name');
   const authentikNameField = document.getElementById('application_group_authentik_name');
   const resolvedSyncGroupId = document.getElementById('resolved_sync_with_group_id');
 
-  if (!radios.length || !authentikNameField) return;
+  if (!radios.length || !authentikNameField || !nameField) return;
 
-  const originalAuthentikName = authentikNameField.value || '';
-  const defaultSettings = {
-    activeMembersGroup: '<%= @default_settings.active_members_group %>',
-    adminsGroup: '<%= @default_settings.admins_group %>',
-    unbannedMembersGroup: '<%= @default_settings.unbanned_members_group %>',
-    allMembersGroup: '<%= @default_settings.all_members_group %>',
-    trainedOnPrefix: '<%= @default_settings.trained_on_prefix %>',
-    canTrainPrefix: '<%= @default_settings.can_train_prefix %>'
-  };
+  // Extract prefix: everything up to and including the last colon
+  const initialValue = authentikNameField.value || '';
+  const lastColon = initialValue.lastIndexOf(':');
+  const prefix = lastColon >= 0 ? initialValue.substring(0, lastColon + 1) : initialValue;
 
-  const trainingTopics = {};
-  <% @training_topics.each do |topic| %>
-    trainingTopics['<%= topic.id %>'] = '<%= topic.name.downcase.gsub(/\s+/, "-") %>';
-  <% end %>
-
-  const syncGroupNames = {};
-  <% @syncable_groups.each do |group| %>
-    syncGroupNames['<%= group.id %>'] = '<%= j(group.authentik_name) %>';
-  <% end %>
+  function slugify(text) {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
 
   function getSelectedSource() {
     for (const r of radios) {
@@ -139,51 +128,28 @@
     return 'manual';
   }
 
-  function update() {
-    const source = getSelectedSource();
+  function updateAuthentikName() {
+    var slug = slugify(nameField.value);
+    authentikNameField.value = slug ? prefix + slug : prefix;
+  }
 
+  function updateVisibility() {
+    const source = getSelectedSource();
     syncGroupWrapper.style.display = (source === 'sync_group') ? 'block' : 'none';
     trainingTopicWrapper.style.display = (source === 'can_train' || source === 'trained_in') ? 'block' : 'none';
 
     resolvedSyncGroupId.value = '';
-
     if (source === 'sync_group') {
       const combined = syncGroupCombined.value;
-      if (combined === 'active_members') {
-        authentikNameField.value = defaultSettings.activeMembersGroup;
-      } else if (combined === 'admin_members') {
-        authentikNameField.value = defaultSettings.adminsGroup;
-      } else if (combined === 'unbanned_members') {
-        authentikNameField.value = defaultSettings.unbannedMembersGroup;
-      } else if (combined === 'all_members') {
-        authentikNameField.value = defaultSettings.allMembersGroup;
-      } else if (combined.startsWith('sync_group:')) {
-        const groupId = combined.split(':')[1];
-        resolvedSyncGroupId.value = groupId;
-        if (syncGroupNames[groupId]) {
-          authentikNameField.value = syncGroupNames[groupId];
-        }
-      } else {
-        authentikNameField.value = originalAuthentikName;
+      if (combined.startsWith('sync_group:')) {
+        resolvedSyncGroupId.value = combined.split(':')[1];
       }
-    } else if (source === 'can_train' && trainingTopicSelect.value) {
-      const slug = trainingTopics[trainingTopicSelect.value];
-      if (slug) authentikNameField.value = defaultSettings.canTrainPrefix + ':' + slug;
-    } else if (source === 'trained_in' && trainingTopicSelect.value) {
-      const slug = trainingTopics[trainingTopicSelect.value];
-      if (slug) authentikNameField.value = defaultSettings.trainedOnPrefix + ':' + slug;
-    } else if (source === 'active_members') {
-      authentikNameField.value = defaultSettings.activeMembersGroup;
-    } else if (source === 'admin_members') {
-      authentikNameField.value = defaultSettings.adminsGroup;
-    } else {
-      authentikNameField.value = originalAuthentikName;
     }
   }
 
-  radios.forEach(function(r) { r.addEventListener('change', update); });
-  if (syncGroupCombined) syncGroupCombined.addEventListener('change', update);
-  if (trainingTopicSelect) trainingTopicSelect.addEventListener('change', update);
+  nameField.addEventListener('input', updateAuthentikName);
+  radios.forEach(function(r) { r.addEventListener('change', updateVisibility); });
+  if (syncGroupCombined) syncGroupCombined.addEventListener('change', updateVisibility);
 
   // Handle form submission: resolve combined select into proper member_source
   const form = document.querySelector('form');
@@ -193,7 +159,6 @@
       if (source === 'sync_group') {
         const combined = syncGroupCombined.value;
         if (['active_members', 'admin_members', 'unbanned_members', 'all_members'].includes(combined)) {
-          // Override the radio value to the specific source
           const hiddenSource = document.createElement('input');
           hiddenSource.type = 'hidden';
           hiddenSource.name = 'application_group[member_source]';

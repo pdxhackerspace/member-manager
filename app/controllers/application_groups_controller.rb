@@ -21,7 +21,6 @@ class ApplicationGroupsController < AdminController
   def create
     @application_group = @application.application_groups.build(application_group_params)
     resolve_sync_group_combined(@application_group)
-    set_authentik_name_from_source(@application_group)
 
     if @application_group.save
       sync_result = sync_group_to_authentik(@application_group)
@@ -37,7 +36,6 @@ class ApplicationGroupsController < AdminController
   def update
     @application_group.assign_attributes(application_group_params)
     resolve_sync_group_combined(@application_group)
-    set_authentik_name_from_source(@application_group)
 
     if @application_group.save
       sync_result = sync_group_to_authentik(@application_group)
@@ -159,35 +157,6 @@ class ApplicationGroupsController < AdminController
   def set_default_authentik_name
     prefix = @application.authentik_prefix.presence || DefaultSetting.instance.app_prefix
     @application_group.authentik_name = "#{prefix}:"
-  end
-
-  def set_authentik_name_from_source(group)
-    defaults = DefaultSetting.instance
-
-    case group.member_source
-    when 'active_members'
-      group.authentik_name = defaults.active_members_group
-    when 'admin_members'
-      group.authentik_name = defaults.admins_group
-    when 'unbanned_members'
-      group.authentik_name = defaults.unbanned_members_group
-    when 'all_members'
-      group.authentik_name = defaults.all_members_group
-    when 'sync_group'
-      if group.sync_with_group.present?
-        group.authentik_name = group.sync_with_group.authentik_name
-      end
-    when 'can_train'
-      if group.training_topic.present?
-        topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
-        group.authentik_name = "#{defaults.can_train_prefix}:#{topic_slug}"
-      end
-    when 'trained_in'
-      if group.training_topic.present?
-        topic_slug = group.training_topic.name.downcase.gsub(/\s+/, '-')
-        group.authentik_name = "#{defaults.trained_on_prefix}:#{topic_slug}"
-      end
-    end
   end
 
   def sync_group_to_authentik(group)

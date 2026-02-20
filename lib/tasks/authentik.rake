@@ -43,25 +43,18 @@ namespace :authentik do
       puts 'Setting up Authentik expression policies for existing application groups...'
       puts
 
-      groups = ApplicationGroup.where.not(authentik_group_id: [nil, ''])
+      groups = ApplicationGroup.all
       if groups.empty?
-        puts 'No application groups with Authentik group IDs found.'
+        puts 'No application groups found.'
         exit 0
       end
 
       client = Authentik::Client.new
       created = 0
       updated = 0
-      skipped = 0
       errors = 0
 
       groups.find_each do |group|
-        if group.sync_group?
-          puts "  SKIP #{group.name} (syncs with #{group.sync_with_group&.name || 'unknown'}, uses their policy)"
-          skipped += 1
-          next
-        end
-
         policy_name = group.policy_name
         expression = group.policy_expression
 
@@ -87,7 +80,7 @@ namespace :authentik do
       end
 
       puts
-      puts "Done: #{created} created, #{updated} updated, #{skipped} skipped, #{errors} errors."
+      puts "Done: #{created} created, #{updated} updated, #{errors} errors."
     end
 
     desc 'Show current Authentik webhook configuration status'

@@ -72,15 +72,15 @@ class ApplicationGroup < ApplicationRecord
   end
 
   def policy_expression
-    %(return ak_is_group_member(request.user, name="#{authentik_name}"))
+    if sync_group? && sync_with_group.present?
+      %(return ak_is_group_member(request.user, name="#{sync_with_group.authentik_name}"))
+    else
+      %(return ak_is_group_member(request.user, name="#{authentik_name}"))
+    end
   end
 
-  def effective_policy_id
-    if sync_group? && sync_with_group&.authentik_policy_id.present?
-      sync_with_group.authentik_policy_id
-    else
-      authentik_policy_id
-    end
+  def policy_only?
+    %w[sync_group can_train trained_in].include?(member_source)
   end
 
   private

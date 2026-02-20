@@ -76,21 +76,15 @@
 
   <div id="policy_warning" class="alert alert-info mb-3" style="display: none;">
     <i class="bi bi-info-circle me-2"></i>
-    <span id="policy_warning_own">
-      This group will create an Authentik expression policy. Bind this policy to your Authentik application to control access:<br>
-      <code id="policy_name_display" class="fs-6"></code>
-    </span>
-    <span id="policy_warning_synced" style="display: none;">
-      This group syncs with another group and will use that group's expression policy. Bind the synced group's policy to your Authentik application to control access:<br>
-      <code id="synced_policy_name_display" class="fs-6"></code>
-    </span>
+    This will create an Authentik expression policy instead of an Authentik group. Bind this policy to your Authentik application to control access:<br>
+    <code id="policy_name_display" class="fs-6"></code>
   </div>
 
   <%# Hidden fields updated by JS to carry the resolved member_source and sync_with_group_id %>
   <input type="hidden" name="application_group[sync_with_group_id]" id="resolved_sync_with_group_id"
          value="<%= @application_group.sync_with_group_id %>">
 
-  <div class="mb-3">
+  <div id="authentik_group_id_wrapper" class="mb-3" style="display: <%= %w[sync_group can_train trained_in].include?(@application_group.member_source) ? 'none' : 'block' %>;">
     <%= f.label :authentik_group_id, "Authentik Group ID", class: "form-label" %>
     <%= f.text_field :authentik_group_id, class: "form-control font-monospace", placeholder: "e.g., 3c894c72-0757-45aa-ac6d-f1bf220a57ec" %>
     <div class="form-text">Optional. The UUID of this group in Authentik. If set, webhook events for this group will be synced.</div>
@@ -115,6 +109,7 @@
 <script>
 (function() {
   const POLICY_PREFIX = '<%= ApplicationGroup::POLICY_NAME_PREFIX %>';
+  const POLICY_ONLY_SOURCES = ['sync_group', 'can_train', 'trained_in'];
 
   const radios = document.querySelectorAll('.member-source-radio');
   const syncGroupWrapper = document.getElementById('sync_group_select_wrapper');
@@ -124,28 +119,14 @@
   const authentikNameField = document.getElementById('application_group_authentik_name');
   const resolvedSyncGroupId = document.getElementById('resolved_sync_with_group_id');
   const policyWarning = document.getElementById('policy_warning');
-  const policyWarningOwn = document.getElementById('policy_warning_own');
-  const policyWarningSynced = document.getElementById('policy_warning_synced');
   const policyNameDisplay = document.getElementById('policy_name_display');
-  const syncedPolicyNameDisplay = document.getElementById('synced_policy_name_display');
+  const authentikGroupIdWrapper = document.getElementById('authentik_group_id_wrapper');
 
   if (!radios.length || !authentikNameField || !nameField) return;
 
   const initialValue = authentikNameField.value || '';
   const lastColon = initialValue.lastIndexOf(':');
   const prefix = lastColon >= 0 ? initialValue.substring(0, lastColon + 1) : initialValue;
-
-  const syncGroupPolicyNames = {};
-  <% @syncable_groups.each do |group| %>
-    syncGroupPolicyNames['<%= group.id %>'] = '<%= j(group.policy_name) %>';
-  <% end %>
-
-  const builtinGroupPolicyNames = {
-    active_members: POLICY_PREFIX + ':<%= j(@default_settings.active_members_group) %>',
-    admin_members: POLICY_PREFIX + ':<%= j(@default_settings.admins_group) %>',
-    unbanned_members: POLICY_PREFIX + ':<%= j(@default_settings.unbanned_members_group) %>',
-    all_members: POLICY_PREFIX + ':<%= j(@default_settings.all_members_group) %>'
-  };
 
   function slugify(text) {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -158,6 +139,17 @@
     return 'manual';
   }
 
+  function getEffectiveSource() {
+    const source = getSelectedSource();
+    if (source === 'sync_group') {
+      const combined = syncGroupCombined.value;
+      if (['active_members', 'admin_members', 'unbanned_members', 'all_members'].includes(combined)) {
+        return combined;
+      }
+    }
+    return source;
+  }
+
   function updateAuthentikName() {
     var slug = slugify(nameField.value);
     authentikNameField.value = slug ? prefix + slug : prefix;
@@ -165,45 +157,24 @@
   }
 
   function updatePolicyWarning() {
-    const source = getSelectedSource();
-    const isNonManual = source !== 'manual';
+    const effective = getEffectiveSource();
+    const isPolicyOnly = POLICY_ONLY_SOURCES.includes(effective);
 
-    if (!isNonManual) {
-      policyWarning.style.display = 'none';
-      return;
-    }
-
-    policyWarning.style.display = 'block';
-
-    var syncedPolicyName = null;
-
-    if (source === 'sync_group') {
-      const combined = syncGroupCombined.value;
-      if (combined in builtinGroupPolicyNames) {
-        syncedPolicyName = builtinGroupPolicyNames[combined];
-      } else if (combined.startsWith('sync_group:')) {
-        const groupId = combined.split(':')[1];
-        if (syncGroupPolicyNames[groupId]) {
-          syncedPolicyName = syncGroupPolicyNames[groupId];
-        }
-      }
-    }
-
-    if (syncedPolicyName) {
-      policyWarningOwn.style.display = 'none';
-      policyWarningSynced.style.display = '';
-      syncedPolicyNameDisplay.textContent = syncedPolicyName;
-    } else {
-      policyWarningOwn.style.display = '';
-      policyWarningSynced.style.display = 'none';
+    if (isPolicyOnly) {
+      policyWarning.style.display = 'block';
       policyNameDisplay.textContent = POLICY_PREFIX + ':' + authentikNameField.value;
+    } else {
+      policyWarning.style.display = 'none';
     }
   }
 
   function updateVisibility() {
     const source = getSelectedSource();
+    const effective = getEffectiveSource();
+
     syncGroupWrapper.style.display = (source === 'sync_group') ? 'block' : 'none';
     trainingTopicWrapper.style.display = (source === 'can_train' || source === 'trained_in') ? 'block' : 'none';
+    authentikGroupIdWrapper.style.display = POLICY_ONLY_SOURCES.includes(effective) ? 'none' : 'block';
 
     resolvedSyncGroupId.value = '';
     if (source === 'sync_group') {
@@ -221,7 +192,6 @@
   radios.forEach(function(r) { r.addEventListener('change', updateVisibility); });
   if (syncGroupCombined) syncGroupCombined.addEventListener('change', updateVisibility);
 
-  // Handle form submission: resolve combined select into proper member_source
   const form = document.querySelector('form');
   if (form) {
     form.addEventListener('submit', function() {
@@ -240,7 +210,6 @@
     });
   }
 
-  // Initialize on page load
   updateVisibility();
 })();
 </script>

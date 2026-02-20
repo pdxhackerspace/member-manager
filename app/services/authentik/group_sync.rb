@@ -132,8 +132,6 @@ module Authentik
     end
 
     def ensure_expression_policy!
-      return if application_group.sync_group?
-
       policy_name = application_group.policy_name
       expression = application_group.policy_expression
 

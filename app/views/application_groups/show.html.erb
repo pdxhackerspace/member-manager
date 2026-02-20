@@ -38,12 +38,9 @@
 
       <dt class="col-sm-3 text-secondary">Authentik Policy</dt>
       <dd class="col-sm-9">
-        <% policy_id = @application_group.effective_policy_id %>
-        <% if policy_id.present? %>
-          <code><%= policy_id %></code>
-          <% if @application_group.sync_group? %>
-            <span class="badge text-bg-info ms-2">From synced group</span>
-          <% end %>
+        <% if @application_group.authentik_policy_id.present? %>
+          <code><%= @application_group.authentik_policy_id %></code>
+          <div class="form-text"><code><%= @application_group.policy_name %></code></div>
         <% else %>
           <span class="text-muted fst-italic">Not created yet</span>
         <% end %>

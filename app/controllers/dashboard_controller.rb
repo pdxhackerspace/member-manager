@@ -17,6 +17,8 @@ class DashboardController < AdminController
       0
     end
 
+    @queued_mail_count = QueuedMail.pending.count
+
     # Highlighted journal entries from the last 2 weeks
     @recent_highlights = Journal.highlighted
                                 .includes(:user, :actor_user)

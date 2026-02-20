@@ -190,6 +190,14 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :queued_mails, only: [:index, :show, :edit, :update] do
+    member do
+      post :approve
+      post :reject
+      post :regenerate
+    end
+  end
+
   resources :text_fragments, only: [:index, :show, :edit, :update] do
     collection do
       post :seed

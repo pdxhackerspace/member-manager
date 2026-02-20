@@ -1,0 +1,109 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Mail Queue</h1>
+    <p class="text-muted mb-0">Review and approve outgoing mail before it is sent.</p>
+  </div>
+  <div>
+    <%= link_to "Dashboard", root_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<ul class="nav nav-tabs mb-4">
+  <li class="nav-item">
+    <%= link_to queued_mails_path(filter: 'pending'), class: "nav-link #{'active' if @filter == 'pending'}" do %>
+      Pending
+      <% if @pending_count > 0 %>
+        <span class="badge text-bg-warning ms-1"><%= @pending_count %></span>
+      <% end %>
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to queued_mails_path(filter: 'approved'), class: "nav-link #{'active' if @filter == 'approved'}" do %>
+      Approved
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to queued_mails_path(filter: 'rejected'), class: "nav-link #{'active' if @filter == 'rejected'}" do %>
+      Rejected
+    <% end %>
+  </li>
+  <li class="nav-item">
+    <%= link_to queued_mails_path(filter: 'all'), class: "nav-link #{'active' if @filter == 'all'}" do %>
+      All
+    <% end %>
+  </li>
+</ul>
+
+<% if @queued_mails.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>To</th>
+            <th>Subject</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @queued_mails.each do |qm| %>
+            <tr class="<%= 'table-success' if qm.approved? %><%= 'table-secondary' if qm.rejected? %>">
+              <td>
+                <div class="fw-semibold"><%= qm.to %></div>
+                <% if qm.recipient %>
+                  <div class="text-muted small"><%= link_to qm.recipient.display_name, user_path(qm.recipient), class: "text-decoration-none" %></div>
+                <% end %>
+              </td>
+              <td>
+                <span class="text-truncate d-inline-block" style="max-width: 250px;">
+                  <%= qm.subject %>
+                </span>
+              </td>
+              <td class="text-muted small"><%= qm.reason %></td>
+              <td>
+                <% case qm.status %>
+                <% when 'pending' %>
+                  <span class="badge text-bg-warning">Pending</span>
+                <% when 'approved' %>
+                  <span class="badge text-bg-success">Approved</span>
+                <% when 'rejected' %>
+                  <span class="badge text-bg-secondary">Rejected</span>
+                <% end %>
+              </td>
+              <td class="text-muted small"><%= time_ago_in_words(qm.created_at) %> ago</td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <%= link_to "View", queued_mail_path(qm), class: "btn btn-outline-primary" %>
+                  <% if qm.pending? %>
+                    <%= button_to "Approve", approve_queued_mail_path(qm), method: :post,
+                        class: "btn btn-outline-success",
+                        data: { turbo_confirm: "Send this email to #{qm.to}?" } %>
+                    <%= button_to "Reject", reject_queued_mail_path(qm), method: :post,
+                        class: "btn btn-outline-danger",
+                        data: { turbo_confirm: "Reject this email?" } %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% else %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-envelope-check display-4 mb-3 d-block text-muted opacity-25"></i>
+      <p class="text-muted mb-0">
+        <% if @filter == 'pending' %>
+          No pending messages. The queue is empty.
+        <% else %>
+          No <%= @filter %> messages found.
+        <% end %>
+      </p>
+    </div>
+  </div>
+<% end %>

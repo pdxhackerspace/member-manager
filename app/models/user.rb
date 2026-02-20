@@ -417,6 +417,7 @@ class User < ApplicationRecord
   after_update_commit :journal_updated!
   after_update_commit :sync_to_authentik_if_needed
   after_update_commit :sync_application_group_memberships_on_update
+  after_update_commit :queue_lapsed_email_if_needed
 
   private
 
@@ -696,5 +697,13 @@ class User < ApplicationRecord
 
     sources << 'all_members'
     Authentik::ApplicationGroupMembershipSyncJob.perform_later(sources.uniq)
+  end
+
+  def queue_lapsed_email_if_needed
+    return unless saved_change_to_dues_status?
+    return unless dues_status == 'lapsed'
+    return if email.blank?
+
+    QueuedMail.enqueue(:membership_lapsed, self, reason: "Membership dues lapsed for #{display_name}")
   end
 end

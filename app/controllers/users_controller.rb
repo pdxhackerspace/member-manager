@@ -278,6 +278,7 @@ class UsersController < AuthenticatedController
 
   def ban
     @user.update!(membership_status: 'banned')
+    QueuedMail.enqueue(:membership_banned, @user, reason: "Member banned") if @user.email.present?
     redirect_to user_path(@user), notice: 'Member banned.'
   end
 
@@ -288,6 +289,7 @@ class UsersController < AuthenticatedController
 
   def mark_sponsored
     @user.update!(is_sponsored: true)
+    QueuedMail.enqueue(:membership_sponsored, @user, reason: "Membership sponsored") if @user.email.present?
     redirect_to user_path(@user), notice: 'Member marked as sponsored.'
   end
 

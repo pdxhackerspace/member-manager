@@ -1,0 +1,34 @@
+pending_mail:
+  to: user1@example.com
+  subject: "Test Org: Application Received"
+  body_html: "<h1>Application Received</h1><p>Hello Example User One</p>"
+  body_text: "Application Received\n\nHello Example User One"
+  reason: Application received for Example User One
+  mailer_action: application_received
+  recipient: one
+  status: pending
+
+approved_mail:
+  to: user2@example.com
+  subject: "Test Org: Application Approved"
+  body_html: "<h1>Application Approved</h1><p>Hello Example User Two</p>"
+  body_text: "Application Approved\n\nHello Example User Two"
+  reason: Application approved for Example User Two
+  mailer_action: application_approved
+  recipient: two
+  status: approved
+  reviewed_by: one
+  reviewed_at: 2026-02-18 10:00:00
+  sent_at: 2026-02-18 10:00:01
+
+rejected_mail:
+  to: beta@example.com
+  subject: "Test Org: Payment Reminder"
+  body_html: "<h1>Payment Reminder</h1>"
+  body_text: "Payment Reminder"
+  reason: Payment past due
+  mailer_action: payment_past_due
+  recipient: three
+  status: rejected
+  reviewed_by: one
+  reviewed_at: 2026-02-18 11:00:00

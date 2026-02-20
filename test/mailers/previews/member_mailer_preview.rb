@@ -30,6 +30,16 @@ class MemberMailerPreview < ActionMailer::Preview
     MemberMailer.membership_banned(user, reason: "Violation of Code of Conduct")
   end
 
+  def membership_lapsed
+    user = User.first || sample_user
+    MemberMailer.membership_lapsed(user)
+  end
+
+  def membership_sponsored
+    user = User.first || sample_user
+    MemberMailer.membership_sponsored(user)
+  end
+
   # Preview at http://localhost:3000/rails/mailers/member_mailer/admin_new_application
   def admin_new_application
     user = User.first || sample_user

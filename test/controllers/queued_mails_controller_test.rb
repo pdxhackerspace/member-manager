@@ -1,0 +1,143 @@
+require 'test_helper'
+
+class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    sign_in_as_local_admin
+    @pending = queued_mails(:pending_mail)
+    @approved = queued_mails(:approved_mail)
+  end
+
+  # ─── Index ────────────────────────────────────────────────────────
+
+  test 'shows index with pending filter by default' do
+    get queued_mails_path
+    assert_response :success
+    assert_select 'h1', /Mail Queue/
+  end
+
+  test 'shows index with approved filter' do
+    get queued_mails_path(filter: 'approved')
+    assert_response :success
+  end
+
+  test 'shows index with rejected filter' do
+    get queued_mails_path(filter: 'rejected')
+    assert_response :success
+  end
+
+  test 'shows index with all filter' do
+    get queued_mails_path(filter: 'all')
+    assert_response :success
+  end
+
+  # ─── Show ─────────────────────────────────────────────────────────
+
+  test 'shows queued mail' do
+    get queued_mail_path(@pending)
+    assert_response :success
+    assert_match @pending.subject, response.body
+    assert_match @pending.to, response.body
+  end
+
+  # ─── Edit ─────────────────────────────────────────────────────────
+
+  test 'shows edit form for pending mail' do
+    get edit_queued_mail_path(@pending)
+    assert_response :success
+    assert_select 'form'
+  end
+
+  test 'redirects edit for non-pending mail' do
+    get edit_queued_mail_path(@approved)
+    assert_redirected_to queued_mail_path(@approved)
+  end
+
+  # ─── Update ───────────────────────────────────────────────────────
+
+  test 'updates pending mail' do
+    patch queued_mail_path(@pending), params: {
+      queued_mail: {
+        subject: 'Updated Subject',
+        body_html: '<p>Updated body</p>'
+      }
+    }
+    assert_redirected_to queued_mail_path(@pending)
+    @pending.reload
+    assert_equal 'Updated Subject', @pending.subject
+  end
+
+  test 'rejects update for non-pending mail' do
+    patch queued_mail_path(@approved), params: {
+      queued_mail: { subject: 'Should not update' }
+    }
+    assert_redirected_to queued_mail_path(@approved)
+    @approved.reload
+    assert_not_equal 'Should not update', @approved.subject
+  end
+
+  # ─── Approve ──────────────────────────────────────────────────────
+
+  test 'approves pending mail and sends it' do
+    assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob do
+      post approve_queued_mail_path(@pending)
+    end
+    assert_redirected_to queued_mails_path
+
+    @pending.reload
+    assert @pending.approved?
+    assert_not_nil @pending.sent_at
+  end
+
+  test 'cannot approve already reviewed mail' do
+    post approve_queued_mail_path(@approved)
+    assert_redirected_to queued_mail_path(@approved)
+  end
+
+  # ─── Reject ──────────────────────────────────────────────────────
+
+  test 'rejects pending mail' do
+    post reject_queued_mail_path(@pending)
+    assert_redirected_to queued_mails_path
+
+    @pending.reload
+    assert @pending.rejected?
+    assert_nil @pending.sent_at
+  end
+
+  test 'cannot reject already reviewed mail' do
+    post reject_queued_mail_path(@approved)
+    assert_redirected_to queued_mail_path(@approved)
+  end
+
+  # ─── Regenerate ──────────────────────────────────────────────────
+
+  test 'regenerates pending mail from view template' do
+    post regenerate_queued_mail_path(@pending)
+    assert_redirected_to queued_mail_path(@pending)
+  end
+
+  test 'cannot regenerate non-pending mail' do
+    post regenerate_queued_mail_path(@approved)
+    assert_redirected_to queued_mail_path(@approved)
+  end
+
+  # ─── Admin access required ────────────────────────────────────────
+
+  test 'non-admin cannot access queue' do
+    delete logout_path
+    get queued_mails_path
+    assert_redirected_to login_path
+  end
+
+  private
+
+  def sign_in_as_local_admin
+    account = local_accounts(:active_admin)
+    post local_login_path, params: {
+      session: {
+        email: account.email,
+        password: 'localpassword123'
+      }
+    }
+  end
+end

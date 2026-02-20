@@ -169,6 +169,63 @@ class EmailTemplate < ApplicationRecord
         The {{organization_name}} Team
       TEXT
     },
+    'membership_lapsed' => {
+      name: 'Membership Lapsed',
+      description: 'Sent when a member\'s dues have lapsed',
+      subject: '{{organization_name}}: Your Membership Dues Have Lapsed',
+      body_html: <<~HTML,
+        <h1>Membership Dues Lapsed</h1>
+        <p>Hello {{member_name}},</p>
+        <p>We're writing to let you know that your {{organization_name}} membership dues have lapsed. Your access to member facilities and resources may be affected.</p>
+        <p>To restore your membership, please update your payment information or make a payment at your earliest convenience.</p>
+        <p>If you're experiencing difficulties or have questions about your membership, please don't hesitate to reach out — we're happy to help.</p>
+        <p>Thank you for being part of our community.</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        Membership Dues Lapsed
+
+        Hello {{member_name}},
+
+        We're writing to let you know that your {{organization_name}} membership dues have lapsed. Your access to member facilities and resources may be affected.
+
+        To restore your membership, please update your payment information or make a payment at your earliest convenience.
+
+        If you're experiencing difficulties or have questions about your membership, please don't hesitate to reach out — we're happy to help.
+
+        Thank you for being part of our community.
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
+    },
+    'membership_sponsored' => {
+      name: 'Membership Sponsored',
+      description: 'Sent when a member receives a sponsored membership',
+      subject: '{{organization_name}}: Your Membership Has Been Sponsored!',
+      body_html: <<~HTML,
+        <h1>Your Membership Has Been Sponsored!</h1>
+        <p>Hello {{member_name}},</p>
+        <p>Great news! Your membership with {{organization_name}} has been sponsored. This means your membership dues are covered and you can continue to enjoy all member benefits.</p>
+        <p>Your access to all member facilities and resources remains fully active.</p>
+        <p>If you have any questions about your sponsored membership, please don't hesitate to contact us.</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        Your Membership Has Been Sponsored!
+
+        Hello {{member_name}},
+
+        Great news! Your membership with {{organization_name}} has been sponsored. This means your membership dues are covered and you can continue to enjoy all member benefits.
+
+        Your access to all member facilities and resources remains fully active.
+
+        If you have any questions about your sponsored membership, please don't hesitate to contact us.
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
+    },
     'admin_new_application' => {
       name: 'Admin: New Application',
       description: 'Sent to admins when a new application is submitted',

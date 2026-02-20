@@ -85,6 +85,34 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def membership_lapsed(user)
+    @user = user
+    @organization = organization_name
+
+    if send_from_template('membership_lapsed', user)
+      # Email sent from database template
+    else
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: Your Membership Dues Have Lapsed"
+      )
+    end
+  end
+
+  def membership_sponsored(user)
+    @user = user
+    @organization = organization_name
+
+    if send_from_template('membership_sponsored', user)
+      # Email sent from database template
+    else
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: Your Membership Has Been Sponsored!"
+      )
+    end
+  end
+
   # Notify admins of a new application
   def admin_new_application(user, admin_email)
     @user = user
@@ -101,10 +129,36 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  # Build template variables for a user, merging in action-specific extras.
+  # Public class method so QueuedMail can call it for regeneration.
+  def self.build_template_variables(user, extra_args = {})
+    org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
+    vars = {
+      member_name: user.display_name,
+      member_email: user.email || 'Not provided',
+      member_username: user.username || 'Not set',
+      organization_name: org,
+      date: Date.current.strftime('%B %d, %Y'),
+      app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
+    }
+
+    if extra_args[:days_overdue]
+      vars[:days_overdue] = " by #{extra_args[:days_overdue]} days"
+    else
+      vars[:days_overdue] = ''
+    end
+
+    if extra_args[:reason].present?
+      vars[:reason] = "<p><strong>Reason:</strong> #{extra_args[:reason]}</p>"
+    else
+      vars[:reason] = ''
+    end
+
+    vars
+  end
+
   private
 
-  # Try to send email from a database template
-  # Returns true if sent from template, false if should fall back to view
   def send_from_template(template_key, user, extra_variables = {}, mail_options = {})
     template = EmailTemplate.find_enabled(template_key)
     return false unless template

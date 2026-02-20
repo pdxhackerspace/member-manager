@@ -42,7 +42,7 @@ export default class extends Controller {
       toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link table | insertvariable | code',
       font_family_formats: 'System UI=-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; Arial=arial, helvetica, sans-serif; Georgia=georgia, palatino, serif; Helvetica=helvetica, arial, sans-serif; Tahoma=tahoma, geneva, sans-serif; Times New Roman=times new roman, times, serif; Trebuchet MS=trebuchet ms, geneva, sans-serif; Verdana=verdana, geneva, sans-serif; Courier New=courier new, courier, monospace',
       font_size_formats: '10px 12px 14px 16px 18px 20px 24px 28px 32px',
-      content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.5; }',
+      content_style: 'body { font-family: arial, helvetica, sans-serif; font-size: 14px; line-height: 1.5; }',
 
       valid_elements: 'p[style],br,strong/b,em/i,u,s,strike,h1[style],h2[style],h3[style],h4[style],h5[style],h6[style],ul,ol,li,a[href|target],table[style|border|cellpadding|cellspacing|width],tbody,thead,tr,td[style|colspan|rowspan],th[style|colspan|rowspan],span[style],div[style],img[src|alt|width|height|style]',
       valid_styles: {

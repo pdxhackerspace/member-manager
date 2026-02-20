@@ -74,6 +74,18 @@
     </div>
   </div>
 
+  <div id="policy_warning" class="alert alert-info mb-3" style="display: none;">
+    <i class="bi bi-info-circle me-2"></i>
+    <span id="policy_warning_own">
+      This group will create an Authentik expression policy. Bind this policy to your Authentik application to control access:<br>
+      <code id="policy_name_display" class="fs-6"></code>
+    </span>
+    <span id="policy_warning_synced" style="display: none;">
+      This group syncs with another group and will use that group's expression policy. Bind the synced group's policy to your Authentik application to control access:<br>
+      <code id="synced_policy_name_display" class="fs-6"></code>
+    </span>
+  </div>
+
   <%# Hidden fields updated by JS to carry the resolved member_source and sync_with_group_id %>
   <input type="hidden" name="application_group[sync_with_group_id]" id="resolved_sync_with_group_id"
          value="<%= @application_group.sync_with_group_id %>">
@@ -102,6 +114,8 @@
 
 <script>
 (function() {
+  const POLICY_PREFIX = '<%= ApplicationGroup::POLICY_NAME_PREFIX %>';
+
   const radios = document.querySelectorAll('.member-source-radio');
   const syncGroupWrapper = document.getElementById('sync_group_select_wrapper');
   const syncGroupCombined = document.getElementById('sync_group_combined');
@@ -109,13 +123,29 @@
   const nameField = document.getElementById('application_group_name');
   const authentikNameField = document.getElementById('application_group_authentik_name');
   const resolvedSyncGroupId = document.getElementById('resolved_sync_with_group_id');
+  const policyWarning = document.getElementById('policy_warning');
+  const policyWarningOwn = document.getElementById('policy_warning_own');
+  const policyWarningSynced = document.getElementById('policy_warning_synced');
+  const policyNameDisplay = document.getElementById('policy_name_display');
+  const syncedPolicyNameDisplay = document.getElementById('synced_policy_name_display');
 
   if (!radios.length || !authentikNameField || !nameField) return;
 
-  // Extract prefix: everything up to and including the last colon
   const initialValue = authentikNameField.value || '';
   const lastColon = initialValue.lastIndexOf(':');
   const prefix = lastColon >= 0 ? initialValue.substring(0, lastColon + 1) : initialValue;
+
+  const syncGroupPolicyNames = {};
+  <% @syncable_groups.each do |group| %>
+    syncGroupPolicyNames['<%= group.id %>'] = '<%= j(group.policy_name) %>';
+  <% end %>
+
+  const builtinGroupPolicyNames = {
+    active_members: POLICY_PREFIX + ':<%= j(@default_settings.active_members_group) %>',
+    admin_members: POLICY_PREFIX + ':<%= j(@default_settings.admins_group) %>',
+    unbanned_members: POLICY_PREFIX + ':<%= j(@default_settings.unbanned_members_group) %>',
+    all_members: POLICY_PREFIX + ':<%= j(@default_settings.all_members_group) %>'
+  };
 
   function slugify(text) {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -131,6 +161,43 @@
   function updateAuthentikName() {
     var slug = slugify(nameField.value);
     authentikNameField.value = slug ? prefix + slug : prefix;
+    updatePolicyWarning();
+  }
+
+  function updatePolicyWarning() {
+    const source = getSelectedSource();
+    const isNonManual = source !== 'manual';
+
+    if (!isNonManual) {
+      policyWarning.style.display = 'none';
+      return;
+    }
+
+    policyWarning.style.display = 'block';
+
+    var syncedPolicyName = null;
+
+    if (source === 'sync_group') {
+      const combined = syncGroupCombined.value;
+      if (combined in builtinGroupPolicyNames) {
+        syncedPolicyName = builtinGroupPolicyNames[combined];
+      } else if (combined.startsWith('sync_group:')) {
+        const groupId = combined.split(':')[1];
+        if (syncGroupPolicyNames[groupId]) {
+          syncedPolicyName = syncGroupPolicyNames[groupId];
+        }
+      }
+    }
+
+    if (syncedPolicyName) {
+      policyWarningOwn.style.display = 'none';
+      policyWarningSynced.style.display = '';
+      syncedPolicyNameDisplay.textContent = syncedPolicyName;
+    } else {
+      policyWarningOwn.style.display = '';
+      policyWarningSynced.style.display = 'none';
+      policyNameDisplay.textContent = POLICY_PREFIX + ':' + authentikNameField.value;
+    }
   }
 
   function updateVisibility() {
@@ -145,9 +212,12 @@
         resolvedSyncGroupId.value = combined.split(':')[1];
       }
     }
+
+    updatePolicyWarning();
   }
 
   nameField.addEventListener('input', updateAuthentikName);
+  authentikNameField.addEventListener('input', updatePolicyWarning);
   radios.forEach(function(r) { r.addEventListener('change', updateVisibility); });
   if (syncGroupCombined) syncGroupCombined.addEventListener('change', updateVisibility);
 
@@ -169,5 +239,8 @@
       }
     });
   }
+
+  // Initialize on page load
+  updateVisibility();
 })();
 </script>

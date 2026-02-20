@@ -27,9 +27,12 @@
         <% end %>
       </div>
 
-      <div class="mb-3">
+      <div class="mb-3" data-controller="rich-editor" data-rich-editor-variables-value="[]">
         <%= f.label :body_html, "HTML Body", class: "form-label" %>
-        <%= f.text_area :body_html, class: "form-control font-monospace #{'is-invalid' if @queued_mail.errors.key?(:body_html)}", rows: 16, required: true %>
+        <div class="mb-2">
+          <small class="text-muted">Use the toolbar to format, or click "Source Code" (&lt;&gt;) to edit raw HTML.</small>
+        </div>
+        <%= f.text_area :body_html, class: "form-control #{'is-invalid' if @queued_mail.errors.key?(:body_html)}", rows: 16, required: true, data: { rich_editor_target: "editor" } %>
         <% if @queued_mail.errors.key?(:body_html) %>
           <div class="invalid-feedback"><%= @queued_mail.errors[:body_html].join(', ') %></div>
         <% end %>

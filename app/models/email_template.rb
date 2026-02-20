@@ -8,7 +8,8 @@ class EmailTemplate < ApplicationRecord
     '{{date}}' => 'Current date',
     '{{days_overdue}}' => 'Number of days payment is overdue (payment emails only)',
     '{{reason}}' => 'Reason for action (cancellation/ban emails only)',
-    '{{app_url}}' => 'Base URL of the application'
+    '{{app_url}}' => 'Base URL of the application',
+    '{{training_topic}}' => 'Name of the training topic (training emails only)'
   }.freeze
 
   # Default templates that can be seeded
@@ -263,6 +264,72 @@ class EmailTemplate < ApplicationRecord
 
         Please review this application and take appropriate action.
       TEXT
+    },
+    'training_completed' => {
+      name: 'Training Completed',
+      description: 'Sent when a member completes training on a topic',
+      subject: '{{organization_name}}: You\'re Now Trained in {{training_topic}}!',
+      body_html: <<~HTML,
+        <h1>Training Complete: {{training_topic}}</h1>
+        <p>Hello {{member_name}},</p>
+        <p>Congratulations! You've been marked as trained in <strong>{{training_topic}}</strong> at {{organization_name}}.</p>
+        <p>You now have access to the equipment, resources, and spaces associated with this training. Any related documentation and links are available on your profile page under your training section.</p>
+        <p>Please remember to follow all safety guidelines and operating procedures. If you have any questions, don't hesitate to ask a trainer or staff member.</p>
+        <p>Happy making!</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        Training Complete: {{training_topic}}
+
+        Hello {{member_name}},
+
+        Congratulations! You've been marked as trained in {{training_topic}} at {{organization_name}}.
+
+        You now have access to the equipment, resources, and spaces associated with this training. Any related documentation and links are available on your profile page under your training section.
+
+        Please remember to follow all safety guidelines and operating procedures. If you have any questions, don't hesitate to ask a trainer or staff member.
+
+        Happy making!
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
+    },
+    'trainer_capability_granted' => {
+      name: 'Trainer Capability Granted',
+      description: 'Sent when a member is granted the ability to train others',
+      subject: '{{organization_name}}: You Can Now Train Others in {{training_topic}}!',
+      body_html: <<~HTML,
+        <h1>You're a Trainer: {{training_topic}}</h1>
+        <p>Hello {{member_name}},</p>
+        <p>Great news! You've been granted the ability to train other members in <strong>{{training_topic}}</strong> at {{organization_name}}.</p>
+        <p>As a trainer, you can mark members as trained once they've completed their training with you. To do this:</p>
+        <ol>
+          <li>Go to the <strong>Train a Member</strong> page from the dashboard</li>
+          <li>Search for the member you've trained</li>
+          <li>Select <strong>{{training_topic}}</strong> and mark them as trained</li>
+        </ol>
+        <p>Thank you for helping grow our community's skills!</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        You're a Trainer: {{training_topic}}
+
+        Hello {{member_name}},
+
+        Great news! You've been granted the ability to train other members in {{training_topic}} at {{organization_name}}.
+
+        As a trainer, you can mark members as trained once they've completed their training with you. To do this:
+
+        1. Go to the Train a Member page from the dashboard
+        2. Search for the member you've trained
+        3. Select {{training_topic}} and mark them as trained
+
+        Thank you for helping grow our community's skills!
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
     }
   }.freeze
 
@@ -299,7 +366,8 @@ class EmailTemplate < ApplicationRecord
       date: Date.current.strftime('%B %d, %Y'),
       days_overdue: ' by 14 days',
       reason: '<p><strong>Reason:</strong> Example reason</p>',
-      app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
+      app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000'),
+      training_topic: 'Laser Cutter'
     }
     render(sample_variables)
   end

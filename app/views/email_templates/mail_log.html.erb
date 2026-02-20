@@ -1,0 +1,83 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Mail Log</h1>
+    <p class="text-muted mb-0">History of all generated email: queued, edited, approved, and rejected.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Mail Queue", queued_mails_path, class: "btn btn-outline-primary" %>
+    <%= link_to "Email Templates", email_templates_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<% if @log_entries.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 160px;">When</th>
+            <th style="width: 120px;">Event</th>
+            <th>Message</th>
+            <th>By</th>
+            <th>Wait Time</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @log_entries.each do |entry| %>
+            <% qm = entry.queued_mail %>
+            <tr>
+              <td class="text-muted small text-nowrap">
+                <%= entry.created_at.strftime('%b %d, %Y %l:%M %p') %>
+              </td>
+              <td>
+                <% badge_class = case entry.event
+                                 when 'created'     then 'text-bg-primary'
+                                 when 'edited'      then 'text-bg-warning'
+                                 when 'regenerated' then 'text-bg-info'
+                                 when 'approved'    then 'text-bg-success'
+                                 when 'rejected'    then 'text-bg-danger'
+                                 else 'text-bg-secondary'
+                                 end %>
+                <span class="badge <%= badge_class %>"><%= entry.event.capitalize %></span>
+              </td>
+              <td>
+                <div class="fw-semibold">
+                  <%= link_to truncate(qm.subject, length: 50), queued_mail_path(qm), class: "text-decoration-none" %>
+                </div>
+                <div class="text-muted small">
+                  To: <%= qm.to %>
+                  <% if qm.recipient %>
+                    (<%= link_to qm.recipient.display_name, user_path(qm.recipient), class: "text-decoration-none" %>)
+                  <% end %>
+                </div>
+              </td>
+              <td class="text-nowrap">
+                <% if entry.actor %>
+                  <%= link_to entry.actor.display_name, user_path(entry.actor), class: "text-decoration-none" %>
+                <% else %>
+                  <span class="text-muted fst-italic">System</span>
+                <% end %>
+              </td>
+              <td class="text-nowrap">
+                <% if entry.wait_duration_in_words %>
+                  <%= entry.wait_duration_in_words %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td class="text-muted small"><%= entry.details %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% else %>
+  <div class="card shadow-sm border-0">
+    <div class="card-body text-center py-5">
+      <i class="bi bi-journal-text display-4 mb-3 d-block text-muted opacity-25"></i>
+      <p class="text-muted mb-0">No mail log entries yet. Entries appear when emails are queued, edited, approved, or rejected.</p>
+    </div>
+  </div>
+<% end %>

@@ -40,6 +40,16 @@ class MemberMailerPreview < ActionMailer::Preview
     MemberMailer.membership_sponsored(user)
   end
 
+  def training_completed
+    user = User.first || sample_user
+    MemberMailer.training_completed(user, training_topic: "Laser Cutter")
+  end
+
+  def trainer_capability_granted
+    user = User.first || sample_user
+    MemberMailer.trainer_capability_granted(user, training_topic: "Laser Cutter")
+  end
+
   # Preview at http://localhost:3000/rails/mailers/member_mailer/admin_new_application
   def admin_new_application
     user = User.first || sample_user

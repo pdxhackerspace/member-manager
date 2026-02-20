@@ -26,6 +26,7 @@ class QueuedMailsController < AdminController
     end
 
     if @queued_mail.update(queued_mail_params)
+      @queued_mail.log_edit!(current_user)
       redirect_to queued_mail_path(@queued_mail), notice: 'Message updated.'
     else
       render :edit, status: :unprocessable_entity
@@ -63,7 +64,7 @@ class QueuedMailsController < AdminController
       return
     end
 
-    @queued_mail.regenerate!
+    @queued_mail.regenerate!(actor: current_user)
     redirect_to queued_mail_path(@queued_mail), notice: 'Message regenerated from template.'
   end
 

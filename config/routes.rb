@@ -187,6 +187,7 @@ Rails.application.routes.draw do
     end
     collection do
       post :seed
+      get :mail_log
     end
   end
 

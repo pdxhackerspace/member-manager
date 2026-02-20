@@ -113,6 +113,40 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def training_completed(user, training_topic:)
+    @user = user
+    @organization = organization_name
+    @training_topic = training_topic
+
+    extra_vars = { training_topic: training_topic }
+
+    if send_from_template('training_completed', user, extra_vars)
+      # Email sent from database template
+    else
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: You're Now Trained in #{training_topic}!"
+      )
+    end
+  end
+
+  def trainer_capability_granted(user, training_topic:)
+    @user = user
+    @organization = organization_name
+    @training_topic = training_topic
+
+    extra_vars = { training_topic: training_topic }
+
+    if send_from_template('trainer_capability_granted', user, extra_vars)
+      # Email sent from database template
+    else
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: You Can Now Train Others in #{training_topic}!"
+      )
+    end
+  end
+
   # Notify admins of a new application
   def admin_new_application(user, admin_email)
     @user = user
@@ -153,6 +187,8 @@ class MemberMailer < ApplicationMailer
     else
       vars[:reason] = ''
     end
+
+    vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
 
     vars
   end

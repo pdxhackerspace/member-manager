@@ -44,6 +44,11 @@ class TrainingsController < AuthenticatedController
         changed_at: Time.current,
         highlight: true
       )
+      if @trainee.email.present?
+        QueuedMail.enqueue(:training_completed, @trainee,
+          reason: "Trained in #{@training_topic.name}",
+          training_topic: @training_topic.name)
+      end
       redirect_to redirect_back_path(user_id: @trainee.id), notice: "#{@trainee.display_name} has been marked as trained in #{@training_topic.name}."
     else
       redirect_to redirect_back_path(user_id: @trainee.id), alert: "Failed to add training: #{training.errors.full_messages.join(', ')}"
@@ -121,6 +126,11 @@ class TrainingsController < AuthenticatedController
         changed_at: Time.current,
         highlight: true
       )
+      if @trainee.email.present?
+        QueuedMail.enqueue(:trainer_capability_granted, @trainee,
+          reason: "Can now train #{@training_topic.name}",
+          training_topic: @training_topic.name)
+      end
       redirect_to train_member_path(user_id: @trainee.id), notice: "#{@trainee.display_name} can now train others in #{@training_topic.name}."
     else
       redirect_to train_member_path(user_id: @trainee.id), alert: "Failed to add trainer capability: #{capability.errors.full_messages.join(', ')}"

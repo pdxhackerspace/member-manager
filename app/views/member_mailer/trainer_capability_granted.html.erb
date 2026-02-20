@@ -1,0 +1,18 @@
+<h1>You're a Trainer: <%= @training_topic %></h1>
+
+<p>Hello <%= @user.display_name %>,</p>
+
+<p>Great news! You've been granted the ability to train other members in <strong><%= @training_topic %></strong> at <%= @organization %>.</p>
+
+<p>As a trainer, you can mark members as trained once they've completed their training with you. To do this:</p>
+
+<ol>
+  <li>Go to the <strong>Train a Member</strong> page from the dashboard</li>
+  <li>Search for the member you've trained</li>
+  <li>Select <strong><%= @training_topic %></strong> and mark them as trained</li>
+</ol>
+
+<p>Thank you for helping grow our community's skills!</p>
+
+<p>Best regards,<br>
+The <%= @organization %> Team</p>

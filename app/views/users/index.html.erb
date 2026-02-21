@@ -80,7 +80,7 @@
       <%= link_to users_path(membership_status: 'paying', **lp), class: "badge text-bg-success text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'paying'}" do %>
         Paying: <strong><%= @membership_status_paying %></strong>
       <% end %>
-      <%= link_to users_path(membership_status: 'applicant', **lp), class: "badge text-bg-light text-dark text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'applicant'}" do %>
+      <%= link_to users_path(membership_status: 'applicant', **lp), class: "badge text-bg-secondary text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'applicant'}" do %>
         Applicant: <strong><%= @membership_status_applicant %></strong>
       <% end %>
       <%= link_to users_path(membership_status: 'banned', **lp), class: "badge text-bg-danger text-decoration-none #{'border border-dark border-2' if params[:membership_status] == 'banned'}" do %>

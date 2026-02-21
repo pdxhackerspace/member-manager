@@ -141,6 +141,14 @@ class KofiPaymentsController < AdminController
 
             if was_new
               imported_count += 1
+              PaymentEvent.find_or_create_by!(source: 'kofi', external_id: payment.kofi_transaction_id, event_type: 'payment') do |pe|
+                pe.user = payment.user
+                pe.amount = payment.amount
+                pe.currency = payment.currency || 'USD'
+                pe.occurred_at = payment.timestamp || payment.created_at
+                pe.details = "Ko-Fi #{payment.payment_type || 'payment'} from #{payment.from_name || payment.email}"
+                pe.kofi_payment = payment
+              end
             else
               updated_count += 1
             end
@@ -319,6 +327,14 @@ class KofiPaymentsController < AdminController
 
             if was_new
               imported_count += 1
+              PaymentEvent.find_or_create_by!(source: 'kofi', external_id: payment.kofi_transaction_id, event_type: 'payment') do |pe|
+                pe.user = payment.user
+                pe.amount = payment.amount
+                pe.currency = payment.currency || 'USD'
+                pe.occurred_at = payment.timestamp || payment.created_at
+                pe.details = "Ko-Fi #{payment.payment_type || 'payment'} from #{payment.from_name || payment.email}"
+                pe.kofi_payment = payment
+              end
             else
               updated_count += 1
             end

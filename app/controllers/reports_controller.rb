@@ -4,14 +4,14 @@ class ReportsController < AdminController
   LIMIT = 20
 
   def index
-    @membership_status_unknown = User.where(membership_status: 'unknown', active: true).ordered_by_display_name.limit(LIMIT)
-    @membership_status_unknown_count = User.where(membership_status: 'unknown', active: true).count
-    @payment_type_unknown = User.where(payment_type: 'unknown', active: true).ordered_by_display_name.limit(LIMIT)
-    @payment_type_unknown_count = User.where(payment_type: 'unknown', active: true).count
-    @dues_status_unknown = User.where(dues_status: 'unknown', active: true).ordered_by_display_name.limit(LIMIT)
-    @dues_status_unknown_count = User.where(dues_status: 'unknown', active: true).count
-    @dues_status_lapsed = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name.limit(LIMIT)
-    @dues_status_lapsed_count = User.where(dues_status: 'lapsed', active: true).count
+    @membership_status_unknown = User.where(membership_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @membership_status_unknown_count = User.where(membership_status: 'unknown', active: true).non_service_accounts.count
+    @payment_type_unknown = User.where(payment_type: 'unknown', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @payment_type_unknown_count = User.where(payment_type: 'unknown', active: true).non_service_accounts.count
+    @dues_status_unknown = User.where(dues_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @dues_status_unknown_count = User.where(dues_status: 'unknown', active: true).non_service_accounts.count
+    @dues_status_lapsed = User.where(dues_status: 'lapsed', active: true).non_service_accounts.ordered_by_display_name.limit(LIMIT)
+    @dues_status_lapsed_count = User.where(dues_status: 'lapsed', active: true).non_service_accounts.count
 
     # Lapsed members with access after lapse
     prepare_lapsed_with_access(limit: LIMIT)
@@ -280,16 +280,16 @@ class ReportsController < AdminController
     
     case @report_type
     when 'membership-status-unknown'
-      @users = User.where(membership_status: 'unknown', active: true).ordered_by_display_name
+      @users = User.where(membership_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name
       @title = 'Membership Status: Unknown'
     when 'payment-type-unknown'
-      @users = User.where(payment_type: 'unknown', active: true).ordered_by_display_name
+      @users = User.where(payment_type: 'unknown', active: true).non_service_accounts.ordered_by_display_name
       @title = 'Payment Type: Unknown'
     when 'dues-status-unknown'
-      @users = User.where(dues_status: 'unknown', active: true).ordered_by_display_name
+      @users = User.where(dues_status: 'unknown', active: true).non_service_accounts.ordered_by_display_name
       @title = 'Dues Status: Unknown'
     when 'dues-status-lapsed'
-      @users = User.where(dues_status: 'lapsed', active: true).ordered_by_display_name
+      @users = User.where(dues_status: 'lapsed', active: true).non_service_accounts.ordered_by_display_name
       @title = 'Dues Status: Lapsed'
     when 'lapsed-with-access'
       prepare_lapsed_with_access

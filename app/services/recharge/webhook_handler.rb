@@ -3,7 +3,7 @@ module Recharge
   # Processes subscription/created and subscription/cancelled topics,
   # updating user membership status and creating highlighted journal entries.
   class WebhookHandler
-    SUPPORTED_TOPICS = %w[subscription/created subscription/cancelled].freeze
+    SUPPORTED_TOPICS = %w[subscription/created subscription/cancelled subscription/activated subscription/paused].freeze
 
     def initialize(topic:, payload:)
       @topic = topic
@@ -22,6 +22,10 @@ module Recharge
         handle_subscription_created
       when 'subscription/cancelled'
         handle_subscription_cancelled
+      when 'subscription/activated'
+        handle_subscription_resumed
+      when 'subscription/paused'
+        handle_subscription_paused
       end
     end
 
@@ -38,6 +42,7 @@ module Recharge
       details = { 'previous_membership_status' => old_status,
                   'new_membership_status' => user.reload.membership_status }
       create_journal_entry(user: user, action: 'subscription_created', details: details)
+      create_payment_event(user, 'subscription_started')
       log_and_respond('subscription/created', user, old_status, user.membership_status)
     end
 
@@ -46,15 +51,39 @@ module Recharge
       return user_not_found('subscription/cancelled') unless user
 
       old_status = user.membership_status
-      # Mark as cancelled but do NOT change active, dues_status, or access.
-      # Access continues until they lapse; cancelled members get no grace period.
       user.update!(membership_status: 'cancelled') unless user.cancelled?
 
       details = { 'previous_membership_status' => old_status,
                   'cancellation_reason' => @subscription['cancellation_reason'],
                   'cancelled_at' => @subscription['cancelled_at'] }
       create_journal_entry(user: user, action: 'subscription_cancelled', details: details)
+      create_payment_event(user, 'subscription_cancelled')
       log_and_respond('subscription/cancelled', user, old_status, 'cancelled')
+    end
+
+    def handle_subscription_resumed
+      user = find_user
+      return user_not_found('subscription/activated') unless user
+
+      old_status = user.membership_status
+      user.update!(membership_status: 'paying') if user.cancelled?
+      user.update!(recharge_customer_id: customer_id) if link_customer_id?(user)
+
+      details = { 'previous_membership_status' => old_status,
+                  'new_membership_status' => user.reload.membership_status }
+      create_journal_entry(user: user, action: 'subscription_resumed', details: details)
+      create_payment_event(user, 'subscription_resumed')
+      log_and_respond('subscription/activated', user, old_status, user.membership_status)
+    end
+
+    def handle_subscription_paused
+      user = find_user
+      return user_not_found('subscription/paused') unless user
+
+      details = { 'previous_membership_status' => user.membership_status }
+      create_journal_entry(user: user, action: 'subscription_paused', details: details)
+      create_payment_event(user, 'subscription_paused')
+      log_and_respond('subscription/paused', user, user.membership_status, user.membership_status)
     end
 
     def link_customer_id?(user)
@@ -97,6 +126,25 @@ module Recharge
         changed_at: Time.current,
         highlight: true
       )
+    end
+
+    def create_payment_event(user, event_type)
+      sub_id = @subscription['id']
+      external_id = "recharge-sub-#{sub_id}-#{event_type}"
+      return if PaymentEvent.find_duplicate(source: 'recharge', external_id: external_id, event_type: event_type)
+
+      PaymentEvent.create!(
+        user: user,
+        event_type: event_type,
+        source: 'recharge',
+        amount: @subscription['price'],
+        currency: 'USD',
+        occurred_at: Time.current,
+        external_id: external_id,
+        details: "Recharge #{event_type.humanize.downcase}: #{@subscription['product_title']}"
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error("[Recharge::WebhookHandler] Failed to create payment event: #{e.message}")
     end
 
     def subscription_summary

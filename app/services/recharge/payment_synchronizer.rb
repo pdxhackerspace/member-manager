@@ -75,6 +75,15 @@ module Recharge
 
           if is_new
             @logger.debug { "[Recharge::PaymentSynchronizer] Created new payment: #{attrs[:recharge_id]} - #{attrs[:customer_email]} - #{attrs[:amount]} #{attrs[:currency]} - processed #{attrs[:processed_at]}" }
+
+            PaymentEvent.find_or_create_by!(source: 'recharge', external_id: attrs[:recharge_id], event_type: 'payment') do |pe|
+              pe.user = record.user
+              pe.amount = record.amount
+              pe.currency = record.currency || 'USD'
+              pe.occurred_at = record.processed_at || record.created_at
+              pe.details = "Recharge payment from #{record.customer_name || record.customer_email}"
+              pe.recharge_payment = record
+            end
           end
 
           # Create journal entry if payment was just linked to a user

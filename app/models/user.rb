@@ -8,6 +8,7 @@ class User < ApplicationRecord
   has_many :paypal_payments, dependent: :nullify
   has_many :recharge_payments, dependent: :nullify
   has_many :cash_payments, dependent: :destroy
+  has_many :payment_events, dependent: :destroy
   has_many :journals, dependent: :destroy
   has_many :access_logs, dependent: :nullify
   has_many :rfids, dependent: :destroy

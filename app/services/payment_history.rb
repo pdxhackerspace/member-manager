@@ -1,20 +1,13 @@
 class PaymentHistory
-  def self.for_user(user)
-    payments = []
-    payments.concat(CashPayment.for_user(user).ordered.to_a)
-    payments.concat(PaypalPayment.for_user(user).ordered.to_a)
-    payments.concat(RechargePayment.for_user(user).ordered.to_a)
-    sort_payments(payments)
+  def self.for_user(user, event_type: nil)
+    scope = PaymentEvent.for_user(user).ordered
+    scope = scope.by_type(event_type) if event_type.present?
+    scope
   end
 
   def self.for_sheet_entry(sheet_entry)
-    # Get payments via the user associated with this sheet entry
-    return [] unless sheet_entry.user
+    return PaymentEvent.none unless sheet_entry.user
 
     for_user(sheet_entry.user)
-  end
-
-  def self.sort_payments(payments)
-    payments.sort_by { |payment| payment.processed_time || payment.created_at || Time.zone.at(0) }.reverse
   end
 end

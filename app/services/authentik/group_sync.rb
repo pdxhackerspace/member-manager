@@ -135,6 +135,20 @@ module Authentik
       policy_name = application_group.policy_name
       expression = application_group.policy_expression
 
+      if application_group.authentik_policy_id.present?
+        begin
+          client.update_expression_policy(
+            application_group.authentik_policy_id,
+            name: policy_name,
+            expression: expression
+          )
+          Rails.logger.info("[Authentik::GroupSync] Renamed/updated expression policy #{application_group.authentik_policy_id} to '#{policy_name}'")
+          return { status: 'ok', policy_id: application_group.authentik_policy_id }
+        rescue StandardError => e
+          Rails.logger.warn("[Authentik::GroupSync] Could not update existing policy #{application_group.authentik_policy_id}: #{e.message}, will find or create")
+        end
+      end
+
       existing = client.find_expression_policy_by_name(policy_name)
       if existing
         policy_id = existing['pk']

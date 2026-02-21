@@ -53,6 +53,23 @@ module PaymentsHelper
     end
   end
 
+  def payment_event_badge_class(event_type)
+    case event_type
+    when 'payment'
+      'text-bg-success'
+    when 'subscription_started'
+      'text-bg-primary'
+    when 'subscription_cancelled'
+      'text-bg-danger'
+    when 'subscription_paused'
+      'text-bg-warning'
+    when 'subscription_resumed'
+      'text-bg-info'
+    else
+      'text-bg-secondary'
+    end
+  end
+
   def payment_type_badge_class(payment_type)
     case payment_type.to_s.downcase
     when 'donation'

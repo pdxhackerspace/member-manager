@@ -46,6 +46,8 @@ module Recharge
         handle_active(sub)
       when 'CANCELLED'
         handle_cancelled(sub)
+      when 'PAUSED'
+        handle_paused(sub)
       else
         :skipped
       end
@@ -62,6 +64,7 @@ module Recharge
       user.update!(membership_status: 'paying')
       link_customer_id(user, sub)
       create_journal_entry(user, 'subscription_created', sub, old_status, 'paying')
+      create_payment_event(user, sub, 'subscription_started')
 
       @logger.info("[Recharge::SubscriptionSynchronizer] Re-activated #{user.display_name} (#{old_status} -> paying)")
       :created
@@ -71,15 +74,25 @@ module Recharge
       user = find_user(sub)
       return :skipped unless user
 
-      # Only act if the user is NOT already cancelled
       return :skipped if user.cancelled?
 
       old_status = user.membership_status
       user.update!(membership_status: 'cancelled')
       create_journal_entry(user, 'subscription_cancelled', sub, old_status, 'cancelled')
+      create_payment_event(user, sub, 'subscription_cancelled')
 
       @logger.info("[Recharge::SubscriptionSynchronizer] Cancelled #{user.display_name} (#{old_status} -> cancelled)")
       :cancelled
+    end
+
+    def handle_paused(sub)
+      user = find_user(sub)
+      return :skipped unless user
+
+      create_payment_event(user, sub, 'subscription_paused')
+
+      @logger.info("[Recharge::SubscriptionSynchronizer] Paused subscription for #{user.display_name}")
+      :skipped
     end
 
     def find_user(sub)
@@ -121,6 +134,24 @@ module Recharge
         changed_at: Time.current,
         highlight: true
       )
+    end
+
+    def create_payment_event(user, sub, event_type)
+      external_id = "recharge-sub-#{sub[:recharge_subscription_id]}-#{event_type}"
+      return if PaymentEvent.find_duplicate(source: 'recharge', external_id: external_id, event_type: event_type)
+
+      PaymentEvent.create!(
+        user: user,
+        event_type: event_type,
+        source: 'recharge',
+        amount: sub[:price],
+        currency: 'USD',
+        occurred_at: sub[:updated_at] || sub[:cancelled_at] || Time.current,
+        external_id: external_id,
+        details: "Recharge #{event_type.humanize.downcase}: #{sub[:product_title]}"
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      @logger.error("[Recharge::SubscriptionSynchronizer] Failed to create payment event: #{e.message}")
     end
 
     def log_summary(stats)

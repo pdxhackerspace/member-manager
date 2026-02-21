@@ -27,6 +27,17 @@ class CashPaymentsController < AdminController
     @cash_payment.recorded_by = current_user
 
     if @cash_payment.save
+      PaymentEvent.create!(
+        user: @cash_payment.user,
+        event_type: 'payment',
+        source: 'cash',
+        amount: @cash_payment.amount,
+        currency: 'USD',
+        occurred_at: @cash_payment.paid_on&.beginning_of_day || Time.current,
+        external_id: "CASH-#{@cash_payment.id}",
+        details: "Cash payment — #{@cash_payment.membership_plan&.name || 'Unknown plan'}",
+        cash_payment: @cash_payment
+      )
       update_user_dues_status(@cash_payment)
       redirect_to cash_payment_path(@cash_payment), notice: "Cash payment recorded for #{@cash_payment.user.display_name}."
     else

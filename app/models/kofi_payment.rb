@@ -1,6 +1,7 @@
 class KofiPayment < ApplicationRecord
   belongs_to :user, optional: true
   belongs_to :sheet_entry, optional: true
+  has_many :payment_events, dependent: :nullify
 
   validates :kofi_transaction_id, presence: true, uniqueness: true
 

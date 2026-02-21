@@ -97,7 +97,20 @@ class WebhooksController < ApplicationController
         payment.user = user if user
       end
 
+      was_new = payment.new_record? || payment.id_previously_changed?
       payment.save!
+
+      if was_new
+        event_type = payment.is_first_subscription_payment ? 'subscription_started' : 'payment'
+        PaymentEvent.find_or_create_by!(source: 'kofi', external_id: transaction_id, event_type: event_type) do |pe|
+          pe.user = payment.user
+          pe.amount = payment.amount
+          pe.currency = payment.currency || 'USD'
+          pe.occurred_at = payment.timestamp || Time.current
+          pe.details = "Ko-Fi #{payment.payment_type || 'payment'} from #{payment.from_name || payment.email}"
+          pe.kofi_payment = payment
+        end
+      end
 
       # Record webhook received in processor
       processor = PaymentProcessor.for('kofi')

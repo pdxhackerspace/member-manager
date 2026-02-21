@@ -1,5 +1,6 @@
 class RechargePayment < ApplicationRecord
   belongs_to :user, optional: true
+  has_many :payment_events, dependent: :nullify
 
   validates :recharge_id, presence: true, uniqueness: true
 

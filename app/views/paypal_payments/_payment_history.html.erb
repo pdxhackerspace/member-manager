@@ -1,34 +1,40 @@
 <div class="card shadow-sm border-0 mt-4">
   <div class="card-body">
-    <h2 class="h6 mb-3">Payment history</h2>
+    <h2 class="h6 mb-3">Payment Events</h2>
     <% if payments.any? %>
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
           <thead>
             <tr>
+              <th scope="col">Event</th>
               <th scope="col">Source</th>
-              <th scope="col">Reference</th>
-              <th scope="col">Status</th>
+              <th scope="col">Details</th>
               <th scope="col">Amount</th>
               <th scope="col">Time</th>
             </tr>
           </thead>
           <tbody>
-            <% payments.each do |payment| %>
+            <% payments.each do |event| %>
               <tr>
-                <td><span class="badge text-bg-secondary"><%= payment_source_label(payment) %></span></td>
-                <td><%= link_to payment_identifier(payment), payment_show_path(payment) %></td>
-                <td><span class="badge text-bg-secondary"><%= payment_status(payment).presence || "Unknown" %></span></td>
-                <td><%= payment_amount(payment) || "—" %></td>
-                <td><%= payment_processed_time(payment) ? l(payment_processed_time(payment), format: :long) : "n/a" %></td>
+                <td><span class="badge <%= payment_event_badge_class(event.event_type) %>"><%= event.event_type.humanize %></span></td>
+                <td><span class="badge text-bg-secondary"><%= event.source.titleize %></span></td>
+                <td>
+                  <% linked = event.linked_payment %>
+                  <% if linked %>
+                    <%= link_to event.details || event.identifier, payment_show_path(linked), class: "text-decoration-none" %>
+                  <% else %>
+                    <span class="text-muted"><%= event.details || event.identifier %></span>
+                  <% end %>
+                </td>
+                <td><%= event.amount_with_currency || "—" %></td>
+                <td class="text-nowrap"><%= event.occurred_at ? l(event.occurred_at, format: :long) : "n/a" %></td>
               </tr>
             <% end %>
           </tbody>
         </table>
       </div>
     <% else %>
-      <p class="text-muted mb-0">No payments have been recorded yet.</p>
+      <p class="text-muted mb-0">No payment events have been recorded yet.</p>
     <% end %>
   </div>
 </div>
-

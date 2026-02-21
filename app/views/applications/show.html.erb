@@ -63,7 +63,7 @@
       </thead>
       <tbody>
         <% if @application.application_groups.any? %>
-          <% @application.application_groups.each do |group| %>
+          <% @application.application_groups.order(:name).each do |group| %>
             <tr>
               <td class="fw-semibold">
                 <%= link_to group.name, application_application_group_path(@application, group), class: "text-decoration-none" %>

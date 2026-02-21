@@ -149,9 +149,10 @@ class UsersController < AuthenticatedController
 
     # Load payment history for admin and self views (paginated)
     if @view_level == :admin || @view_level == :self
-      payments_query = PaymentHistory.for_user(@user)
+      @payment_event_filter = params[:event_type].presence
+      payments_query = PaymentHistory.for_user(@user, event_type: @payment_event_filter)
       @payments_count = payments_query.count
-      @pagy_payments, @payments = pagy_array(payments_query.to_a, limit: 20, page_param: :payments_page)
+      @pagy_payments, @payments = pagy(payments_query, limit: 20, page_param: :payments_page)
     end
 
     # Admin-only data (true admins, even when impersonating)

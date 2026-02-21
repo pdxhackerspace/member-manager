@@ -1,5 +1,6 @@
 class PaypalPayment < ApplicationRecord
   belongs_to :user, optional: true
+  has_many :payment_events, dependent: :nullify
 
   validates :paypal_id, presence: true, uniqueness: true
 

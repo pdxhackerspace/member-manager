@@ -79,10 +79,20 @@ module Paypal
           else
             unmatched_count += 1
           end
+          is_new = record.new_record?
           record.save!
           saved_count += 1
-          # The PaypalPayment after_save callback will call user.on_paypal_payment_linked
-          # to handle payer ID, email, payment type, and membership status
+
+          if is_new
+            PaymentEvent.find_or_create_by!(source: 'paypal', external_id: attrs[:paypal_id], event_type: 'payment') do |pe|
+              pe.user = record.user
+              pe.amount = record.amount
+              pe.currency = record.currency || 'USD'
+              pe.occurred_at = record.transaction_time || record.created_at
+              pe.details = "PayPal payment from #{record.payer_name || record.payer_email}"
+              pe.paypal_payment = record
+            end
+          end
         rescue ActiveRecord::RecordInvalid => e
           @logger.error("Failed to sync PayPal payment #{attrs[:paypal_id]}: #{e.message}")
         end

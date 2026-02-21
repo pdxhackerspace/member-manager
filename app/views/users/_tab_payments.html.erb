@@ -3,37 +3,49 @@
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="h6 mb-0">Payment History</h2>
+      <h2 class="h6 mb-0">Payment Events</h2>
       <% if local_assigns[:show_payment_links] && user.personal_membership_plans.any? %>
         <%= link_to "Record Cash Payment", new_cash_payment_path(user_id: user.id), class: "btn btn-success btn-sm" %>
       <% end %>
     </div>
+
+    <% current_filter = @payment_event_filter %>
+    <div class="btn-group btn-group-sm mb-3" role="group">
+      <%= link_to "All", user_path(user, tab: :payments), class: "btn #{current_filter.blank? ? 'btn-primary' : 'btn-outline-primary'}" %>
+      <%= link_to "Payments", user_path(user, tab: :payments, event_type: 'payment'), class: "btn #{current_filter == 'payment' ? 'btn-primary' : 'btn-outline-primary'}" %>
+      <%= link_to "Subscriptions", user_path(user, tab: :payments, event_type: 'subscription_started'), class: "btn #{current_filter == 'subscription_started' ? 'btn-primary' : 'btn-outline-primary'}" %>
+      <%= link_to "Cancellations", user_path(user, tab: :payments, event_type: 'subscription_cancelled'), class: "btn #{current_filter == 'subscription_cancelled' ? 'btn-primary' : 'btn-outline-primary'}" %>
+      <%= link_to "Paused", user_path(user, tab: :payments, event_type: 'subscription_paused'), class: "btn #{current_filter == 'subscription_paused' ? 'btn-primary' : 'btn-outline-primary'}" %>
+      <%= link_to "Resumed", user_path(user, tab: :payments, event_type: 'subscription_resumed'), class: "btn #{current_filter == 'subscription_resumed' ? 'btn-primary' : 'btn-outline-primary'}" %>
+    </div>
+
     <% if payments.any? %>
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">
           <thead class="bg-body-tertiary">
             <tr>
+              <th scope="col">Event</th>
               <th scope="col">Source</th>
-              <th scope="col">Reference</th>
-              <th scope="col">Status</th>
+              <th scope="col">Details</th>
               <th scope="col">Amount</th>
               <th scope="col">Time</th>
             </tr>
           </thead>
           <tbody>
-            <% payments.each do |payment| %>
+            <% payments.each do |event| %>
               <tr>
-                <td><span class="badge text-bg-secondary"><%= payment_source_label(payment) %></span></td>
+                <td><span class="badge <%= payment_event_badge_class(event.event_type) %>"><%= event.event_type.humanize %></span></td>
+                <td><span class="badge text-bg-secondary"><%= event.source.titleize %></span></td>
                 <td>
-                  <% if local_assigns[:show_payment_links] %>
-                    <%= link_to payment_identifier(payment), payment_show_path(payment) %>
+                  <% linked = event.linked_payment %>
+                  <% if local_assigns[:show_payment_links] && linked %>
+                    <%= link_to event.details || event.identifier, payment_show_path(linked), class: "text-decoration-none" %>
                   <% else %>
-                    <span class="text-muted"><%= payment_identifier(payment) %></span>
+                    <span class="text-muted"><%= event.details || event.identifier %></span>
                   <% end %>
                 </td>
-                <td><span class="badge text-bg-secondary"><%= payment_status(payment).presence || "Unknown" %></span></td>
-                <td><%= payment_amount(payment) || "—" %></td>
-                <td><%= payment_processed_time(payment) ? l(payment_processed_time(payment), format: :long) : "n/a" %></td>
+                <td><%= event.amount_with_currency || "—" %></td>
+                <td class="text-nowrap"><%= event.occurred_at ? l(event.occurred_at, format: :long) : "n/a" %></td>
               </tr>
             <% end %>
           </tbody>
@@ -43,7 +55,13 @@
         <%= render 'shared/pagination', pagy: pagy, user: user, tab: :payments %>
       <% end %>
     <% else %>
-      <p class="text-muted mb-0">No payments have been recorded yet.</p>
+      <p class="text-muted mb-0">
+        <% if current_filter.present? %>
+          No <%= current_filter.humanize.downcase %> events found.
+        <% else %>
+          No payment events have been recorded yet.
+        <% end %>
+      </p>
     <% end %>
   </div>
 </div>

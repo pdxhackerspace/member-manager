@@ -47,18 +47,16 @@ class ReportsController < AdminController
     prepare_legacy_recent_access(limit: LIMIT)
 
     # Inactive members with RFID cards who would lose access if sync_inactive_members is disabled
-    @inactive_with_rfid = User.where(active: false)
-                               .non_service_accounts
-                               .joins(:rfids)
-                               .distinct
+    inactive_rfid_ids = User.where(active: false)
+                             .non_service_accounts
+                             .joins(:rfids)
+                             .distinct
+                             .pluck(:id)
+    @inactive_with_rfid = User.where(id: inactive_rfid_ids)
                                .includes(:rfids, :membership_plan)
                                .ordered_by_display_name
                                .limit(LIMIT)
-    @inactive_with_rfid_count = User.where(active: false)
-                                     .non_service_accounts
-                                     .joins(:rfids)
-                                     .distinct
-                                     .count
+    @inactive_with_rfid_count = inactive_rfid_ids.size
 
     # Paying members with fewer than 3 access log entries
     few_access_ids = User.where(membership_status: 'paying')
@@ -334,10 +332,12 @@ class ReportsController < AdminController
       @users = User.where(id: few_access_ids).ordered_by_display_name
       @title = 'Paying Members with Few Access Records'
     when 'inactive-with-rfid'
-      @users = User.where(active: false)
-                    .non_service_accounts
-                    .joins(:rfids)
-                    .distinct
+      ids = User.where(active: false)
+                .non_service_accounts
+                .joins(:rfids)
+                .distinct
+                .pluck(:id)
+      @users = User.where(id: ids)
                     .includes(:rfids, :membership_plan)
                     .ordered_by_display_name
       @title = 'Inactive Members with RFID Access'

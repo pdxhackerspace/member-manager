@@ -51,7 +51,7 @@ class AccessControllersController < AdminController
 
   def sync
     if @access_controller.enabled?
-      AccessControllerSyncJob.perform_later(@access_controller.id, current_user.id)
+      AccessControllerVerbJob.perform_later(@access_controller.id, 'sync', current_user.id)
       redirect_to access_controllers_path, notice: "Sync started for '#{@access_controller.name}'."
     else
       redirect_to access_controllers_path, alert: "Access controller '#{@access_controller.name}' is disabled."
@@ -77,7 +77,7 @@ class AccessControllersController < AdminController
 
   def sync_all
     enabled = AccessController.enabled
-    enabled.find_each { |controller| AccessControllerSyncJob.perform_later(controller.id, current_user.id) }
+    enabled.find_each { |controller| AccessControllerVerbJob.perform_later(controller.id, 'sync', current_user.id) }
     redirect_to access_controllers_path, notice: "Sync started for #{enabled.count} access controller(s)."
   end
 

@@ -15,6 +15,7 @@
     { id: 'no-email', name: 'No Email', count: @no_email_count },
     { id: 'sponsored-and-paying', name: 'Sponsored & Paying', count: @sponsored_and_paying_count },
     { id: 'no-access', name: 'Few Access', count: @no_access_count },
+    { id: 'inactive-with-rfid', name: 'Inactive + RFID', count: @inactive_with_rfid_count },
     { id: 'legacy-with-access', name: 'Legacy + Access', count: @legacy_with_access_count },
     { id: 'legacy-recent-access', name: 'Legacy Recent', count: @legacy_recent_access_count }
   ]
@@ -534,6 +535,78 @@
           <% end %>
         <% else %>
           <p class="text-muted mb-0">All paying members have at least 3 access records.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inactive Members with RFID (would lose access) -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'inactive-with-rfid' %>"
+       id="inactive-with-rfid-pane"
+       role="tabpanel"
+       aria-labelledby="inactive-with-rfid-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Inactive Members with RFID Cards (<%= @inactive_with_rfid_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @inactive_with_rfid.any? %>
+          <p class="text-muted small mb-3">These members have RFID cards but are not active. They would lose physical access if "Sync inactive members" is turned off.</p>
+          <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+              <thead class="bg-body-tertiary">
+                <tr>
+                  <th scope="col" style="width: 48px;"></th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Membership Status</th>
+                  <th scope="col">Payment Type</th>
+                  <th scope="col">Dues Status</th>
+                  <th scope="col">RFID Cards</th>
+                  <th scope="col">Plan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @inactive_with_rfid.each do |user| %>
+                  <tr>
+                    <td>
+                      <% if user.avatar.present? %>
+                        <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                      <% else %>
+                        <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
+                      <% end %>
+                    </td>
+                    <td class="fw-semibold">
+                      <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+                    </td>
+                    <td>
+                      <% badge_class = case user.membership_status
+                         when "paying" then "success"
+                         when "cancelled" then "danger"
+                         when "sponsored" then "primary"
+                         when "banned" then "dark"
+                         when "guest" then "warning"
+                         else "secondary"
+                         end %>
+                      <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status.humanize %></span>
+                    </td>
+                    <td><span class="badge text-bg-secondary"><%= user.payment_type.humanize %></span></td>
+                    <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
+                    <td><%= user.rfids.size %></td>
+                    <td class="text-muted"><%= user.membership_plan&.name || "—" %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <% if @inactive_with_rfid_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@inactive_with_rfid_count} members",
+                  reports_view_all_path('inactive-with-rfid'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No inactive members have RFID cards.</p>
         <% end %>
       </div>
     </div>

@@ -46,6 +46,20 @@ class ReportsController < AdminController
     # Legacy members with recent (last year) access records
     prepare_legacy_recent_access(limit: LIMIT)
 
+    # Inactive members with RFID cards who would lose access if sync_inactive_members is disabled
+    @inactive_with_rfid = User.where(active: false)
+                               .non_service_accounts
+                               .joins(:rfids)
+                               .distinct
+                               .includes(:rfids, :membership_plan)
+                               .ordered_by_display_name
+                               .limit(LIMIT)
+    @inactive_with_rfid_count = User.where(active: false)
+                                     .non_service_accounts
+                                     .joins(:rfids)
+                                     .distinct
+                                     .count
+
     # Paying members with fewer than 3 access log entries
     few_access_ids = User.where(membership_status: 'paying')
                          .non_service_accounts
@@ -319,6 +333,14 @@ class ReportsController < AdminController
                            .pluck('users.id')
       @users = User.where(id: few_access_ids).ordered_by_display_name
       @title = 'Paying Members with Few Access Records'
+    when 'inactive-with-rfid'
+      @users = User.where(active: false)
+                    .non_service_accounts
+                    .joins(:rfids)
+                    .distinct
+                    .includes(:rfids, :membership_plan)
+                    .ordered_by_display_name
+      @title = 'Inactive Members with RFID Access'
     when 'legacy-with-access'
       prepare_legacy_with_access
       @title = 'Legacy Members with Access'

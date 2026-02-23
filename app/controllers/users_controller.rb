@@ -236,6 +236,10 @@ class UsersController < AuthenticatedController
   end
 
   def edit
+    if !true_user_admin? && @user == current_user
+      redirect_to profile_setup_path
+      return
+    end
   end
 
   def update

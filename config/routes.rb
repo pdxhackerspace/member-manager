@@ -46,6 +46,16 @@ Rails.application.routes.draw do
 
   resources :rfids, only: [:new, :create, :destroy]
 
+  # Member profile setup wizard (non-admin)
+  get  "/profile/setup",            to: "profile_setup#basic_info",       as: :profile_setup
+  post "/profile/setup",            to: "profile_setup#save_basic_info",  as: :profile_setup_save_basic
+  get  "/profile/setup/visibility", to: "profile_setup#visibility",       as: :profile_setup_visibility
+  post "/profile/setup/visibility", to: "profile_setup#save_visibility",  as: :profile_setup_save_visibility
+  get  "/profile/setup/optional",   to: "profile_setup#optional_info",    as: :profile_setup_optional
+  post "/profile/setup/optional",   to: "profile_setup#save_optional_info", as: :profile_setup_save_optional
+  post "/profile/setup/links",      to: "profile_setup#add_link",         as: :profile_setup_add_link
+  delete "/profile/setup/links/:link_id", to: "profile_setup#remove_link", as: :profile_setup_remove_link
+
   # Member onboarding wizard
   get  "/onboard",              to: "onboarding#member_info",      as: :onboard
   post "/onboard",              to: "onboarding#create_member",    as: :onboard_create

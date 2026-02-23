@@ -1,0 +1,236 @@
+<div class="py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <!-- Progress -->
+      <div class="d-flex justify-content-center mb-4">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge rounded-pill text-bg-success"><i class="bi bi-check"></i></span>
+          <span class="text-muted small">Basic Info</span>
+          <i class="bi bi-chevron-right text-muted mx-1"></i>
+          <span class="badge rounded-pill text-bg-success"><i class="bi bi-check"></i></span>
+          <span class="text-muted small">About You</span>
+          <i class="bi bi-chevron-right text-muted mx-1"></i>
+          <span class="badge rounded-pill text-bg-primary">3</span>
+          <span class="fw-semibold small">Visibility</span>
+        </div>
+      </div>
+
+      <!-- Member summary -->
+      <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+            <div>
+              <span class="fw-semibold"><%= @user.display_name %></span>
+              <span class="text-muted ms-2"><%= @user.email %></span>
+              <% if @user.username.present? %>
+                <span class="text-muted ms-2">@<%= @user.username %></span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-body-tertiary">
+          <h4 class="card-title mb-0"><i class="bi bi-eye me-2"></i>Visibility & Greeting</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">Control who can see your profile and how you're greeted on entry.</p>
+
+          <%= form_with url: profile_setup_save_visibility_path, scope: :user, method: :post, class: "vstack gap-4", data: { turbo: false } do |f| %>
+
+            <div>
+              <%= f.label :profile_visibility, "Who can see your profile?", class: "form-label fw-semibold" %>
+              <div class="vstack gap-2">
+                <div class="form-check">
+                  <input type="radio" name="user[profile_visibility]" value="private" id="vis_private" class="form-check-input"
+                         <%= 'checked' if @user.profile_visibility == 'private' %>>
+                  <label class="form-check-label" for="vis_private">
+                    <strong>Private</strong> — only you and admins
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="user[profile_visibility]" value="members" id="vis_members" class="form-check-input"
+                         <%= 'checked' if @user.profile_visibility == 'members' %>>
+                  <label class="form-check-label" for="vis_members">
+                    <strong>Members</strong> — other logged-in members can see your profile
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="user[profile_visibility]" value="public" id="vis_public" class="form-check-input"
+                         <%= 'checked' if @user.profile_visibility == 'public' %>>
+                  <label class="form-check-label" for="vis_public">
+                    <strong>Public</strong> — anyone on the internet can see your profile
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <div>
+              <label class="form-label fw-semibold">Greeting on entry signs</label>
+              <p class="text-muted small mb-2">When you enter the space, how should we greet you?</p>
+
+              <div class="vstack gap-2 mb-3">
+                <div class="form-check">
+                  <%= f.radio_button :greeting_option, 'full_name', class: "form-check-input", id: "greet_full_name",
+                      checked: @user.use_full_name_for_greeting %>
+                  <label class="form-check-label" for="greet_full_name">
+                    Use my full name<% if @user.full_name.present? %> (<strong><%= @user.full_name %></strong>)<% end %>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <%= f.radio_button :greeting_option, 'username', class: "form-check-input", id: "greet_username",
+                      checked: @user.use_username_for_greeting %>
+                  <label class="form-check-label" for="greet_username">
+                    Use my username<% if @user.username.present? %> (<strong><%= @user.username %></strong>)<% end %>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <%= f.radio_button :greeting_option, 'do_not_greet', class: "form-check-input", id: "greet_none",
+                      checked: @user.do_not_greet %>
+                  <label class="form-check-label" for="greet_none">
+                    Don't greet me
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="text-center mb-3">
+              <p class="text-muted small mb-2">See what your profile looks like to others</p>
+              <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="showPreview('self')">
+                  <i class="bi bi-person me-1"></i>As You
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="showPreview('members')">
+                  <i class="bi bi-people me-1"></i>As Members
+                </button>
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="showPreview('public')">
+                  <i class="bi bi-globe me-1"></i>As Public
+                </button>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <%= link_to "Back", profile_setup_optional_path, class: "btn btn-outline-secondary btn-lg" %>
+              <%= f.submit "Save & Finish", class: "btn btn-success btn-lg" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Profile Preview Overlay -->
+<div id="profile-preview-overlay" style="display:none; position:fixed; inset:0; z-index:1050;">
+  <div style="position:absolute; inset:0; background:rgba(0,0,0,0.4);" onclick="hidePreview()"></div>
+  <div style="position:absolute; top:2rem; right:2rem; bottom:2rem; width:min(600px, calc(100vw - 4rem)); background:var(--bs-body-bg, #fff); border-radius:0.75rem; box-shadow:0 8px 32px rgba(0,0,0,0.25); display:flex; flex-direction:column; overflow:hidden;">
+
+    <!-- Header -->
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--bs-border-color, #dee2e6); display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+      <div>
+        <strong>Profile Preview</strong>
+        <span id="preview-view-label" class="badge text-bg-info ms-2">As You</span>
+      </div>
+      <button type="button" class="btn-close" onclick="hidePreview()"></button>
+    </div>
+
+    <!-- Navigation -->
+    <div style="padding:0.5rem 1.25rem; border-bottom:1px solid var(--bs-border-color, #dee2e6); flex-shrink:0;">
+      <div class="btn-group btn-group-sm w-100" role="group">
+        <button type="button" class="btn btn-outline-secondary preview-nav-btn active" data-view="self" onclick="switchPreview('self')">
+          <i class="bi bi-person me-1"></i>As You
+        </button>
+        <button type="button" class="btn btn-outline-secondary preview-nav-btn" data-view="members" onclick="switchPreview('members')">
+          <i class="bi bi-people me-1"></i>As Members
+        </button>
+        <button type="button" class="btn btn-outline-secondary preview-nav-btn" data-view="public" onclick="switchPreview('public')">
+          <i class="bi bi-globe me-1"></i>As Public
+        </button>
+      </div>
+    </div>
+
+    <!-- Profile header preview -->
+    <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--bs-border-color, #dee2e6); flex-shrink:0;">
+      <div class="d-flex align-items-center gap-3">
+        <% if @user.email.present? %>
+          <img src="<%= gravatar_url(@user.email, size: 64) %>" alt="" style="width:48px; height:48px; border-radius:50%;">
+        <% end %>
+        <div>
+          <h5 class="mb-0"><%= @user.display_name %></h5>
+          <% if @user.pronouns.present? %>
+            <span class="text-muted small"><%= @user.pronouns %></span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div style="flex:1; overflow-y:auto; padding:1.25rem;">
+      <div id="preview-self" class="preview-panel">
+        <%= render 'users/tab_profile_self', user: @user %>
+      </div>
+      <div id="preview-members" class="preview-panel" style="display:none;">
+        <%= render 'users/tab_profile_members', user: @user %>
+      </div>
+      <div id="preview-public" class="preview-panel" style="display:none;">
+        <%= render 'users/tab_profile_public', user: @user %>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:0.75rem 1.25rem; border-top:1px solid var(--bs-border-color, #dee2e6); display:flex; justify-content:space-between; flex-shrink:0;">
+      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="hidePreview()">Close</button>
+      <button type="button" class="btn btn-info btn-sm" id="preview-next-btn" onclick="nextPreview()">
+        Next view <i class="bi bi-chevron-right ms-1"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var views = ['self', 'members', 'public'];
+  var labels = { self: 'As You', members: 'As Members', public: 'As Public' };
+  var currentView = 'self';
+
+  window.showPreview = function(view) {
+    currentView = view;
+    updatePreviewPanels();
+    document.getElementById('profile-preview-overlay').style.display = '';
+  };
+
+  window.hidePreview = function() {
+    document.getElementById('profile-preview-overlay').style.display = 'none';
+  };
+
+  window.switchPreview = function(view) {
+    currentView = view;
+    updatePreviewPanels();
+  };
+
+  window.nextPreview = function() {
+    var idx = views.indexOf(currentView);
+    currentView = views[(idx + 1) % views.length];
+    updatePreviewPanels();
+  };
+
+  function updatePreviewPanels() {
+    views.forEach(function(v) {
+      document.getElementById('preview-' + v).style.display = v === currentView ? '' : 'none';
+    });
+    document.getElementById('preview-view-label').textContent = labels[currentView];
+
+    document.querySelectorAll('.preview-nav-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.view === currentView);
+    });
+  }
+})();
+</script>

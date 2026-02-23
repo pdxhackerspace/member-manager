@@ -36,7 +36,7 @@
         </div>
         <div class="card-body">
 
-          <%= form_with url: onboard_save_payment_path(@user), method: :post, local: true, id: "payment-form" do |f| %>
+          <%= form_with url: onboard_save_payment_path(@user), method: :post, id: "payment-form" do |f| %>
 
             <div class="mb-4">
               <label class="form-label fw-semibold">Membership Type</label>
@@ -132,12 +132,13 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
   const typeRadios = document.querySelectorAll('input[name="membership_type"]');
   const payingOptions = document.getElementById('paying-options');
   const planRadios = document.querySelectorAll('.plan-radio');
   const customFields = document.getElementById('custom-plan-fields');
   const customFlag = document.getElementById('custom_plan_flag');
+  if (!payingOptions || !customFields) return;
 
   function updatePayingVisibility() {
     const selected = document.querySelector('input[name="membership_type"]:checked');
@@ -161,5 +162,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
   updatePayingVisibility();
   updateCustomVisibility();
-});
+})();
 </script>

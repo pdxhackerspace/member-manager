@@ -73,6 +73,25 @@ class QueuedMailsController < AdminController
     redirect_to queued_mail_path(@queued_mail), notice: "Retrying delivery to #{@queued_mail.to}..."
   end
 
+  def approve_all
+    unless helpers.smtp_configured?
+      redirect_to queued_mails_path, alert: 'Cannot send email: SMTP is not configured.'
+      return
+    end
+
+    pending = QueuedMail.pending
+    count = pending.count
+    pending.find_each { |qm| qm.approve!(current_user) }
+    redirect_to queued_mails_path, notice: "Approved and sent #{count} message#{'s' if count != 1}."
+  end
+
+  def reject_all
+    pending = QueuedMail.pending
+    count = pending.count
+    pending.find_each { |qm| qm.reject!(current_user) }
+    redirect_to queued_mails_path, notice: "Rejected #{count} message#{'s' if count != 1}."
+  end
+
   def regenerate
     unless @queued_mail.pending?
       redirect_to queued_mail_path(@queued_mail), alert: 'Only pending messages can be regenerated.'

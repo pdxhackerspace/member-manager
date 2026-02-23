@@ -30,22 +30,22 @@
             </div>
           <% end %>
 
-          <%= form_with model: @user, url: onboard_create_path, method: :post, local: true, class: "vstack gap-3" do |f| %>
+          <%= form_with url: onboard_create_path, scope: :user, method: :post, class: "vstack gap-3" do |f| %>
             <div>
               <%= f.label :full_name, "Full Name", class: "form-label" %>
-              <%= f.text_field :full_name, class: "form-control form-control-lg", id: "onboard_full_name",
+              <%= f.text_field :full_name, value: @user.full_name, class: "form-control form-control-lg", id: "onboard_full_name",
                   autocorrect: "off", autocapitalize: "off", spellcheck: "false", autofocus: true %>
             </div>
 
             <div>
               <%= f.label :email, "Email Address", class: "form-label" %>
-              <%= f.email_field :email, class: "form-control form-control-lg",
+              <%= f.email_field :email, value: @user.email, class: "form-control form-control-lg",
                   autocorrect: "off", autocapitalize: "off", spellcheck: "false" %>
             </div>
 
             <div>
               <%= f.label :username, class: "form-label" %>
-              <%= f.text_field :username, class: "form-control form-control-lg", id: "onboard_username",
+              <%= f.text_field :username, value: @user.username, class: "form-control form-control-lg", id: "onboard_username",
                   autocorrect: "off", autocapitalize: "off", spellcheck: "false" %>
               <div class="form-text">Auto-generated from the name. Edit if needed.</div>
             </div>
@@ -62,27 +62,25 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
   const nameField = document.getElementById('onboard_full_name');
   const usernameField = document.getElementById('onboard_username');
+  if (!nameField || !usernameField) return;
+
   let userEditedUsername = false;
 
-  if (usernameField) {
-    usernameField.addEventListener('input', function() {
-      userEditedUsername = true;
-    });
-  }
+  usernameField.addEventListener('input', function() {
+    userEditedUsername = true;
+  });
 
-  if (nameField && usernameField) {
-    nameField.addEventListener('input', function() {
-      if (!userEditedUsername || usernameField.value === '') {
-        usernameField.value = nameField.value
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, '')
-          .replace(/\s+/g, '');
-        userEditedUsername = false;
-      }
-    });
-  }
-});
+  nameField.addEventListener('input', function() {
+    if (!userEditedUsername || usernameField.value === '') {
+      usernameField.value = nameField.value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '');
+      userEditedUsername = false;
+    }
+  });
+})();
 </script>

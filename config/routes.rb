@@ -210,6 +210,10 @@ Rails.application.routes.draw do
       post :regenerate
       post :retry_delivery, as: :retry
     end
+    collection do
+      post :approve_all
+      post :reject_all
+    end
   end
 
   resources :text_fragments, only: [:index, :show, :edit, :update] do

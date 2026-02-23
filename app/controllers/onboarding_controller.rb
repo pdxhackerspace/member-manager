@@ -13,7 +13,7 @@ class OnboardingController < AdminController
     @user.active = false
 
     if @user.save
-      redirect_to onboard_payment_path(@user)
+      redirect_to onboard_payment_path(@user), status: :see_other
     else
       render :member_info, status: :unprocessable_entity
     end
@@ -72,7 +72,7 @@ class OnboardingController < AdminController
       )
     end
 
-    redirect_to onboard_access_path(@user)
+    redirect_to onboard_access_path(@user), status: :see_other
   rescue ActiveRecord::RecordInvalid => e
     @plans = MembershipPlan.shared.primary.visible.ordered
     flash.now[:alert] = "Error: #{e.message}"
@@ -99,14 +99,14 @@ class OnboardingController < AdminController
     else
       flash[:alert] = "Please enter an RFID code."
     end
-    redirect_to onboard_access_path(@user)
+    redirect_to onboard_access_path(@user), status: :see_other
   end
 
   def save_training
     topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
     unless topic
       flash[:alert] = "Building Access training topic not found. Please create it under Settings > Training Topics."
-      redirect_to onboard_access_path(@user)
+      redirect_to onboard_access_path(@user), status: :see_other
       return
     end
 
@@ -135,7 +135,7 @@ class OnboardingController < AdminController
     end
 
     flash[:notice] = "Building Access training recorded."
-    redirect_to onboard_access_path(@user)
+    redirect_to onboard_access_path(@user), status: :see_other
   end
 
   private

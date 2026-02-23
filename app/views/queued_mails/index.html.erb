@@ -36,6 +36,21 @@
   </li>
 </ul>
 
+<% if @filter == 'pending' && @pending_count > 0 %>
+  <div class="d-flex gap-2 mb-3">
+    <% if smtp_configured? %>
+      <%= button_to "Approve & Send All", approve_all_queued_mails_path, method: :post,
+          class: "btn btn-success",
+          data: { turbo_confirm: "This will approve and send all #{@pending_count} pending message#{'s' if @pending_count != 1}. Continue?" } %>
+    <% else %>
+      <button class="btn btn-success" disabled title="SMTP not configured">Approve & Send All</button>
+    <% end %>
+    <%= button_to "Reject All", reject_all_queued_mails_path, method: :post,
+        class: "btn btn-danger",
+        data: { turbo_confirm: "This will reject all #{@pending_count} pending message#{'s' if @pending_count != 1}. Continue?" } %>
+  </div>
+<% end %>
+
 <% if @queued_mails.any? %>
   <div class="card shadow-sm border-0">
     <div class="table-responsive">

@@ -1,7 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h1 class="h3 mb-1">Members</h1>
-    <p class="text-muted mb-0">Synced from Authentik group.</p>
     <p class="text-muted mb-0">
       <strong><%= @user_count %></strong> members<%= " (including #{@legacy_count} legacy)" if @include_legacy && @legacy_count.positive? %> —
       <%= link_to stacking_filter_path(:active, 'true'), class: "text-decoration-none" do %>
@@ -9,6 +8,9 @@
       <% end %>,
       <%= link_to stacking_filter_path(:active, 'false'), class: "text-decoration-none" do %>
         <strong><%= @inactive_count %></strong> inactive
+      <% end %>
+      <% if @filter_active || @include_legacy %>
+        <span class="text-muted fst-italic">(filtered counts)</span>
       <% end %>
     </p>
   </div>

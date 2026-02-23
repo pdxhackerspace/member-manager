@@ -134,6 +134,10 @@ class UsersController < AuthenticatedController
     @list_params[:account_type] = params[:account_type] if params[:account_type].present?
     @list_params[:sort] = params[:sort] if params[:sort].present?
     @list_params[:direction] = params[:direction] if params[:direction].present?
+
+    @recent_members = User.non_service_accounts.non_legacy
+                          .where('created_at >= ?', 1.week.ago)
+                          .ordered_by_display_name
   end
 
   def show

@@ -172,6 +172,64 @@
   </div>
 </div>
 
+<% if @recent_members.any? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-body-tertiary">
+      <h6 class="mb-0"><i class="bi bi-person-plus me-1"></i>New Members This Week (<%= @recent_members.size %>)</h6>
+    </div>
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead class="bg-body-tertiary">
+          <tr>
+            <th scope="col" style="width: 48px;"></th>
+            <th scope="col">Username</th>
+            <th scope="col">Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Status</th>
+            <th scope="col">Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @recent_members.each do |user| %>
+            <tr>
+              <td>
+                <%= link_to user_path(user, @list_params) do %>
+                  <% if user.avatar.present? %>
+                    <img src="<%= user.avatar %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% elsif user.email.present? %>
+                    <img src="<%= gravatar_url(user.email, size: 32) %>" alt="<%= user.display_name %>" style="width: 32px; height: 32px; border-radius: 4px;">
+                  <% else %>
+                    <div style="width: 32px; height: 32px; border-radius: 4px; background-color: #dee2e6; display: inline-block;"></div>
+                  <% end %>
+                <% end %>
+              </td>
+              <td class="small text-monospace text-secondary fw-semibold"><%= link_to user.username, user_path(user, @list_params), class: "text-decoration-none text-secondary" %></td>
+              <td class="fw-semibold"><%= link_to user.display_name, user_path(user, @list_params), class: "text-decoration-none" %></td>
+              <td>
+                <% if user.email.present? %>
+                  <%= mail_to user.email %>
+                <% else %>
+                  <span class="text-muted fst-italic">Not provided</span>
+                <% end %>
+              </td>
+              <td>
+                <% badge_class = case user.membership_status
+                   when "paying" then "success"
+                   when "sponsored" then "primary"
+                   when "guest" then "warning"
+                   else "secondary"
+                   end %>
+                <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status&.humanize %></span>
+              </td>
+              <td class="text-muted small"><%= time_ago_in_words(user.created_at) %> ago</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-0">
   <div class="table-responsive">
     <table class="table mb-0 align-middle">

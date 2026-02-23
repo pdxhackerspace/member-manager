@@ -69,58 +69,44 @@
         </div>
       </div>
 
-      <!-- Building Access Training -->
-      <div class="card shadow-sm border-0 mb-3">
+      <!-- Building Access Training + Continue -->
+      <div class="card shadow-sm border-0">
         <div class="card-header bg-body-tertiary">
           <h5 class="card-title mb-0"><i class="bi bi-mortarboard me-2"></i>Building Access Training</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body py-4">
           <% if @building_access_topic.nil? %>
-            <div class="alert alert-warning mb-0">
+            <div class="alert alert-warning mb-3">
               <i class="bi bi-exclamation-triangle me-2"></i>
               No "Building Access" training topic found.
               <%= link_to "Create one under Settings > Training Topics", training_topics_path %> first.
             </div>
+            <div class="d-flex justify-content-center gap-2">
+              <%= link_to onboard_mail_path(@user), class: "btn btn-primary btn-lg" do %>
+                Continue <i class="bi bi-chevron-right ms-1"></i>
+              <% end %>
+            </div>
           <% elsif @has_building_access_training %>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
               <i class="bi bi-check-circle-fill text-success fs-4"></i>
               <span class="fw-semibold">Building Access training completed</span>
             </div>
-          <% else %>
-            <p class="text-muted mb-3">Mark this member as trained for building access.</p>
-            <%= button_to onboard_save_training_path(@user), method: :post, class: "btn btn-info" do %>
-              <i class="bi bi-mortarboard me-1"></i>Mark Building Access Trained
-            <% end %>
-          <% end %>
-        </div>
-      </div>
-
-      <!-- Completion -->
-      <div class="card shadow-sm border-0">
-        <div class="card-body text-center py-4">
-          <% if @rfids.any? && @has_building_access_training %>
-            <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
-            <h5 class="text-success">Onboarding Complete!</h5>
-            <p class="text-muted">
-              <%= @user.display_name %> is set up with RFID access and building training.
-            </p>
-          <% else %>
-            <p class="text-muted mb-2">
-              <% missing = [] %>
-              <% missing << "RFID key fob" unless @rfids.any? %>
-              <% missing << "Building Access training" unless @has_building_access_training %>
-              <% if missing.any? %>
-                Still needed: <strong><%= missing.join(", ") %></strong>
+            <div class="d-flex justify-content-center gap-2">
+              <%= link_to onboard_mail_path(@user), class: "btn btn-primary btn-lg" do %>
+                Continue <i class="bi bi-chevron-right ms-1"></i>
               <% end %>
-            </p>
+            </div>
+          <% else %>
+            <p class="text-muted text-center mb-3">Train this member on building access and continue, or skip to proceed without training.</p>
+            <div class="d-flex justify-content-center gap-2">
+              <%= button_to onboard_save_training_path(@user), method: :post, class: "btn btn-primary btn-lg" do %>
+                <i class="bi bi-mortarboard me-1"></i>Train on Building Access & Continue
+              <% end %>
+              <%= link_to onboard_mail_path(@user), class: "btn btn-outline-secondary btn-lg" do %>
+                Skip this step <i class="bi bi-chevron-right ms-1"></i>
+              <% end %>
+            </div>
           <% end %>
-
-          <div class="d-flex justify-content-center gap-2 mt-3">
-            <%= link_to onboard_mail_path(@user), class: "btn btn-primary btn-lg" do %>
-              Continue <i class="bi bi-chevron-right ms-1"></i>
-            <% end %>
-            <%= link_to "Back to Dashboard", root_path, class: "btn btn-outline-secondary btn-lg" %>
-          </div>
         </div>
       </div>
 

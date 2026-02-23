@@ -70,7 +70,11 @@ class OnboardingController < AdminController
       )
     end
 
-    redirect_to onboard_access_path(@user), status: :see_other
+    if membership_type == 'guest'
+      redirect_to onboard_mail_path(@user), status: :see_other
+    else
+      redirect_to onboard_access_path(@user), status: :see_other
+    end
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = "Error: #{e.message}"
     render :payment, status: :unprocessable_entity

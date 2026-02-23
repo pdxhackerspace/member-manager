@@ -1,0 +1,165 @@
+<div class="py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+
+      <!-- Progress -->
+      <div class="d-flex align-items-center mb-4">
+        <span class="badge bg-success rounded-pill me-2"><i class="bi bi-check"></i></span>
+        <span class="text-muted">Member Info</span>
+        <i class="bi bi-chevron-right mx-2 text-muted"></i>
+        <span class="badge bg-primary rounded-pill me-2">2</span>
+        <span class="fw-semibold text-primary">Payment</span>
+        <i class="bi bi-chevron-right mx-2 text-muted"></i>
+        <span class="badge bg-secondary rounded-pill me-2">3</span>
+        <span class="text-muted">Building Access</span>
+      </div>
+
+      <!-- Member Summary -->
+      <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-person-circle fs-3 text-muted"></i>
+            <div>
+              <strong><%= @user.display_name %></strong>
+              <span class="text-muted ms-2"><%= @user.email %></span>
+              <% if @user.username.present? %>
+                <span class="text-muted ms-2">@<%= @user.username %></span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-body-tertiary">
+          <h4 class="card-title mb-0"><i class="bi bi-credit-card me-2"></i>Membership & Payment</h4>
+        </div>
+        <div class="card-body">
+
+          <%= form_with url: onboard_save_payment_path(@user), method: :post, local: true, id: "payment-form" do |f| %>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Membership Type</label>
+
+              <div class="form-check mb-2">
+                <input type="radio" name="membership_type" value="paying" class="form-check-input" id="type_paying" checked>
+                <label class="form-check-label" for="type_paying">
+                  <strong>Paying Member</strong> &mdash; full access, pays dues
+                </label>
+              </div>
+
+              <div class="form-check mb-2">
+                <input type="radio" name="membership_type" value="sponsored" class="form-check-input" id="type_sponsored">
+                <label class="form-check-label" for="type_sponsored">
+                  <strong>Sponsored</strong> &mdash; full access, no dues
+                </label>
+              </div>
+
+              <div class="form-check mb-2">
+                <input type="radio" name="membership_type" value="guest" class="form-check-input" id="type_guest">
+                <label class="form-check-label" for="type_guest">
+                  <strong>Guest</strong> &mdash; no physical access, no dues
+                </label>
+              </div>
+            </div>
+
+            <!-- Paying options (shown when "paying" is selected) -->
+            <div id="paying-options">
+              <hr>
+              <label class="form-label fw-semibold">Payment Plan</label>
+
+              <% @plans.each do |plan| %>
+                <div class="form-check mb-2">
+                  <input type="radio" name="membership_plan_id" value="<%= plan.id %>" class="form-check-input plan-radio"
+                         id="plan_<%= plan.id %>" <%= 'checked' if plan == @plans.first %>>
+                  <label class="form-check-label" for="plan_<%= plan.id %>">
+                    <strong><%= plan.name %></strong> &mdash;
+                    $<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %>
+                    <% if plan.description.present? %>
+                      <br><small class="text-muted"><%= plan.description %></small>
+                    <% end %>
+                  </label>
+                </div>
+              <% end %>
+
+              <div class="form-check mb-3">
+                <input type="radio" name="membership_plan_id" value="" class="form-check-input plan-radio" id="plan_custom">
+                <label class="form-check-label" for="plan_custom">
+                  <strong>Custom Plan</strong> &mdash; enter details below
+                </label>
+              </div>
+
+              <!-- Custom plan fields (hidden until custom is selected) -->
+              <div id="custom-plan-fields" class="border rounded p-3 bg-body-tertiary" style="display: none;">
+                <input type="hidden" name="custom_plan" id="custom_plan_flag" value="0">
+
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Amount ($)</label>
+                    <input type="number" name="plan_cost" step="0.01" min="0" class="form-control" placeholder="0.00">
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Billing Frequency</label>
+                    <select name="plan_billing_frequency" class="form-select">
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                      <option value="one-time">One-time</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Payment Method</label>
+                    <select name="plan_payment_type" class="form-select">
+                      <option value="cash">Cash</option>
+                      <option value="paypal">PayPal</option>
+                      <option value="recharge">Recharge</option>
+                      <option value="kofi">Ko-Fi</option>
+                      <option value="unknown">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+              <%= submit_tag "Save & Continue", class: "btn btn-primary btn-lg" %>
+              <%= link_to "Back", onboard_path, class: "btn btn-outline-secondary btn-lg" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const typeRadios = document.querySelectorAll('input[name="membership_type"]');
+  const payingOptions = document.getElementById('paying-options');
+  const planRadios = document.querySelectorAll('.plan-radio');
+  const customFields = document.getElementById('custom-plan-fields');
+  const customFlag = document.getElementById('custom_plan_flag');
+
+  function updatePayingVisibility() {
+    const selected = document.querySelector('input[name="membership_type"]:checked');
+    payingOptions.style.display = (selected && selected.value === 'paying') ? 'block' : 'none';
+  }
+
+  function updateCustomVisibility() {
+    const selected = document.getElementById('plan_custom');
+    const isCustom = selected && selected.checked;
+    customFields.style.display = isCustom ? 'block' : 'none';
+    customFlag.value = isCustom ? '1' : '0';
+  }
+
+  typeRadios.forEach(function(radio) {
+    radio.addEventListener('change', updatePayingVisibility);
+  });
+
+  planRadios.forEach(function(radio) {
+    radio.addEventListener('change', updateCustomVisibility);
+  });
+
+  updatePayingVisibility();
+  updateCustomVisibility();
+});
+</script>

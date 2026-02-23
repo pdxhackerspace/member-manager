@@ -47,7 +47,10 @@
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
           <div class="d-flex flex-wrap justify-content-center gap-3">
-            <%= link_to new_user_path, class: "btn btn-primary btn-lg" do %>
+            <%= link_to onboard_path, class: "btn btn-primary btn-lg" do %>
+              <i class="bi bi-person-badge me-2"></i>Onboard New Member
+            <% end %>
+            <%= link_to new_user_path, class: "btn btn-outline-primary btn-lg" do %>
               <i class="bi bi-person-plus me-2"></i>New Member
             <% end %>
             <%= link_to new_rfid_path, class: "btn btn-success btn-lg" do %>

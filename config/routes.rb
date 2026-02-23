@@ -46,6 +46,15 @@ Rails.application.routes.draw do
 
   resources :rfids, only: [:new, :create, :destroy]
 
+  # Member onboarding wizard
+  get  "/onboard",              to: "onboarding#member_info",      as: :onboard
+  post "/onboard",              to: "onboarding#create_member",    as: :onboard_create
+  get  "/onboard/:id/payment",  to: "onboarding#payment",         as: :onboard_payment
+  post "/onboard/:id/payment",  to: "onboarding#save_payment",    as: :onboard_save_payment
+  get  "/onboard/:id/access",   to: "onboarding#access",          as: :onboard_access
+  post "/onboard/:id/rfid",     to: "onboarding#save_rfid",       as: :onboard_save_rfid
+  post "/onboard/:id/training", to: "onboarding#save_training",   as: :onboard_save_training
+
   resources :slack_users, only: [:index, :show] do
     collection do
       post :sync

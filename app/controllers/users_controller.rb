@@ -20,56 +20,22 @@ class UsersController < AuthenticatedController
     @include_legacy = params[:include_legacy] == '1'
     default_users = @include_legacy ? all_users : all_users.non_legacy
 
-    # Calculate counts from the default (non-legacy) view
-    @user_count = default_users.count
-    @active_count = default_users.where(active: true).count
-    @inactive_count = @user_count - @active_count
+    # Build the base filter params hash (used for stacking links)
+    @filter_params = {}
+    @filter_params[:include_legacy] = '1' if @include_legacy
+    @filter_params[:membership_status] = params[:membership_status] if params[:membership_status].present?
+    @filter_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
+    @filter_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
+    @filter_params[:active] = params[:active] if params[:active].present?
+    @filter_params[:membership_plan_id] = params[:membership_plan_id] if params[:membership_plan_id].present?
+    @filter_params[:missing] = params[:missing] if params[:missing].present?
+    @filter_params[:account_type] = params[:account_type] if params[:account_type].present?
+    @filter_params[:sort] = params[:sort] if params[:sort].present?
+    @filter_params[:direction] = params[:direction] if params[:direction].present?
 
-    # Exclude service accounts and legacy from membership/payment/dues/missing counts
-    member_users = default_users.non_service_accounts
-
-    # Membership status counts (non-service accounts only)
-    # Exclude is_sponsored members from "unknown" — they have a known status
-    @membership_status_unknown = member_users.where(membership_status: 'unknown', is_sponsored: false).count
-    @membership_status_sponsored = member_users.where(membership_status: 'sponsored').count
-    @membership_status_paying = member_users.where(membership_status: 'paying').count
-    @membership_status_banned = member_users.where(membership_status: 'banned').count
-    @membership_status_deceased = member_users.where(membership_status: 'deceased').count
-    @membership_status_applicant = member_users.where(membership_status: 'applicant').count
-
-    # Payment type counts (non-service accounts only)
-    @payment_type_unknown = member_users.where(payment_type: 'unknown').count
-    @payment_type_sponsored = member_users.where(payment_type: 'sponsored').count
-    @payment_type_paypal = member_users.where(payment_type: 'paypal').count
-    @payment_type_recharge = member_users.where(payment_type: 'recharge').count
-    @payment_type_cash = member_users.where(payment_type: 'cash').count
-
-    # Payment plan counts (non-service accounts only)
-    @membership_plans = MembershipPlan.ordered.to_a
-    @plan_counts = @membership_plans.map { |plan| [plan, member_users.where(membership_plan_id: plan.id).count] }
-    # Exclude guests and sponsored from "No Plan" — they aren't expected to have one
-    @no_plan_count = member_users.where(membership_plan_id: nil)
-                                 .where.not(membership_status: %w[guest sponsored])
-                                 .where(is_sponsored: false)
-                                 .count
-
-    # Dues status counts (non-service accounts only)
-    @dues_status_current = member_users.where(dues_status: 'current').count
-    @dues_status_lapsed = member_users.where(dues_status: 'lapsed').count
-    @dues_status_inactive = member_users.where(dues_status: 'inactive').count
-    @dues_status_unknown = member_users.where(dues_status: 'unknown').count
-
-    # Missing data counts (non-service accounts only)
-    @no_rfid_count = member_users.left_joins(:rfids).where(rfids: { id: nil }).count
-    @no_email_count = member_users.where("email IS NULL OR email = ''").count
-
-    # Account type counts (from non-legacy users for service account count)
-    @service_account_count = default_users.service_accounts.count
-
-    # Now build filtered query
+    # Build filtered query by applying all active filters
     @users = default_users
 
-    # Apply search filter if provided
     if params[:q].present?
       search_term = "%#{params[:q].downcase}%"
       @users = @users.where(
@@ -78,16 +44,9 @@ class UsersController < AuthenticatedController
       )
     end
 
-    # Apply status filters (exclude service accounts since these don't apply to them)
-    if params[:membership_status].present?
-      @users = @users.non_service_accounts.where(membership_status: params[:membership_status])
-    end
-    if params[:payment_type].present?
-      @users = @users.non_service_accounts.where(payment_type: params[:payment_type])
-    end
-    if params[:dues_status].present?
-      @users = @users.non_service_accounts.where(dues_status: params[:dues_status])
-    end
+    @users = @users.non_service_accounts.where(membership_status: params[:membership_status]) if params[:membership_status].present?
+    @users = @users.non_service_accounts.where(payment_type: params[:payment_type]) if params[:payment_type].present?
+    @users = @users.non_service_accounts.where(dues_status: params[:dues_status]) if params[:dues_status].present?
     if params[:membership_plan_id].present?
       if params[:membership_plan_id] == 'none'
         @users = @users.non_service_accounts.where(membership_plan_id: nil)
@@ -97,43 +56,73 @@ class UsersController < AuthenticatedController
     end
     @users = @users.where(active: params[:active] == 'true') if params[:active].present?
 
-    # Apply account type filter (legacy is handled above via default_users)
     if params[:account_type] == 'service'
       @users = @users.service_accounts
     elsif params[:account_type] == 'member'
       @users = @users.non_service_accounts
     end
 
-    # Apply missing data filters (exclude service accounts)
     if params[:missing] == 'rfid'
       @users = @users.non_service_accounts.left_joins(:rfids).where(rfids: { id: nil })
     elsif params[:missing] == 'email'
       @users = @users.non_service_accounts.where("email IS NULL OR email = ''")
     end
 
+    # Total count always from the full (non-legacy-adjusted) set for the "X of Y" message
+    @user_count = default_users.count
+
+    # Active/inactive counts from the filtered set
+    @active_count = @users.where(active: true).count
+    @inactive_count = @users.where(active: false).count
+
+    # Badge counts from the filtered set so they reflect stacked filters
+    filtered_members = @users.non_service_accounts
+
+    @membership_status_unknown = filtered_members.where(membership_status: 'unknown', is_sponsored: false).count
+    @membership_status_sponsored = filtered_members.where(membership_status: 'sponsored').count
+    @membership_status_paying = filtered_members.where(membership_status: 'paying').count
+    @membership_status_banned = filtered_members.where(membership_status: 'banned').count
+    @membership_status_deceased = filtered_members.where(membership_status: 'deceased').count
+    @membership_status_applicant = filtered_members.where(membership_status: 'applicant').count
+
+    @payment_type_unknown = filtered_members.where(payment_type: 'unknown').count
+    @payment_type_sponsored = filtered_members.where(payment_type: 'sponsored').count
+    @payment_type_paypal = filtered_members.where(payment_type: 'paypal').count
+    @payment_type_recharge = filtered_members.where(payment_type: 'recharge').count
+    @payment_type_cash = filtered_members.where(payment_type: 'cash').count
+
+    @membership_plans = MembershipPlan.ordered.to_a
+    @plan_counts = @membership_plans.map { |plan| [plan, filtered_members.where(membership_plan_id: plan.id).count] }
+    @no_plan_count = filtered_members.where(membership_plan_id: nil)
+                                     .where.not(membership_status: %w[guest sponsored])
+                                     .where(is_sponsored: false)
+                                     .count
+
+    @dues_status_current = filtered_members.where(dues_status: 'current').count
+    @dues_status_lapsed = filtered_members.where(dues_status: 'lapsed').count
+    @dues_status_inactive = filtered_members.where(dues_status: 'inactive').count
+    @dues_status_unknown = filtered_members.where(dues_status: 'unknown').count
+
+    @no_rfid_count = filtered_members.left_joins(:rfids).where(rfids: { id: nil }).count
+    @no_email_count = filtered_members.where("email IS NULL OR email = ''").count
+
+    @service_account_count = @users.service_accounts.count
+    @member_account_count = @users.non_service_accounts.count
+
     # Apply sorting
     @sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
     @sort_direction = %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
     @users = @users.order("#{@sort_column} #{@sort_direction} NULLS LAST")
 
-    # Track if any filter is active
+    # Track if any filter is active (including legacy toggle)
     @filter_active = params[:membership_status].present? || params[:payment_type].present? ||
                      params[:dues_status].present? || params[:active].present? ||
                      params[:missing].present? || params[:account_type].present? ||
                      params[:membership_plan_id].present?
-    @filtered_count = @users.count if @filter_active
+    @filtered_count = @users.count if @filter_active || @include_legacy
 
     # Store filter/sort params for passing to user profile links
-    @list_params = {}
-    @list_params[:membership_status] = params[:membership_status] if params[:membership_status].present?
-    @list_params[:payment_type] = params[:payment_type] if params[:payment_type].present?
-    @list_params[:dues_status] = params[:dues_status] if params[:dues_status].present?
-    @list_params[:active] = params[:active] if params[:active].present?
-    @list_params[:membership_plan_id] = params[:membership_plan_id] if params[:membership_plan_id].present?
-    @list_params[:missing] = params[:missing] if params[:missing].present?
-    @list_params[:account_type] = params[:account_type] if params[:account_type].present?
-    @list_params[:sort] = params[:sort] if params[:sort].present?
-    @list_params[:direction] = params[:direction] if params[:direction].present?
+    @list_params = @filter_params.dup
 
     @recent_members = User.non_service_accounts.non_legacy
                           .where('created_at >= ?', 1.week.ago)

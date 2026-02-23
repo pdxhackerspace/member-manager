@@ -123,12 +123,86 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
     assert_match users(:one).display_name, response.body
   end
 
-  # ─── Combined filters ─────────────────────────────────────────────
+  # ─── Combined / stacking filters ──────────────────────────────────
 
-  test 'clear filters link is shown when filter active' do
+  test 'clear all filters link is shown when filter active' do
     get users_path(payment_type: 'paypal')
     assert_response :success
-    assert_match 'Clear filters', response.body
+    assert_match 'Clear all filters', response.body
+  end
+
+  test 'stacking two filters returns intersection' do
+    users(:one).update_columns(membership_status: 'paying', dues_status: 'lapsed')
+    users(:two).update_columns(membership_status: 'paying', dues_status: 'current')
+    users(:three).update_columns(membership_status: 'sponsored', dues_status: 'lapsed')
+
+    get users_path(membership_status: 'paying', dues_status: 'lapsed')
+    assert_response :success
+    assert_match users(:one).display_name, response.body
+    assert_no_match(/#{Regexp.escape(users(:two).display_name)}/, response.body)
+    assert_no_match(/#{Regexp.escape(users(:three).display_name)}/, response.body)
+  end
+
+  test 'stacking three filters narrows results further' do
+    users(:one).update_columns(membership_status: 'paying', dues_status: 'lapsed', payment_type: 'paypal')
+    users(:cash_payer).update_columns(membership_status: 'paying', dues_status: 'lapsed', payment_type: 'cash')
+
+    get users_path(membership_status: 'paying', dues_status: 'lapsed', payment_type: 'paypal')
+    assert_response :success
+    assert_match users(:one).display_name, response.body
+    assert_no_match(/Cash Payer User/, response.body)
+  end
+
+  test 'badge counts reflect the filtered set' do
+    users(:one).update_columns(membership_status: 'paying', dues_status: 'lapsed', payment_type: 'paypal')
+    users(:two).update_columns(membership_status: 'sponsored', dues_status: 'lapsed', payment_type: 'paypal')
+
+    get users_path(dues_status: 'lapsed')
+    assert_response :success
+
+    assert_select 'a[href*="membership_status=paying"]', /Paying:\s*\d+/
+    assert_select 'a[href*="membership_status=sponsored"]', /Sponsored:\s*\d+/
+  end
+
+  test 'filter summary shows all active filter labels' do
+    get users_path(membership_status: 'paying', dues_status: 'lapsed')
+    assert_response :success
+    assert_match 'Membership: Paying', response.body
+    assert_match 'Dues: Lapsed', response.body
+  end
+
+  test 'badge links preserve existing filter params' do
+    get users_path(dues_status: 'lapsed')
+    assert_response :success
+    assert_select 'a[href*="dues_status=lapsed"][href*="membership_status=paying"]'
+  end
+
+  test 'clicking active badge toggles it off (link without that param)' do
+    get users_path(dues_status: 'lapsed')
+    assert_response :success
+    # The "Lapsed" badge should link without dues_status (toggling it off)
+    assert_select 'a.border-dark' do |elements|
+      lapsed_badge = elements.find { |e| e.text.include?('Lapsed') }
+      assert lapsed_badge, 'Expected a highlighted Lapsed badge'
+      refute_includes lapsed_badge['href'], 'dues_status=' if lapsed_badge
+    end
+  end
+
+  # ─── Legacy stacking ────────────────────────────────────────────
+
+  test 'legacy toggle stacks with other filters' do
+    users(:one).update_columns(legacy: true, membership_status: 'paying')
+
+    get users_path(include_legacy: '1', membership_status: 'paying')
+    assert_response :success
+    assert_match users(:one).display_name, response.body
+    assert_match 'Including legacy', response.body
+  end
+
+  test 'legacy badge preserves other active filters' do
+    get users_path(dues_status: 'lapsed')
+    assert_response :success
+    assert_select 'a[href*="include_legacy=1"][href*="dues_status=lapsed"]'
   end
 
   private

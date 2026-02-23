@@ -20,20 +20,19 @@ class OnboardingController < AdminController
   end
 
   # Step 2: Payment Info
-  def payment
-    @plans = MembershipPlan.shared.primary.visible.ordered
-  end
+  def payment; end
 
   def save_payment
     membership_type = params[:membership_type]
 
     case membership_type
     when 'paying'
-      if params[:custom_plan] == '1'
+      if params[:cash_plan] == '1'
         plan = MembershipPlan.create!(
-          name: "Custom - #{@user.display_name}",
-          cost: params[:plan_cost].to_f,
-          billing_frequency: params[:plan_billing_frequency],
+          name: "Cash - #{@user.display_name}",
+          cost: params[:plan_cost].to_f.positive? ? params[:plan_cost].to_f : 0,
+          billing_frequency: params[:plan_billing_frequency] || 'monthly',
+          description: params[:plan_notes].presence,
           plan_type: 'primary',
           manual: true,
           visible: false,
@@ -41,17 +40,15 @@ class OnboardingController < AdminController
         )
         @user.update!(
           membership_status: 'paying',
-          payment_type: params[:plan_payment_type] || 'unknown',
+          payment_type: 'cash',
           membership_plan: plan,
           active: true,
           dues_status: 'current'
         )
       else
-        plan = MembershipPlan.find(params[:membership_plan_id])
         @user.update!(
           membership_status: 'paying',
-          payment_type: plan.manual? ? 'cash' : 'unknown',
-          membership_plan: plan,
+          payment_type: 'unknown',
           active: true,
           dues_status: 'current'
         )
@@ -74,7 +71,6 @@ class OnboardingController < AdminController
 
     redirect_to onboard_access_path(@user), status: :see_other
   rescue ActiveRecord::RecordInvalid => e
-    @plans = MembershipPlan.shared.primary.visible.ordered
     flash.now[:alert] = "Error: #{e.message}"
     render :payment, status: :unprocessable_entity
   end

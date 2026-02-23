@@ -18,9 +18,9 @@
       <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-2">
           <div class="d-flex align-items-center gap-3">
-            <i class="bi bi-person-circle fs-3 text-muted"></i>
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
             <div>
-              <strong><%= @user.display_name %></strong>
+              <%= link_to @user.display_name, user_path(@user), class: "fw-semibold text-decoration-none" %>
               <span class="text-muted ms-2"><%= @user.email %></span>
               <% if @user.username.present? %>
                 <span class="text-muted ms-2">@<%= @user.username %></span>
@@ -85,8 +85,7 @@
             </div>
           <% else %>
             <p class="text-muted mb-3">Mark this member as trained for building access.</p>
-            <%= button_to "Mark Building Access Trained", onboard_save_training_path(@user),
-                method: :post, class: "btn btn-info" do %>
+            <%= button_to onboard_save_training_path(@user), method: :post, class: "btn btn-info" do %>
               <i class="bi bi-mortarboard me-1"></i>Mark Building Access Trained
             <% end %>
           <% end %>

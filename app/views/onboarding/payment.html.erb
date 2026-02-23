@@ -18,14 +18,15 @@
       <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-2">
           <div class="d-flex align-items-center gap-3">
-            <i class="bi bi-person-circle fs-3 text-muted"></i>
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
             <div>
-              <strong><%= @user.display_name %></strong>
+              <%= link_to @user.display_name, user_path(@user), class: "fw-semibold text-decoration-none" %>
               <span class="text-muted ms-2"><%= @user.email %></span>
               <% if @user.username.present? %>
                 <span class="text-muted ms-2">@<%= @user.username %></span>
               <% end %>
             </div>
+            <span class="badge text-bg-success ms-auto">Created</span>
           </div>
         </div>
       </div>
@@ -63,36 +64,17 @@
               </div>
             </div>
 
-            <!-- Paying options (shown when "paying" is selected) -->
+            <!-- Cash plan option (shown when "paying" is selected) -->
             <div id="paying-options">
               <hr>
-              <label class="form-label fw-semibold">Payment Plan</label>
-
-              <% @plans.each do |plan| %>
-                <div class="form-check mb-2">
-                  <input type="radio" name="membership_plan_id" value="<%= plan.id %>" class="form-check-input plan-radio"
-                         id="plan_<%= plan.id %>" <%= 'checked' if plan == @plans.first %>>
-                  <label class="form-check-label" for="plan_<%= plan.id %>">
-                    <strong><%= plan.name %></strong> &mdash;
-                    $<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %>
-                    <% if plan.description.present? %>
-                      <br><small class="text-muted"><%= plan.description %></small>
-                    <% end %>
-                  </label>
-                </div>
-              <% end %>
-
               <div class="form-check mb-3">
-                <input type="radio" name="membership_plan_id" value="" class="form-check-input plan-radio" id="plan_custom">
-                <label class="form-check-label" for="plan_custom">
-                  <strong>Custom Plan</strong> &mdash; enter details below
+                <input type="checkbox" name="cash_plan" value="1" class="form-check-input" id="cash_plan_check">
+                <label class="form-check-label" for="cash_plan_check">
+                  <strong>Cash payment plan</strong> &mdash; dues tracked manually
                 </label>
               </div>
 
-              <!-- Custom plan fields (hidden until custom is selected) -->
-              <div id="custom-plan-fields" class="border rounded p-3 bg-body-tertiary" style="display: none;">
-                <input type="hidden" name="custom_plan" id="custom_plan_flag" value="0">
-
+              <div id="cash-plan-fields" class="border rounded p-3 bg-body-tertiary" style="display: none;">
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label">Amount ($)</label>
@@ -107,14 +89,8 @@
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label">Payment Method</label>
-                    <select name="plan_payment_type" class="form-select">
-                      <option value="cash">Cash</option>
-                      <option value="paypal">PayPal</option>
-                      <option value="recharge">Recharge</option>
-                      <option value="kofi">Ko-Fi</option>
-                      <option value="unknown">Other</option>
-                    </select>
+                    <label class="form-label">Notes</label>
+                    <input type="text" name="plan_notes" class="form-control" placeholder="Optional notes...">
                   </div>
                 </div>
               </div>
@@ -135,32 +111,26 @@
 (function() {
   const typeRadios = document.querySelectorAll('input[name="membership_type"]');
   const payingOptions = document.getElementById('paying-options');
-  const planRadios = document.querySelectorAll('.plan-radio');
-  const customFields = document.getElementById('custom-plan-fields');
-  const customFlag = document.getElementById('custom_plan_flag');
-  if (!payingOptions || !customFields) return;
+  const cashCheck = document.getElementById('cash_plan_check');
+  const cashFields = document.getElementById('cash-plan-fields');
+  if (!payingOptions || !cashFields) return;
 
   function updatePayingVisibility() {
     const selected = document.querySelector('input[name="membership_type"]:checked');
     payingOptions.style.display = (selected && selected.value === 'paying') ? 'block' : 'none';
   }
 
-  function updateCustomVisibility() {
-    const selected = document.getElementById('plan_custom');
-    const isCustom = selected && selected.checked;
-    customFields.style.display = isCustom ? 'block' : 'none';
-    customFlag.value = isCustom ? '1' : '0';
+  function updateCashVisibility() {
+    cashFields.style.display = cashCheck.checked ? 'block' : 'none';
   }
 
   typeRadios.forEach(function(radio) {
     radio.addEventListener('change', updatePayingVisibility);
   });
 
-  planRadios.forEach(function(radio) {
-    radio.addEventListener('change', updateCustomVisibility);
-  });
+  cashCheck.addEventListener('change', updateCashVisibility);
 
   updatePayingVisibility();
-  updateCustomVisibility();
+  updateCashVisibility();
 })();
 </script>

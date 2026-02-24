@@ -51,7 +51,7 @@
               <i class="bi bi-person-badge me-2"></i>Onboard New Member
             <% end %>
             <%= link_to new_user_path, class: "btn btn-outline-primary btn-lg" do %>
-              <i class="bi bi-person-plus me-2"></i>New Member
+              <i class="bi bi-person-plus me-2"></i>Create New Member
             <% end %>
             <%= link_to new_rfid_path, class: "btn btn-success btn-lg" do %>
               <i class="bi bi-key me-2"></i>Add Key Fob
@@ -65,15 +65,6 @@
               <% end %>
             <% end %>
             <% if current_user_admin? %>
-              <% if @manual_payment_member_count > 0 %>
-                <%= link_to manual_payments_membership_plans_path, class: "btn btn-warning btn-lg" do %>
-                  <i class="bi bi-cash-coin me-2"></i>Manual Payments (<%= @manual_payment_member_count %>)
-                <% end %>
-              <% else %>
-                <button class="btn btn-outline-secondary btn-lg" disabled>
-                  <i class="bi bi-cash-coin me-2"></i>Manual Payments (0)
-                </button>
-              <% end %>
               <%= link_to access_controllers_path, class: "btn btn-secondary btn-lg" do %>
                 <i class="bi bi-router me-2"></i>Access Controllers
               <% end %>
@@ -174,6 +165,16 @@
                   <% end %>
                 </div>
               <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <div>
+                <i class="bi bi-check-circle-fill text-success me-1"></i>
+                <span class="text-muted">Manual payments due</span>
+                <span class="text-muted fst-italic small ms-1">(coming soon)</span>
+              </div>
             </li>
 
           </ul>

@@ -683,7 +683,7 @@
         <% if @lapsed_with_slack.any? %>
           <p class="text-muted small mb-3">Members whose dues have lapsed and who have linked Slack accounts.</p>
           <%= render partial: 'slack_member_table', locals: { entries: @lapsed_with_slack, show_lapse_date: false } %>
-          <% if @lapsed_with_slack_count > LIMIT %>
+          <% if @lapsed_with_slack_count > 20 %>
             <div class="mt-3 text-center">
               <%= link_to "View all #{@lapsed_with_slack_count} members",
                   reports_view_all_path('lapsed-with-slack'),
@@ -710,7 +710,7 @@
         <% if @legacy_with_slack.any? %>
           <p class="text-muted small mb-3">Members marked as legacy who have linked Slack accounts.</p>
           <%= render partial: 'slack_member_table', locals: { entries: @legacy_with_slack, show_lapse_date: false } %>
-          <% if @legacy_with_slack_count > LIMIT %>
+          <% if @legacy_with_slack_count > 20 %>
             <div class="mt-3 text-center">
               <%= link_to "View all #{@legacy_with_slack_count} members",
                   reports_view_all_path('legacy-with-slack'),
@@ -737,7 +737,7 @@
         <% if @lapsed_active_slack.any? %>
           <p class="text-muted small mb-3">Members whose dues have lapsed but who have been active on Slack after their lapse date.</p>
           <%= render partial: 'slack_member_table', locals: { entries: @lapsed_active_slack, show_lapse_date: true } %>
-          <% if @lapsed_active_slack_count > LIMIT %>
+          <% if @lapsed_active_slack_count > 20 %>
             <div class="mt-3 text-center">
               <%= link_to "View all #{@lapsed_active_slack_count} members",
                   reports_view_all_path('lapsed-active-slack'),
@@ -764,7 +764,7 @@
         <% if @legacy_active_slack.any? %>
           <p class="text-muted small mb-3">Legacy members with recent Slack activity (last_active_at is set).</p>
           <%= render partial: 'slack_member_table', locals: { entries: @legacy_active_slack, show_lapse_date: false } %>
-          <% if @legacy_active_slack_count > LIMIT %>
+          <% if @legacy_active_slack_count > 20 %>
             <div class="mt-3 text-center">
               <%= link_to "View all #{@legacy_active_slack_count} members",
                   reports_view_all_path('legacy-active-slack'),

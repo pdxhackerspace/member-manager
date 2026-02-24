@@ -1,0 +1,62 @@
+<%# Renders a table of users with their linked Slack account info %>
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle mb-0">
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Slack Handle</th>
+        <th>Slack Last Active</th>
+        <th>Status</th>
+        <% if defined?(show_lapse_date) && show_lapse_date %>
+          <th>Lapsed</th>
+        <% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% entries.each do |entry| %>
+        <% user = entry.is_a?(Hash) ? entry[:user] : entry %>
+        <% su = entry.is_a?(Hash) ? entry[:slack_user] : user.slack_user %>
+        <tr>
+          <td><%= link_to user.display_name, user_path(user), class: "text-decoration-none" %></td>
+          <td>
+            <% if su %>
+              <span class="text-muted">@<%= su.username.presence || su.display_name %></span>
+            <% else %>
+              <span class="text-muted fst-italic">—</span>
+            <% end %>
+          </td>
+          <td>
+            <% if su&.last_active_at %>
+              <%= time_ago_in_words(su.last_active_at) %> ago
+            <% else %>
+              <span class="text-muted fst-italic">Unknown</span>
+            <% end %>
+          </td>
+          <td>
+            <% badge_class = case user.membership_status
+                             when "paying" then "success"
+                             when "sponsored" then "info"
+                             when "banned" then "dark"
+                             when "guest" then "warning"
+                             else "secondary"
+                             end %>
+            <span class="badge text-bg-<%= badge_class %>"><%= user.membership_status.humanize %></span>
+            <% if user.legacy? %>
+              <span class="badge text-bg-secondary">Legacy</span>
+            <% end %>
+          </td>
+          <% if defined?(show_lapse_date) && show_lapse_date %>
+            <td>
+              <% lapse = entry.is_a?(Hash) ? entry[:lapse_date] : user.membership_ended_date %>
+              <% if lapse %>
+                <%= lapse.is_a?(Time) ? l(lapse, format: :short) : lapse %>
+              <% else %>
+                <span class="text-muted fst-italic">—</span>
+              <% end %>
+            </td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -69,6 +69,18 @@ class ReportsController < AdminController
     @no_access = User.where(id: few_access_ids).ordered_by_display_name.limit(LIMIT)
     @no_access_count = few_access_ids.size
 
+    # Lapsed members with Slack accounts
+    prepare_lapsed_with_slack(limit: LIMIT)
+
+    # Legacy members with Slack accounts
+    prepare_legacy_with_slack(limit: LIMIT)
+
+    # Lapsed members still active on Slack
+    prepare_lapsed_active_slack(limit: LIMIT)
+
+    # Legacy members still active on Slack
+    prepare_legacy_active_slack(limit: LIMIT)
+
     # Prepare chart data
     prepare_chart_data
   end
@@ -160,6 +172,67 @@ class ReportsController < AdminController
     @legacy_recent_access.sort_by! { |entry| entry[:most_recent_access].logged_at }.reverse!
     @legacy_recent_access_count = @legacy_recent_access.size
     @legacy_recent_access = @legacy_recent_access.first(limit) if limit
+  end
+
+  def prepare_lapsed_with_slack(limit: nil)
+    scope = User.where(dues_status: 'lapsed')
+                .where.not(membership_status: %w[banned deceased])
+                .non_service_accounts
+                .non_legacy
+                .joins(:slack_user)
+                .includes(:slack_user)
+                .ordered_by_display_name
+    @lapsed_with_slack_count = scope.count
+    @lapsed_with_slack = limit ? scope.limit(limit) : scope
+  end
+
+  def prepare_legacy_with_slack(limit: nil)
+    scope = User.where(legacy: true)
+                .non_service_accounts
+                .joins(:slack_user)
+                .includes(:slack_user)
+                .ordered_by_display_name
+    @legacy_with_slack_count = scope.count
+    @legacy_with_slack = limit ? scope.limit(limit) : scope
+  end
+
+  def prepare_lapsed_active_slack(limit: nil)
+    lapsed_with_slack = User.where(dues_status: 'lapsed')
+                            .where.not(membership_status: %w[banned deceased])
+                            .non_service_accounts
+                            .non_legacy
+                            .joins(:slack_user)
+                            .where.not(slack_users: { last_active_at: nil })
+                            .includes(:slack_user)
+
+    @lapsed_active_slack = []
+    lapsed_with_slack.find_each do |user|
+      lapse_date = user.membership_ended_date || user.most_recent_payment_date
+      next unless lapse_date.present?
+      next unless user.slack_user.last_active_at > lapse_date.to_time.end_of_day
+
+      @lapsed_active_slack << {
+        user: user,
+        slack_user: user.slack_user,
+        lapse_date: lapse_date,
+        last_slack_active: user.slack_user.last_active_at
+      }
+    end
+
+    @lapsed_active_slack.sort_by! { |e| e[:last_slack_active] }.reverse!
+    @lapsed_active_slack_count = @lapsed_active_slack.size
+    @lapsed_active_slack = @lapsed_active_slack.first(limit) if limit
+  end
+
+  def prepare_legacy_active_slack(limit: nil)
+    scope = User.where(legacy: true)
+                .non_service_accounts
+                .joins(:slack_user)
+                .where.not(slack_users: { last_active_at: nil })
+                .includes(:slack_user)
+                .order('slack_users.last_active_at DESC')
+    @legacy_active_slack_count = scope.count
+    @legacy_active_slack = limit ? scope.limit(limit) : scope
   end
 
   def prepare_chart_data
@@ -350,6 +423,26 @@ class ReportsController < AdminController
       prepare_legacy_recent_access
       @title = 'Legacy Members with Recent Access'
       render 'reports/legacy_recent_access_full'
+      return
+    when 'lapsed-with-slack'
+      prepare_lapsed_with_slack
+      @title = 'Lapsed Members with Slack Accounts'
+      render 'reports/slack_members_full'
+      return
+    when 'legacy-with-slack'
+      prepare_legacy_with_slack
+      @title = 'Legacy Members with Slack Accounts'
+      render 'reports/slack_members_full'
+      return
+    when 'lapsed-active-slack'
+      prepare_lapsed_active_slack
+      @title = 'Lapsed Members Still Active on Slack'
+      render 'reports/slack_active_full'
+      return
+    when 'legacy-active-slack'
+      prepare_legacy_active_slack
+      @title = 'Legacy Members Still Active on Slack'
+      render 'reports/slack_members_full'
       return
     else
       redirect_to reports_path, alert: 'Invalid report type.'

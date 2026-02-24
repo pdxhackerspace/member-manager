@@ -248,6 +248,78 @@
               <% end %>
             </li>
 
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @lapsed_with_slack_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No lapsed members with Slack accounts
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                  <%= link_to reports_path(tab: 'lapsed-with-slack'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @lapsed_with_slack_count %></strong> lapsed <%= 'member'.pluralize(@lapsed_with_slack_count) %> with Slack accounts
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @legacy_with_slack_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No legacy members with Slack accounts
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                  <%= link_to reports_path(tab: 'legacy-with-slack'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @legacy_with_slack_count %></strong> legacy <%= 'member'.pluralize(@legacy_with_slack_count) %> with Slack accounts
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @lapsed_active_slack_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No lapsed members still active on Slack
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                  <%= link_to reports_path(tab: 'lapsed-active-slack'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @lapsed_active_slack_count %></strong> lapsed <%= 'member'.pluralize(@lapsed_active_slack_count) %> still active on Slack
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @legacy_active_slack_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No legacy members still active on Slack
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                  <%= link_to reports_path(tab: 'legacy-active-slack'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @legacy_active_slack_count %></strong> legacy <%= 'member'.pluralize(@legacy_active_slack_count) %> still active on Slack
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
           </ul>
         </div>
       </div>

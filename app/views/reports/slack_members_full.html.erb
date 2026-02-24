@@ -1,0 +1,17 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Reports".html_safe, reports_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0"><%= @title %> (<%= (@lapsed_with_slack || @legacy_with_slack || @legacy_active_slack)&.size || 0 %>)</h2>
+  </div>
+  <div class="card-body">
+    <% members = @lapsed_with_slack || @legacy_with_slack || @legacy_active_slack || [] %>
+    <% if members.any? %>
+      <%= render partial: 'slack_member_table', locals: { entries: members, show_lapse_date: false } %>
+    <% else %>
+      <p class="text-muted mb-0">No members found.</p>
+    <% end %>
+  </div>
+</div>

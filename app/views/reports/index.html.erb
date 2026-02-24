@@ -17,7 +17,11 @@
     { id: 'no-access', name: 'Few Access', count: @no_access_count },
     { id: 'inactive-with-rfid', name: 'Inactive + RFID', count: @inactive_with_rfid_count },
     { id: 'legacy-with-access', name: 'Legacy + Access', count: @legacy_with_access_count },
-    { id: 'legacy-recent-access', name: 'Legacy Recent', count: @legacy_recent_access_count }
+    { id: 'legacy-recent-access', name: 'Legacy Recent', count: @legacy_recent_access_count },
+    { id: 'lapsed-with-slack', name: 'Lapsed + Slack', count: @lapsed_with_slack_count },
+    { id: 'legacy-with-slack', name: 'Legacy + Slack', count: @legacy_with_slack_count },
+    { id: 'lapsed-active-slack', name: 'Lapsed Active Slack', count: @lapsed_active_slack_count },
+    { id: 'legacy-active-slack', name: 'Legacy Active Slack', count: @legacy_active_slack_count }
   ]
 %>
 
@@ -661,6 +665,114 @@
           <% end %>
         <% else %>
           <p class="text-muted mb-0">No legacy members have access records in the last year.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lapsed Members with Slack -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'lapsed-with-slack' %>"
+       id="lapsed-with-slack-pane"
+       role="tabpanel"
+       aria-labelledby="lapsed-with-slack-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Lapsed Members with Slack Accounts (<%= @lapsed_with_slack_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @lapsed_with_slack.any? %>
+          <p class="text-muted small mb-3">Members whose dues have lapsed and who have linked Slack accounts.</p>
+          <%= render partial: 'slack_member_table', locals: { entries: @lapsed_with_slack, show_lapse_date: false } %>
+          <% if @lapsed_with_slack_count > LIMIT %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@lapsed_with_slack_count} members",
+                  reports_view_all_path('lapsed-with-slack'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No lapsed members have Slack accounts.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy Members with Slack -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-with-slack' %>"
+       id="legacy-with-slack-pane"
+       role="tabpanel"
+       aria-labelledby="legacy-with-slack-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Legacy Members with Slack Accounts (<%= @legacy_with_slack_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @legacy_with_slack.any? %>
+          <p class="text-muted small mb-3">Members marked as legacy who have linked Slack accounts.</p>
+          <%= render partial: 'slack_member_table', locals: { entries: @legacy_with_slack, show_lapse_date: false } %>
+          <% if @legacy_with_slack_count > LIMIT %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@legacy_with_slack_count} members",
+                  reports_view_all_path('legacy-with-slack'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No legacy members have Slack accounts.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lapsed Members Still Active on Slack -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'lapsed-active-slack' %>"
+       id="lapsed-active-slack-pane"
+       role="tabpanel"
+       aria-labelledby="lapsed-active-slack-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Lapsed Members Still Active on Slack (<%= @lapsed_active_slack_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @lapsed_active_slack.any? %>
+          <p class="text-muted small mb-3">Members whose dues have lapsed but who have been active on Slack after their lapse date.</p>
+          <%= render partial: 'slack_member_table', locals: { entries: @lapsed_active_slack, show_lapse_date: true } %>
+          <% if @lapsed_active_slack_count > LIMIT %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@lapsed_active_slack_count} members",
+                  reports_view_all_path('lapsed-active-slack'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No lapsed members are still active on Slack.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legacy Members Still Active on Slack -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-active-slack' %>"
+       id="legacy-active-slack-pane"
+       role="tabpanel"
+       aria-labelledby="legacy-active-slack-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Legacy Members Still Active on Slack (<%= @legacy_active_slack_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @legacy_active_slack.any? %>
+          <p class="text-muted small mb-3">Legacy members with recent Slack activity (last_active_at is set).</p>
+          <%= render partial: 'slack_member_table', locals: { entries: @legacy_active_slack, show_lapse_date: false } %>
+          <% if @legacy_active_slack_count > LIMIT %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@legacy_active_slack_count} members",
+                  reports_view_all_path('legacy-active-slack'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">No legacy members are still active on Slack.</p>
         <% end %>
       </div>
     </div>

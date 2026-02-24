@@ -1,0 +1,17 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Reports".html_safe, reports_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0"><%= @title %> (<%= @lapsed_active_slack_count %>)</h2>
+  </div>
+  <div class="card-body">
+    <% if @lapsed_active_slack.any? %>
+      <p class="text-muted small mb-3">Members whose dues have lapsed but who have been active on Slack after their lapse date.</p>
+      <%= render partial: 'slack_member_table', locals: { entries: @lapsed_active_slack, show_lapse_date: true } %>
+    <% else %>
+      <p class="text-muted mb-0">No lapsed members are still active on Slack.</p>
+    <% end %>
+  </div>
+</div>

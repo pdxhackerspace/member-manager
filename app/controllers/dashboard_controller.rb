@@ -69,5 +69,36 @@ class DashboardController < AdminController
                                       .where('access_logs.logged_at >= ?', 1.year.ago)
                                       .distinct
                                       .count
+
+    # Housekeeping: Lapsed members with Slack accounts
+    @lapsed_with_slack_count = User.where(dues_status: 'lapsed')
+                                   .where.not(membership_status: %w[banned deceased])
+                                   .non_service_accounts
+                                   .non_legacy
+                                   .joins(:slack_user)
+                                   .count
+
+    # Housekeeping: Legacy members with Slack accounts
+    @legacy_with_slack_count = User.where(legacy: true)
+                                   .non_service_accounts
+                                   .joins(:slack_user)
+                                   .count
+
+    # Housekeeping: Lapsed members still active on Slack
+    @lapsed_active_slack_count = User.where(dues_status: 'lapsed')
+                                     .where.not(membership_status: %w[banned deceased])
+                                     .non_service_accounts
+                                     .non_legacy
+                                     .joins(:slack_user)
+                                     .where.not(slack_users: { last_active_at: nil })
+                                     .where('slack_users.last_active_at > COALESCE(users.membership_ended_date, users.created_at)')
+                                     .count
+
+    # Housekeeping: Legacy members still active on Slack
+    @legacy_active_slack_count = User.where(legacy: true)
+                                     .non_service_accounts
+                                     .joins(:slack_user)
+                                     .where.not(slack_users: { last_active_at: nil })
+                                     .count
   end
 end

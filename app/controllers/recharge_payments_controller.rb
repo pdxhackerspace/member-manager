@@ -35,19 +35,19 @@ class RechargePaymentsController < AdminController
   def show
     @payment = RechargePayment.find(params[:id])
 
-    # Try to find user by recharge_customer_id
     @customer_id = extract_customer_id(@payment)
     @user_by_customer_id = nil
-    @user_by_customer_id = User.where(recharge_customer_id: @customer_id.to_s).first if @customer_id.present?
+    unless @payment.dont_link?
+      @user_by_customer_id = User.where(recharge_customer_id: @customer_id.to_s).first if @customer_id.present?
+    end
 
-    # Get all users for the selection dropdown (if no match found)
     @all_users = User.ordered_by_display_name if @user_by_customer_id.nil?
   end
 
   def unlink
     @payment = RechargePayment.find(params[:id])
     user = @payment.user
-    @payment.update!(user_id: nil)
+    @payment.update!(user_id: nil, dont_link: true)
     redirect_to recharge_payment_path(@payment),
                 notice: "Unlinked from #{user&.display_name || 'member'}."
   end

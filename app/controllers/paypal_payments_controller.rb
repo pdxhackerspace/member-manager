@@ -45,11 +45,11 @@ class PaypalPaymentsController < AdminController
   def show
     @payment = PaypalPayment.find(params[:id])
 
-    # Find user by paypal_account_id matching this payment's payer_id
     @user_by_paypal_account_id = nil
-    @user_by_paypal_account_id = User.where(paypal_account_id: @payment.payer_id).first if @payment.payer_id.present?
+    unless @payment.dont_link?
+      @user_by_paypal_account_id = User.where(paypal_account_id: @payment.payer_id).first if @payment.payer_id.present?
+    end
 
-    # Get all users for the selection dropdown (if no match found)
     @all_users = User.ordered_by_display_name if @user_by_paypal_account_id.nil?
   end
 
@@ -113,7 +113,7 @@ class PaypalPaymentsController < AdminController
   def unlink
     @payment = PaypalPayment.find(params[:id])
     user = @payment.user
-    @payment.update!(user_id: nil)
+    @payment.update!(user_id: nil, dont_link: true)
     redirect_to paypal_payment_path(@payment),
                 notice: "Unlinked from #{user&.display_name || 'member'}."
   end

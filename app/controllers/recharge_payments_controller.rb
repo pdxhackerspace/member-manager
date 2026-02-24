@@ -37,19 +37,29 @@ class RechargePaymentsController < AdminController
 
     @customer_id = extract_customer_id(@payment)
     @user_by_customer_id = nil
-    unless @payment.dont_link?
-      @user_by_customer_id = User.where(recharge_customer_id: @customer_id.to_s).first if @customer_id.present?
-    end
+    @user_by_customer_id = User.where(recharge_customer_id: @customer_id.to_s).first if @customer_id.present?
 
     @all_users = User.ordered_by_display_name if @user_by_customer_id.nil?
   end
 
   def unlink
     @payment = RechargePayment.find(params[:id])
+    customer_id = @payment.customer_id || extract_customer_id(@payment)
     user = @payment.user
-    @payment.update!(user_id: nil, dont_link: true)
+
+    # Clear recharge_customer_id on the user so the auto-match breaks
+    if customer_id.present?
+      User.where(recharge_customer_id: customer_id.to_s).update_all(recharge_customer_id: nil)
+    end
+
+    # Clear user_id on this payment and all sibling payments with the same customer_id
+    @payment.update!(user_id: nil)
+    if customer_id.present?
+      RechargePayment.where(customer_id: customer_id, user_id: user&.id).update_all(user_id: nil)
+    end
+
     redirect_to recharge_payment_path(@payment),
-                notice: "Unlinked from #{user&.display_name || 'member'}."
+                notice: "Unlinked from #{user&.display_name || 'member'}. All payments with customer ID #{customer_id} also unlinked."
   end
 
   def toggle_dont_link

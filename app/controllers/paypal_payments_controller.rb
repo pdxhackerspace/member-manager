@@ -46,9 +46,7 @@ class PaypalPaymentsController < AdminController
     @payment = PaypalPayment.find(params[:id])
 
     @user_by_paypal_account_id = nil
-    unless @payment.dont_link?
-      @user_by_paypal_account_id = User.where(paypal_account_id: @payment.payer_id).first if @payment.payer_id.present?
-    end
+    @user_by_paypal_account_id = User.where(paypal_account_id: @payment.payer_id).first if @payment.payer_id.present?
 
     @all_users = User.ordered_by_display_name if @user_by_paypal_account_id.nil?
   end
@@ -112,10 +110,22 @@ class PaypalPaymentsController < AdminController
 
   def unlink
     @payment = PaypalPayment.find(params[:id])
+    payer_id = @payment.payer_id
     user = @payment.user
-    @payment.update!(user_id: nil, dont_link: true)
+
+    # Clear paypal_account_id on the user so the auto-match breaks
+    if payer_id.present?
+      User.where(paypal_account_id: payer_id).update_all(paypal_account_id: nil)
+    end
+
+    # Clear user_id on this payment and all sibling payments with the same payer_id
+    @payment.update!(user_id: nil)
+    if payer_id.present?
+      PaypalPayment.where(payer_id: payer_id, user_id: user&.id).update_all(user_id: nil)
+    end
+
     redirect_to paypal_payment_path(@payment),
-                notice: "Unlinked from #{user&.display_name || 'member'}."
+                notice: "Unlinked from #{user&.display_name || 'member'}. All payments with payer ID #{payer_id} also unlinked."
   end
 
   def toggle_dont_link

@@ -110,6 +110,14 @@ class PaypalPaymentsController < AdminController
     end
   end
 
+  def unlink
+    @payment = PaypalPayment.find(params[:id])
+    user = @payment.user
+    @payment.update!(user_id: nil)
+    redirect_to paypal_payment_path(@payment),
+                notice: "Unlinked from #{user&.display_name || 'member'}."
+  end
+
   def toggle_dont_link
     @payment = PaypalPayment.find(params[:id])
     new_value = !@payment.dont_link

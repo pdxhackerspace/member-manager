@@ -38,8 +38,14 @@
       <dt class="col-sm-3 text-secondary">Member</dt>
       <dd class="col-sm-9">
         <% if @user_by_paypal_account_id.present? %>
-          <%= link_to @user_by_paypal_account_id.display_name, user_path(@user_by_paypal_account_id), class: "text-decoration-none" %>
-          <span class="text-muted small ms-2">(matched by PayPal account ID)</span>
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <%= link_to @user_by_paypal_account_id.display_name, user_path(@user_by_paypal_account_id), class: "text-decoration-none" %>
+            <span class="text-muted small">(matched by PayPal account ID)</span>
+            <%= button_to "Unlink", unlink_paypal_payment_path(@payment),
+                method: :post, class: "btn btn-sm btn-outline-danger", data: { turbo: false,
+                turbo_confirm: "Unlink this payment from #{@user_by_paypal_account_id.display_name}?" },
+                title: "Remove the link between this payment and the member" %>
+          </div>
         <% elsif @payment.dont_link? %>
           <span class="badge text-bg-secondary me-2">Don't Link</span>
           <%= button_to "Clear Don't Link", toggle_dont_link_paypal_payment_path(@payment),

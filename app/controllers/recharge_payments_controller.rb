@@ -44,6 +44,14 @@ class RechargePaymentsController < AdminController
     @all_users = User.ordered_by_display_name if @user_by_customer_id.nil?
   end
 
+  def unlink
+    @payment = RechargePayment.find(params[:id])
+    user = @payment.user
+    @payment.update!(user_id: nil)
+    redirect_to recharge_payment_path(@payment),
+                notice: "Unlinked from #{user&.display_name || 'member'}."
+  end
+
   def toggle_dont_link
     @payment = RechargePayment.find(params[:id])
     new_value = !@payment.dont_link

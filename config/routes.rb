@@ -121,6 +121,7 @@ Rails.application.routes.draw do
     end
     member do
       post :link_user
+      post :unlink
       post :toggle_dont_link
       post :create_member
     end
@@ -135,6 +136,7 @@ Rails.application.routes.draw do
     end
     member do
       post :link_user
+      post :unlink
       post :toggle_dont_link
       post :create_member
     end

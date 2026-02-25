@@ -84,6 +84,9 @@ class ReportsController < AdminController
     # Slack users inactive for over a year
     prepare_slack_inactive(limit: LIMIT)
 
+    # Active members with no email
+    prepare_active_no_email(limit: LIMIT)
+
     # Prepare chart data
     prepare_chart_data
   end
@@ -247,6 +250,14 @@ class ReportsController < AdminController
                      .order(Arel.sql('COALESCE(last_active_at, created_at) ASC'))
     @slack_inactive_count = scope.count
     @slack_inactive = limit ? scope.limit(limit) : scope
+  end
+
+  def prepare_active_no_email(limit: nil)
+    scope = User.where(active: true)
+                .where(email: [nil, ''])
+                .ordered_by_display_name
+    @active_no_email_count = scope.count
+    @active_no_email = limit ? scope.limit(limit) : scope
   end
 
   def prepare_chart_data
@@ -462,6 +473,11 @@ class ReportsController < AdminController
       prepare_slack_inactive
       @title = 'Slack Users Inactive for Over a Year'
       render 'reports/slack_inactive_full'
+      return
+    when 'active-no-email'
+      prepare_active_no_email
+      @title = 'Active Members With No Email'
+      render 'reports/active_no_email_full'
       return
     else
       redirect_to reports_path, alert: 'Invalid report type.'

@@ -338,6 +338,24 @@
               <% end %>
             </li>
 
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @active_no_email_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  All active members have an email address
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                  <%= link_to reports_path(tab: 'active-no-email'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @active_no_email_count %></strong> active <%= 'member'.pluralize(@active_no_email_count) %> with no email address
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
           </ul>
         </div>
       </div>

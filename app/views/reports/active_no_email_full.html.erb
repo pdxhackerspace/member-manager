@@ -1,0 +1,36 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to Reports".html_safe, reports_path, class: "text-decoration-none" %>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-body-tertiary">
+    <h2 class="h5 mb-0"><%= @title %> (<%= @active_no_email_count %>)</h2>
+  </div>
+  <div class="card-body">
+    <% if @active_no_email.any? %>
+      <p class="text-muted small mb-3">Active members who have no email address on file.</p>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Membership Status</th>
+              <th>Dues Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @active_no_email.each do |user| %>
+              <tr>
+                <td><%= link_to user.display_name, user_path(user), class: "text-decoration-none" %></td>
+                <td><span class="badge text-bg-secondary"><%= user.membership_status.humanize %></span></td>
+                <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <p class="text-muted mb-0">All active members have an email address.</p>
+    <% end %>
+  </div>
+</div>

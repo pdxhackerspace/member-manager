@@ -22,7 +22,8 @@
     { id: 'legacy-with-slack', name: 'Legacy + Slack', count: @legacy_with_slack_count },
     { id: 'lapsed-active-slack', name: 'Lapsed Active Slack', count: @lapsed_active_slack_count },
     { id: 'legacy-active-slack', name: 'Legacy Active Slack', count: @legacy_active_slack_count },
-    { id: 'slack-inactive', name: 'Slack Inactive', count: @slack_inactive_count }
+    { id: 'slack-inactive', name: 'Slack Inactive', count: @slack_inactive_count },
+    { id: 'active-no-email', name: 'No Email', count: @active_no_email_count }
   ]
 %>
 
@@ -839,6 +840,52 @@
           <% end %>
         <% else %>
           <p class="text-muted mb-0">All Slack users have been active in the last year.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Members With No Email -->
+  <div class="tab-pane fade <%= 'show active' if active_tab == 'active-no-email' %>"
+       id="active-no-email-pane"
+       role="tabpanel"
+       aria-labelledby="active-no-email-tab">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h2 class="h5 mb-0">Active Members With No Email (<%= @active_no_email_count %>)</h2>
+      </div>
+      <div class="card-body">
+        <% if @active_no_email.any? %>
+          <p class="text-muted small mb-3">Active members who have no email address on file.</p>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Membership Status</th>
+                  <th>Dues Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @active_no_email.each do |user| %>
+                  <tr>
+                    <td><%= link_to user.display_name, user_path(user), class: "text-decoration-none" %></td>
+                    <td><span class="badge text-bg-secondary"><%= user.membership_status.humanize %></span></td>
+                    <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <% if @active_no_email_count > 20 %>
+            <div class="mt-3 text-center">
+              <%= link_to "View all #{@active_no_email_count} members",
+                  reports_view_all_path('active-no-email'),
+                  class: "btn btn-outline-primary" %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-muted mb-0">All active members have an email address.</p>
         <% end %>
       </div>
     </div>

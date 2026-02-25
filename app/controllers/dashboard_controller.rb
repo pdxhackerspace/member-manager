@@ -105,5 +105,10 @@ class DashboardController < AdminController
     @slack_inactive_count = SlackUser.active
                                      .where('last_active_at < ? OR last_active_at IS NULL', 1.year.ago)
                                      .count
+
+    # Housekeeping: Active members with no email
+    @active_no_email_count = User.where(active: true)
+                                 .where(email: [nil, ''])
+                                 .count
   end
 end

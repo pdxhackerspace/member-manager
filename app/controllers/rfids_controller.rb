@@ -1,36 +1,42 @@
 class RfidsController < AdminController
   def new
     @rfid = Rfid.new
-    @users = User.ordered_by_display_name
-    @building_access_topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
-    @trained_user_ids = if @building_access_topic
-                          Training.where(training_topic: @building_access_topic).pluck(:trainee_id).to_set
-                        else
-                          Set.new
-                        end
+    prepare_form_data
   end
 
   def create
     @rfid = Rfid.new(rfid_params)
+    existing = Rfid.find_by(rfid: @rfid.rfid)
 
-    if @rfid.save
-      training_added = false
-      if params[:add_training] == '1'
-        training_added = add_building_access_training(@rfid.user)
-      end
-      notice = "Key fob added successfully for #{@rfid.user.display_name}."
-      notice += " Building Access training also recorded." if training_added
-      redirect_to user_path(@rfid.user), notice: notice
-    else
-      @users = User.ordered_by_display_name
-      @building_access_topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
-      @trained_user_ids = if @building_access_topic
-                            Training.where(training_topic: @building_access_topic).pluck(:trainee_id).to_set
-                          else
-                            Set.new
-                          end
-      flash.now[:alert] = 'Unable to add key fob.'
+    if existing && existing.user_id != @rfid.user_id && params[:confirm_reassign] != '1'
+      @existing_rfid = existing
+      @existing_owner = existing.user
+      prepare_form_data
+      flash.now[:warning] = "This RFID code is already assigned to another member."
       render :new, status: :unprocessable_entity
+      return
+    end
+
+    Rfid.transaction do
+      if existing && existing.user_id != @rfid.user_id
+        @reassigned_from = existing.user
+        existing.destroy!
+      end
+
+      if @rfid.save
+        training_added = false
+        if params[:add_training] == '1'
+          training_added = add_building_access_training(@rfid.user)
+        end
+        notice = "Key fob added successfully for #{@rfid.user.display_name}."
+        notice += " Reassigned from #{@reassigned_from.display_name}." if @reassigned_from
+        notice += " Building Access training also recorded." if training_added
+        redirect_to user_path(@rfid.user), notice: notice
+      else
+        prepare_form_data
+        flash.now[:alert] = 'Unable to add key fob.'
+        render :new, status: :unprocessable_entity
+      end
     end
   end
 
@@ -45,6 +51,16 @@ class RfidsController < AdminController
 
   def rfid_params
     params.require(:rfid).permit(:user_id, :rfid, :notes)
+  end
+
+  def prepare_form_data
+    @users = User.ordered_by_display_name
+    @building_access_topic = TrainingTopic.find_by("LOWER(name) LIKE ?", "%building access%")
+    @trained_user_ids = if @building_access_topic
+                          Training.where(training_topic: @building_access_topic).pluck(:trainee_id).to_set
+                        else
+                          Set.new
+                        end
   end
 
   def add_building_access_training(user)

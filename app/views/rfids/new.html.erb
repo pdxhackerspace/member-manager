@@ -56,6 +56,32 @@
         <div class="form-text">The unique identifier from the key fob.</div>
       </div>
 
+      <% if @existing_rfid.present? %>
+        <div class="alert alert-warning d-flex align-items-start gap-2 mb-0" role="alert">
+          <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+          <div>
+            <strong>This key fob is currently assigned to
+              <%= link_to @existing_owner.display_name, user_path(@existing_owner), class: "alert-link" %></strong>
+            <div class="small mt-1">
+              Membership: <strong><%= @existing_owner.membership_status.humanize %></strong>
+              &middot; Dues: <strong><%= @existing_owner.dues_status.humanize %></strong>
+              <% if @existing_owner.legacy? %>
+                &middot; <span class="badge text-bg-secondary">Legacy</span>
+              <% end %>
+              <% if !@existing_owner.active? %>
+                &middot; <span class="badge text-bg-danger">Inactive</span>
+              <% end %>
+            </div>
+            <div class="form-check mt-2">
+              <input type="checkbox" class="form-check-input" id="confirm_reassign" name="confirm_reassign" value="1">
+              <label class="form-check-label" for="confirm_reassign">
+                Remove this key fob from <strong><%= @existing_owner.display_name %></strong> and assign it to the selected member
+              </label>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
       <div>
         <%= f.label :notes, class: "form-label" %>
         <%= f.text_area :notes, class: "form-control", rows: 2, placeholder: "Optional notes about this key fob..." %>
@@ -209,8 +235,44 @@
       });
     }
 
+    function restoreSelection() {
+      const userIdInput = document.getElementById('rfid_user_id');
+      if (!userIdInput || !userIdInput.value) return;
+
+      const userId = userIdInput.value;
+      const results = document.querySelectorAll('.member-result');
+      for (var i = 0; i < results.length; i++) {
+        if (results[i].getAttribute('data-user-id') === userId) {
+          const displayName = results[i].getAttribute('data-user-display');
+          const hasBuildingAccess = results[i].getAttribute('data-has-building-access');
+
+          var selectedMember = document.getElementById('selected_member');
+          var selectedMemberName = document.getElementById('selected_member_name');
+          var memberSearchContainer = document.getElementById('member_search_container');
+          var buttonsWithTraining = document.getElementById('buttons_with_training');
+          var buttonsWithoutTraining = document.getElementById('buttons_without_training');
+          var hasTrainingNote = document.getElementById('has_training_note');
+
+          selectedMemberName.textContent = displayName;
+          selectedMember.style.display = 'block';
+          memberSearchContainer.style.display = 'none';
+
+          if (hasBuildingAccess === 'true') {
+            buttonsWithTraining.style.display = 'none';
+            buttonsWithoutTraining.style.display = 'flex';
+            hasTrainingNote.style.display = 'block';
+          } else {
+            buttonsWithTraining.style.display = 'flex';
+            buttonsWithoutTraining.style.display = 'none';
+            hasTrainingNote.style.display = 'none';
+          }
+          break;
+        }
+      }
+    }
+
     // Support both initial page load and Turbo navigation
-    document.addEventListener('DOMContentLoaded', initKeyFobSearch);
-    document.addEventListener('turbo:load', initKeyFobSearch);
+    document.addEventListener('DOMContentLoaded', function() { initKeyFobSearch(); restoreSelection(); });
+    document.addEventListener('turbo:load', function() { initKeyFobSearch(); restoreSelection(); });
   })();
 </script>

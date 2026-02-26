@@ -68,40 +68,7 @@
               </div>
             </div>
 
-            <hr>
-
-            <div>
-              <label class="form-label fw-semibold">Greeting on entry signs</label>
-              <p class="text-muted small mb-2">When you enter the space, how should we greet you?</p>
-
-              <div class="vstack gap-2 mb-3">
-                <div class="form-check">
-                  <%= f.radio_button :greeting_option, 'full_name', class: "form-check-input", id: "greet_full_name",
-                      checked: @user.use_full_name_for_greeting %>
-                  <label class="form-check-label" for="greet_full_name">
-                    Use my full name<% if @user.full_name.present? %> (<strong><%= @user.full_name %></strong>)<% end %>
-                  </label>
-                </div>
-                <div class="form-check">
-                  <%= f.radio_button :greeting_option, 'username', class: "form-check-input", id: "greet_username",
-                      checked: @user.use_username_for_greeting %>
-                  <label class="form-check-label" for="greet_username">
-                    Use my username<% if @user.username.present? %> (<strong><%= @user.username %></strong>)<% end %>
-                  </label>
-                </div>
-                <div class="form-check">
-                  <%= f.radio_button :greeting_option, 'do_not_greet', class: "form-check-input", id: "greet_none",
-                      checked: @user.do_not_greet %>
-                  <label class="form-check-label" for="greet_none">
-                    Don't greet me
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <hr>
-
-            <div class="text-center mb-3">
+            <div class="text-center">
               <p class="text-muted small mb-2">See what your profile looks like to others</p>
               <div class="btn-group" role="group">
                 <button type="button" class="btn btn-outline-info btn-sm" onclick="showPreview('self')">
@@ -114,6 +81,46 @@
                   <i class="bi bi-globe me-1"></i>As Public
                 </button>
               </div>
+            </div>
+
+            <hr>
+
+            <% current_greeting_option = @user.greeting_option %>
+            <div>
+              <label class="form-label fw-semibold">Greeting on entry signs</label>
+              <p class="text-muted small mb-2">When you enter the space, how should we greet you?</p>
+
+              <div class="vstack gap-2 mb-3">
+                <div class="form-check">
+                  <input type="radio" name="user[greeting_option]" value="full_name" id="setup_greet_full_name"
+                         class="form-check-input" <%= 'checked' if current_greeting_option == 'full_name' %>>
+                  <label class="form-check-label" for="setup_greet_full_name">
+                    Use my full name<% if @user.full_name.present? %> — <strong><%= @user.full_name %></strong><% end %>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="user[greeting_option]" value="username" id="setup_greet_username"
+                         class="form-check-input" <%= 'checked' if current_greeting_option == 'username' %>>
+                  <label class="form-check-label" for="setup_greet_username">
+                    Use my username<% if @user.username.present? %> — <strong>@<%= @user.username %></strong><% end %>
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="user[greeting_option]" value="custom" id="setup_greet_custom"
+                         class="form-check-input" <%= 'checked' if current_greeting_option == 'custom' %>>
+                  <label class="form-check-label" for="setup_greet_custom">Use a custom name</label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="user[greeting_option]" value="do_not_greet" id="setup_greet_none"
+                         class="form-check-input" <%= 'checked' if current_greeting_option == 'do_not_greet' %>>
+                  <label class="form-check-label" for="setup_greet_none">Don't greet me</label>
+                </div>
+              </div>
+
+              <input type="text" id="setup_greeting_name" name="user[greeting_name]"
+                     class="form-control"
+                     placeholder="Enter a custom greeting name"
+                     value="<%= @user.greeting_name %>">
             </div>
 
             <div class="d-flex justify-content-between">
@@ -232,5 +239,60 @@
       btn.classList.toggle('active', btn.dataset.view === currentView);
     });
   }
+})();
+
+// Greeting option interactivity
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var greetingField = document.getElementById('setup_greeting_name');
+    var radios        = document.querySelectorAll('input[name="user[greeting_option]"]');
+
+    if (!greetingField || !radios.length) return;
+
+    var savedCustomValue = '<%= j(@user.greeting_option == "custom" ? @user.greeting_name.to_s : @user.greeting_name.to_s) %>';
+
+    function selectedOption() {
+      for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) return radios[i].value;
+      }
+      return null;
+    }
+
+    function applyOption(option) {
+      switch (option) {
+        case 'full_name':
+          greetingField.value    = '<%= j(@user.full_name.to_s) %>';
+          greetingField.readOnly = true;
+          greetingField.classList.add('text-muted');
+          break;
+        case 'username':
+          greetingField.value    = '<%= j(@user.username.to_s) %>';
+          greetingField.readOnly = true;
+          greetingField.classList.add('text-muted');
+          break;
+        case 'custom':
+          greetingField.value    = savedCustomValue;
+          greetingField.readOnly = false;
+          greetingField.classList.remove('text-muted');
+          greetingField.focus();
+          break;
+        case 'do_not_greet':
+          greetingField.value    = '';
+          greetingField.readOnly = true;
+          greetingField.classList.add('text-muted');
+          break;
+      }
+    }
+
+    radios.forEach(function(radio) {
+      radio.addEventListener('change', function() { applyOption(this.value); });
+    });
+
+    greetingField.addEventListener('input', function() {
+      if (selectedOption() === 'custom') savedCustomValue = greetingField.value;
+    });
+
+    applyOption(selectedOption());
+  });
 })();
 </script>

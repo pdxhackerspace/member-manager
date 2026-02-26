@@ -64,25 +64,42 @@
     </div>
   <% end %>
 
+  <% current_greeting_option = @user.greeting_option %>
   <div>
-    <%= f.label :greeting_name, "Greeting Name", class: "form-label" %>
-    <small class="text-muted d-block mb-2">Name used on signs on entry</small>
-    <%= f.text_field :greeting_name, class: "form-control", id: "user_greeting_name" %>
-    
-    <div class="mt-2">
+    <label class="form-label">Greeting Name</label>
+    <small class="text-muted d-block mb-2">Name displayed on entry signs when you arrive at the space</small>
+
+    <div class="vstack gap-2 mb-3">
       <div class="form-check">
-        <%= f.check_box :use_full_name_for_greeting, class: "form-check-input", id: "user_use_full_name_for_greeting" %>
-        <%= f.label :use_full_name_for_greeting, "Use Full Name", class: "form-check-label" %>
+        <input type="radio" name="user[greeting_option]" value="full_name" id="user_greet_full_name"
+               class="form-check-input" <%= 'checked' if current_greeting_option == 'full_name' %>>
+        <label class="form-check-label" for="user_greet_full_name">
+          Use my full name<% if @user.full_name.present? %> — <strong><%= @user.full_name %></strong><% end %>
+        </label>
       </div>
       <div class="form-check">
-        <%= f.check_box :use_username_for_greeting, class: "form-check-input", id: "user_use_username_for_greeting" %>
-        <%= f.label :use_username_for_greeting, "Use Username", class: "form-check-label" %>
+        <input type="radio" name="user[greeting_option]" value="username" id="user_greet_username"
+               class="form-check-input" <%= 'checked' if current_greeting_option == 'username' %>>
+        <label class="form-check-label" for="user_greet_username">
+          Use my username<% if @user.username.present? %> — <strong>@<%= @user.username %></strong><% end %>
+        </label>
       </div>
       <div class="form-check">
-        <%= f.check_box :do_not_greet, class: "form-check-input", id: "user_do_not_greet" %>
-        <%= f.label :do_not_greet, "Do not greet", class: "form-check-label" %>
+        <input type="radio" name="user[greeting_option]" value="custom" id="user_greet_custom"
+               class="form-check-input" <%= 'checked' if current_greeting_option == 'custom' %>>
+        <label class="form-check-label" for="user_greet_custom">Use a custom name</label>
+      </div>
+      <div class="form-check">
+        <input type="radio" name="user[greeting_option]" value="do_not_greet" id="user_greet_none"
+               class="form-check-input" <%= 'checked' if current_greeting_option == 'do_not_greet' %>>
+        <label class="form-check-label" for="user_greet_none">Don't greet me</label>
       </div>
     </div>
+
+    <input type="text" id="user_greeting_name" name="user[greeting_name]"
+           class="form-control"
+           placeholder="Enter a custom greeting name"
+           value="<%= @user.greeting_name %>">
   </div>
 
   <% if current_user_admin? %>
@@ -239,125 +256,81 @@
 <% end %>
 
 <script>
+(function() {
   document.addEventListener('DOMContentLoaded', function() {
-    const useFullNameCheckbox = document.getElementById('user_use_full_name_for_greeting');
-    const useUsernameCheckbox = document.getElementById('user_use_username_for_greeting');
-    const doNotGreetCheckbox = document.getElementById('user_do_not_greet');
-    const greetingNameField = document.getElementById('user_greeting_name');
-    const fullNameField = document.getElementById('user_full_name');
-    const usernameField = document.getElementById('user_username');
-    const form = document.querySelector('form[data-user-authentik-id]');
+    var greetingField   = document.getElementById('user_greeting_name');
+    var fullNameField   = document.getElementById('user_full_name');
+    var usernameField   = document.getElementById('user_username');
+    var radios          = document.querySelectorAll('input[name="user[greeting_option]"]');
 
-    function getUsername() {
-      if (usernameField && usernameField.value) {
-        return usernameField.value;
+    if (!greetingField || !radios.length) return;
+
+    // Preserve whatever the user types when "custom" is active
+    var savedCustomValue = (greetingField.value || '').trim();
+
+    function selectedOption() {
+      for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) return radios[i].value;
       }
-      return form ? form.dataset.userUsername || '' : '';
+      return null;
     }
 
-    let suppressGreetingInputHandler = false;
-
-    function setGreetingValue(value) {
-      if (!greetingNameField) return;
-      suppressGreetingInputHandler = true;
-      greetingNameField.value = value;
-      suppressGreetingInputHandler = false;
-    }
-
-    function updateGreetingFromFullName() {
-      setGreetingValue(fullNameField?.value || '');
-    }
-
-    function updateGreetingFromUsername() {
-      setGreetingValue(getUsername());
-    }
-
-    function clearGreeting() {
-      setGreetingValue('');
-    }
-
-    function enforceMutualExclusivity(selectedCheckbox) {
-      const checkboxes = [useFullNameCheckbox, useUsernameCheckbox, doNotGreetCheckbox];
-      checkboxes.forEach((checkbox) => {
-        if (!checkbox || checkbox === selectedCheckbox) return;
-        checkbox.checked = false;
-      });
-    }
-
-    function handleSelection(selectedCheckbox) {
-      if (!selectedCheckbox) return;
-      if (!selectedCheckbox.checked) return;
-
-      enforceMutualExclusivity(selectedCheckbox);
-
-      if (selectedCheckbox === useFullNameCheckbox) {
-        updateGreetingFromFullName();
-      } else if (selectedCheckbox === useUsernameCheckbox) {
-        updateGreetingFromUsername();
-      } else if (selectedCheckbox === doNotGreetCheckbox) {
-        clearGreeting();
+    function applyOption(option) {
+      switch (option) {
+        case 'full_name':
+          greetingField.value    = (fullNameField ? fullNameField.value : '') || '';
+          greetingField.readOnly = true;
+          greetingField.classList.add('text-muted');
+          break;
+        case 'username':
+          greetingField.value    = (usernameField ? usernameField.value : '') || '';
+          greetingField.readOnly = true;
+          greetingField.classList.add('text-muted');
+          break;
+        case 'custom':
+          greetingField.value    = savedCustomValue;
+          greetingField.readOnly = false;
+          greetingField.classList.remove('text-muted');
+          greetingField.focus();
+          break;
+        case 'do_not_greet':
+          greetingField.value    = '';
+          greetingField.readOnly = true;
+          greetingField.classList.add('text-muted');
+          break;
       }
     }
 
-    if (useFullNameCheckbox) {
-      useFullNameCheckbox.addEventListener('change', function() {
-        handleSelection(useFullNameCheckbox);
+    // When a radio changes, update the field
+    radios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        applyOption(this.value);
       });
-    }
+    });
 
-    if (useUsernameCheckbox) {
-      useUsernameCheckbox.addEventListener('change', function() {
-        handleSelection(useUsernameCheckbox);
-      });
-    }
+    // Keep savedCustomValue in sync while user types
+    greetingField.addEventListener('input', function() {
+      if (selectedOption() === 'custom') {
+        savedCustomValue = greetingField.value;
+      }
+    });
 
-    if (doNotGreetCheckbox) {
-      doNotGreetCheckbox.addEventListener('change', function() {
-        handleSelection(doNotGreetCheckbox);
-      });
-    }
-
+    // Live-update the field when full_name / username source fields change
     if (fullNameField) {
       fullNameField.addEventListener('input', function() {
-        if (useFullNameCheckbox && useFullNameCheckbox.checked) {
-          updateGreetingFromFullName();
-        }
+        if (selectedOption() === 'full_name') greetingField.value = fullNameField.value;
       });
     }
-
     if (usernameField) {
       usernameField.addEventListener('input', function() {
-        if (useUsernameCheckbox && useUsernameCheckbox.checked) {
-          updateGreetingFromUsername();
-        }
+        if (selectedOption() === 'username') greetingField.value = usernameField.value;
       });
     }
 
-    if (greetingNameField) {
-      greetingNameField.addEventListener('input', function() {
-        if (suppressGreetingInputHandler) {
-          return;
-        }
-
-        if (greetingNameField.value.trim().length > 0) {
-          [useFullNameCheckbox, useUsernameCheckbox, doNotGreetCheckbox].forEach((checkbox) => {
-            if (checkbox) {
-              checkbox.checked = false;
-            }
-          });
-        }
-      });
-    }
-
-    // Initialize the greeting name field based on current selection.
-    if (useFullNameCheckbox && useFullNameCheckbox.checked) {
-      updateGreetingFromFullName();
-    } else if (useUsernameCheckbox && useUsernameCheckbox.checked) {
-      updateGreetingFromUsername();
-    } else if (doNotGreetCheckbox && doNotGreetCheckbox.checked) {
-      clearGreeting();
-    }
+    // Initialise state on page load
+    applyOption(selectedOption());
   });
+})();
 </script>
 
 

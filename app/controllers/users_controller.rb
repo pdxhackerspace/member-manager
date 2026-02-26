@@ -225,7 +225,7 @@ class UsersController < AuthenticatedController
   end
 
   def create
-    @user = User.new(user_params)
+    @user = User.new(resolved_user_params)
 
     if @user.save
       redirect_to user_path(@user), notice: 'Member created successfully.'
@@ -243,7 +243,7 @@ class UsersController < AuthenticatedController
   end
 
   def update
-    if @user.update(user_params)
+    if @user.update(resolved_user_params)
       redirect_to user_path(@user), notice: 'Member updated successfully.'
     else
       flash.now[:alert] = 'Unable to update user.'
@@ -457,8 +457,8 @@ class UsersController < AuthenticatedController
 
   def user_params
     permitted = %i[
-      username full_name email pronouns profile_visibility bio greeting_name use_full_name_for_greeting
-      use_username_for_greeting do_not_greet
+      username full_name email pronouns profile_visibility bio greeting_name greeting_option
+      use_full_name_for_greeting use_username_for_greeting do_not_greet
     ]
 
     if current_user_admin?
@@ -469,5 +469,38 @@ class UsersController < AuthenticatedController
     end
 
     params.require(:user).permit(permitted)
+  end
+
+  def resolved_user_params
+    attrs = user_params.to_h.symbolize_keys
+    apply_greeting_option!(attrs)
+    attrs
+  end
+
+  def apply_greeting_option!(attrs)
+    option = attrs.delete(:greeting_option)
+    return unless option.present?
+
+    case option
+    when 'full_name'
+      attrs[:use_full_name_for_greeting] = true
+      attrs[:use_username_for_greeting]  = false
+      attrs[:do_not_greet]               = false
+      attrs.delete(:greeting_name)
+    when 'username'
+      attrs[:use_full_name_for_greeting] = false
+      attrs[:use_username_for_greeting]  = true
+      attrs[:do_not_greet]               = false
+      attrs.delete(:greeting_name)
+    when 'custom'
+      attrs[:use_full_name_for_greeting] = false
+      attrs[:use_username_for_greeting]  = false
+      attrs[:do_not_greet]               = false
+    when 'do_not_greet'
+      attrs[:use_full_name_for_greeting] = false
+      attrs[:use_username_for_greeting]  = false
+      attrs[:do_not_greet]               = true
+      attrs[:greeting_name]              = ''
+    end
   end
 end

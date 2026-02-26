@@ -37,19 +37,22 @@ class ProfileSetupController < AuthenticatedController
     case params.dig(:user, :greeting_option)
     when 'full_name'
       attrs[:use_full_name_for_greeting] = true
-      attrs[:use_username_for_greeting] = false
-      attrs[:do_not_greet] = false
-      attrs[:greeting_name] = @user.full_name
+      attrs[:use_username_for_greeting]  = false
+      attrs[:do_not_greet]               = false
     when 'username'
       attrs[:use_full_name_for_greeting] = false
-      attrs[:use_username_for_greeting] = true
-      attrs[:do_not_greet] = false
-      attrs[:greeting_name] = @user.username
+      attrs[:use_username_for_greeting]  = true
+      attrs[:do_not_greet]               = false
+    when 'custom'
+      attrs[:use_full_name_for_greeting] = false
+      attrs[:use_username_for_greeting]  = false
+      attrs[:do_not_greet]               = false
+      attrs[:greeting_name]              = params.dig(:user, :greeting_name).to_s.strip
     when 'do_not_greet'
       attrs[:use_full_name_for_greeting] = false
-      attrs[:use_username_for_greeting] = false
-      attrs[:do_not_greet] = true
-      attrs[:greeting_name] = ''
+      attrs[:use_username_for_greeting]  = false
+      attrs[:do_not_greet]               = true
+      attrs[:greeting_name]              = ''
     end
 
     if @user.update(attrs)
@@ -83,7 +86,7 @@ class ProfileSetupController < AuthenticatedController
   end
 
   def visibility_params
-    params.require(:user).permit(:profile_visibility)
+    params.require(:user).permit(:profile_visibility, :greeting_name)
   end
 
   def optional_info_params

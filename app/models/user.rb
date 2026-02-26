@@ -430,6 +430,14 @@ class User < ApplicationRecord
     find_by(username: param) || find(param)
   end
 
+  # Returns which greeting option is currently active: 'full_name', 'username', 'custom', or 'do_not_greet'
+  def greeting_option
+    return 'full_name' if use_full_name_for_greeting?
+    return 'username' if use_username_for_greeting?
+    return 'do_not_greet' if do_not_greet?
+    'custom'
+  end
+
   before_validation :generate_username_if_blank
   before_validation :set_membership_start_date, on: :create
   before_save :ensure_greeting_name_mutual_exclusivity

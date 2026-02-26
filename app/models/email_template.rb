@@ -9,7 +9,9 @@ class EmailTemplate < ApplicationRecord
     '{{days_overdue}}' => 'Number of days payment is overdue (payment emails only)',
     '{{reason}}' => 'Reason for action (cancellation/ban emails only)',
     '{{app_url}}' => 'Base URL of the application',
-    '{{training_topic}}' => 'Name of the training topic (training emails only)'
+    '{{training_topic}}' => 'Name of the training topic (training emails only)',
+    '{{invitation_url}}' => 'URL for the invitation to create an account (invitation emails only)',
+    '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)'
   }.freeze
 
   # Default templates that can be seeded
@@ -295,6 +297,39 @@ class EmailTemplate < ApplicationRecord
         The {{organization_name}} Team
       TEXT
     },
+    'member_invitation' => {
+      name: 'Member Invitation',
+      description: 'Sent to invite someone to create a new member account',
+      subject: '{{organization_name}}: You\'re Invited to Join!',
+      body_html: <<~HTML,
+        <h1>You're Invited!</h1>
+        <p>Hello,</p>
+        <p>You've been invited to create a member account at <strong>{{organization_name}}</strong>.</p>
+        <p>Click the link below to get started:</p>
+        <p><a href="{{invitation_url}}" style="display: inline-block; padding: 12px 24px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">Create Your Account</a></p>
+        <p>Or copy and paste this URL into your browser:</p>
+        <p>{{invitation_url}}</p>
+        <p><em>This invitation expires {{invitation_expiry}}.</em></p>
+        <p>If you have any questions, please reach out to us.</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        You're Invited!
+
+        Hello,
+
+        You've been invited to create a member account at {{organization_name}}.
+
+        Click here to get started: {{invitation_url}}
+
+        This invitation expires {{invitation_expiry}}.
+
+        If you have any questions, please reach out to us.
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
+    },
     'trainer_capability_granted' => {
       name: 'Trainer Capability Granted',
       description: 'Sent when a member is granted the ability to train others',
@@ -367,7 +402,9 @@ class EmailTemplate < ApplicationRecord
       days_overdue: ' by 14 days',
       reason: '<p><strong>Reason:</strong> Example reason</p>',
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000'),
-      training_topic: 'Laser Cutter'
+      training_topic: 'Laser Cutter',
+      invitation_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/invite/sample-token-abc123",
+      invitation_expiry: 'in 3 days'
     }
     render(sample_variables)
   end

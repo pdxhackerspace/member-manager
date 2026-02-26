@@ -20,6 +20,6 @@ class MembershipSettingsController < AdminController
   private
 
   def membership_setting_params
-    params.require(:membership_setting).permit(:payment_grace_period_days, :reactivation_grace_period_months)
+    params.require(:membership_setting).permit(:payment_grace_period_days, :reactivation_grace_period_months, :invitation_expiry_hours)
   end
 end

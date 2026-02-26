@@ -36,6 +36,20 @@
             <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
           </div>
 
+          <div class="mb-4">
+            <%= f.label :invitation_expiry_hours, "Invitation Expiry (hours)", class: "form-label" %>
+            <div class="d-flex align-items-center gap-2">
+              <%= f.number_field :invitation_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "invitation_expiry_hours" %>
+              <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=24">1 day</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=48">2 days</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=72">3 days</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=168">1 week</button>
+              </div>
+            </div>
+            <div class="form-text">How long invitation links remain valid. Use the shortcuts or enter a custom number of hours.</div>
+          </div>
+
           <div class="d-flex gap-2">
             <%= f.submit "Save Settings", class: "btn btn-primary" %>
             <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary" %>
@@ -55,9 +69,13 @@
           <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
           before their membership status changes to lapsed.
         </p>
-        <p class="small text-muted mb-0">
+        <p class="small text-muted mb-2">
           <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
           to resume their membership without going through the full application process again.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Invitation Expiry:</strong> When an admin sends an invitation, the link is valid for this 
+          many hours. After expiry, the recipient must be invited again.
         </p>
       </div>
     </div>

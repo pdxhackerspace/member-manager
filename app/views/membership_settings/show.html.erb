@@ -25,6 +25,15 @@
             <strong><%= @membership_setting.reactivation_grace_period_months %></strong> months
             <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
           </dd>
+
+          <dt class="col-sm-6 mt-3">Invitation Expiry</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.invitation_expiry_hours %></strong> hours
+            <% if @membership_setting.invitation_expiry_hours >= 24 %>
+              (<%= @membership_setting.invitation_expiry_hours / 24 %> <%= 'day'.pluralize(@membership_setting.invitation_expiry_hours / 24) %>)
+            <% end %>
+            <div class="form-text">How long invitation links remain valid before they expire.</div>
+          </dd>
         </dl>
       </div>
     </div>
@@ -40,9 +49,13 @@
           <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
           before their membership status changes to lapsed.
         </p>
-        <p class="small text-muted mb-0">
+        <p class="small text-muted mb-2">
           <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
           to resume their membership without going through the full application process again.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Invitation Expiry:</strong> When an admin sends an invitation, the link is valid for this 
+          many hours. After expiry, the recipient must be invited again.
         </p>
       </div>
     </div>

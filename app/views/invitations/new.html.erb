@@ -1,0 +1,64 @@
+<div class="mb-4">
+  <%= link_to "&larr; Back to dashboard".html_safe, root_path, class: "text-decoration-none" %>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h1 class="h4 mb-3">Send Membership Invitation</h1>
+
+        <% if @invitation.errors.any? %>
+          <div class="alert alert-danger">
+            <ul class="mb-0">
+              <% @invitation.errors.full_messages.each do |msg| %>
+                <li><%= msg %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_with model: @invitation, local: true, class: "vstack gap-3" do |f| %>
+          <div>
+            <%= f.label :email, "Email Address", class: "form-label" %> <span class="text-danger">*</span>
+            <%= f.email_field :email, class: "form-control", required: true, placeholder: "Enter the recipient's email address", autofocus: true %>
+            <div class="form-text">An invitation email will be sent to this address with a link to create their account.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Send Invitation", class: "btn btn-primary" %>
+            <%= link_to "Cancel", root_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="card-title mb-0"><i class="bi bi-info-circle me-1"></i>About Invitations</h5>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">
+          The recipient will receive an email with a link to create their member account.
+        </p>
+        <p class="small text-muted mb-2">
+          <strong>Expiry:</strong> Invitations expire after
+          <strong>
+            <% if @expiry_hours >= 24 && (@expiry_hours % 24).zero? %>
+              <%= @expiry_hours / 24 %> <%= 'day'.pluralize(@expiry_hours / 24) %>
+            <% else %>
+              <%= @expiry_hours %> <%= 'hour'.pluralize(@expiry_hours) %>
+            <% end %>
+          </strong>.
+          This can be changed under
+          <%= link_to "Membership Settings", membership_settings_path %>.
+        </p>
+        <p class="small text-muted mb-0">
+          The invitation email will be queued for delivery and sent automatically.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

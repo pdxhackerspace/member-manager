@@ -45,6 +45,7 @@ Rails.application.routes.draw do
   end
 
   resources :rfids, only: [:new, :create, :destroy]
+  resources :invitations, only: [:new, :create]
 
   # Member profile setup wizard (non-admin)
   get  "/profile/setup",            to: "profile_setup#basic_info",       as: :profile_setup

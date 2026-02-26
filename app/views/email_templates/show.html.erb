@@ -1,0 +1,97 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1"><%= @email_template.name %></h1>
+    <p class="text-muted mb-0"><%= @email_template.description %></p>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Preview", preview_email_template_path(@email_template), class: "btn btn-outline-info", target: "_blank" %>
+    <%= link_to "Edit", edit_email_template_path(@email_template), class: "btn btn-outline-primary" %>
+    <%= link_to "Back to Templates", email_templates_path, class: "btn btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3 text-secondary">Key</dt>
+          <dd class="col-sm-9"><code><%= @email_template.key %></code></dd>
+
+          <dt class="col-sm-3 text-secondary">Subject</dt>
+          <dd class="col-sm-9"><%= @email_template.subject %></dd>
+
+          <dt class="col-sm-3 text-secondary">Status</dt>
+          <dd class="col-sm-9">
+            <% if @email_template.enabled? %>
+              <span class="badge text-bg-success">Enabled</span>
+            <% else %>
+              <span class="badge text-bg-secondary">Disabled</span>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-3 text-secondary">Review</dt>
+          <dd class="col-sm-9">
+            <% if @email_template.needs_review? %>
+              <span class="badge text-bg-warning"><i class="bi bi-exclamation-circle me-1"></i>Needs Review</span>
+            <% else %>
+              <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>Reviewed</span>
+            <% end %>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="card-title mb-0">HTML Body</h5>
+      </div>
+      <div class="card-body">
+        <div class="border rounded p-3 bg-white">
+          <%= @email_template.body_html.html_safe %>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="card-title mb-0">Plain Text Body</h5>
+      </div>
+      <div class="card-body">
+        <pre class="mb-0 small"><%= @email_template.body_text %></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="card-title mb-0">Review Status</h5>
+      </div>
+      <div class="card-body">
+        <% if @email_template.needs_review? %>
+          <p class="text-muted small mb-3">This template is flagged for review. After reviewing the content, mark it as accepted.</p>
+          <%= button_to "Mark as Reviewed", mark_reviewed_email_template_path(@email_template),
+              method: :post, class: "btn btn-success w-100" %>
+        <% else %>
+          <p class="text-muted small mb-3">This template has been reviewed and accepted. You can flag it for review again if changes are needed.</p>
+          <%= button_to "Flag for Review", mark_needs_review_email_template_path(@email_template),
+              method: :post, class: "btn btn-outline-warning w-100" %>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-body-tertiary">
+        <h5 class="card-title mb-0">Actions</h5>
+      </div>
+      <div class="card-body d-grid gap-2">
+        <%= link_to "Edit Template", edit_email_template_path(@email_template), class: "btn btn-outline-primary" %>
+        <%= button_to @email_template.enabled? ? "Disable Template" : "Enable Template",
+            toggle_email_template_path(@email_template),
+            method: :post,
+            class: "btn btn-outline-#{@email_template.enabled? ? 'warning' : 'success'}" %>
+      </div>
+    </div>
+  </div>
+</div>

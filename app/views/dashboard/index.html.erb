@@ -196,6 +196,24 @@
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
               <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @templates_needing_review_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  All email templates have been reviewed
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
+                  <%= link_to email_templates_path(filter: 'needs_review'), class: "text-decoration-none fw-semibold" do %>
+                    <strong><%= @templates_needing_review_count %></strong> email <%= 'template'.pluralize(@templates_needing_review_count) %> need review
+                  <% end %>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
               <div>
                 <i class="bi bi-check-circle-fill text-success me-1"></i>
                 <span class="text-muted">Manual payments due</span>

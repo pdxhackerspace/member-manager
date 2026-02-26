@@ -47,6 +47,9 @@ class DashboardController < AdminController
     @draft_incident_count = IncidentReport.where(status: 'draft').count
     @active_incident_count = @open_incident_count + @draft_incident_count
 
+    # Important: Email templates needing review
+    @templates_needing_review_count = EmailTemplate.needs_review.count
+
     # Housekeeping: Lapsed members with access after lapse
     lapsed_users = User.where(dues_status: 'lapsed')
                        .where.not(membership_status: %w[banned deceased])

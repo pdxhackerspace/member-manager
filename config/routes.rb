@@ -217,6 +217,8 @@ Rails.application.routes.draw do
       get :preview
       post :toggle
       post :test_send
+      post :mark_reviewed
+      post :mark_needs_review
     end
     collection do
       post :seed

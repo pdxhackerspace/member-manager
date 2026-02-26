@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -122,17 +122,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.bigint "application_id", null: false
     t.string "authentik_group_id"
     t.string "authentik_name"
+    t.string "authentik_policy_id"
     t.datetime "created_at", null: false
+    t.string "member_source", default: "manual", null: false
     t.string "name"
     t.text "note"
+    t.bigint "sync_with_group_id"
     t.bigint "training_topic_id"
     t.datetime "updated_at", null: false
-    t.boolean "use_can_train", default: false, null: false
-    t.boolean "use_default_admins_group", default: false, null: false
-    t.boolean "use_default_members_group", default: false, null: false
-    t.boolean "use_trained_in", default: false, null: false
     t.index ["application_id"], name: "index_application_groups_on_application_id"
     t.index ["authentik_group_id"], name: "index_application_groups_on_authentik_group_id"
+    t.index ["authentik_policy_id"], name: "index_application_groups_on_authentik_policy_id"
+    t.index ["member_source"], name: "index_application_groups_on_member_source"
+    t.index ["sync_with_group_id"], name: "index_application_groups_on_sync_with_group_id"
     t.index ["training_topic_id"], name: "index_application_groups_on_training_topic_id"
   end
 
@@ -173,9 +175,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.index ["user_id"], name: "index_authentik_users_on_user_id"
   end
 
+  create_table "cash_payments", force: :cascade do |t|
+    t.decimal "amount", precision: 12, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.bigint "membership_plan_id", null: false
+    t.text "notes"
+    t.date "paid_on", null: false
+    t.bigint "recorded_by_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["membership_plan_id"], name: "index_cash_payments_on_membership_plan_id"
+    t.index ["paid_on"], name: "index_cash_payments_on_paid_on", order: :desc
+    t.index ["recorded_by_id"], name: "index_cash_payments_on_recorded_by_id"
+    t.index ["user_id"], name: "index_cash_payments_on_user_id"
+  end
+
   create_table "default_settings", force: :cascade do |t|
     t.string "active_members_group", null: false
     t.string "admins_group", null: false
+    t.string "all_members_group", null: false
     t.string "app_prefix", null: false
     t.string "can_train_prefix", null: false
     t.datetime "created_at", null: false
@@ -183,6 +201,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.string "site_prefix", default: "ctrlh", null: false
     t.boolean "sync_inactive_members", default: false, null: false
     t.string "trained_on_prefix", null: false
+    t.string "unbanned_members_group", null: false
     t.datetime "updated_at", null: false
   end
 
@@ -210,9 +229,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.boolean "enabled", default: true, null: false
     t.string "key", null: false
     t.string "name", null: false
+    t.boolean "needs_review", default: true, null: false
     t.string "subject", null: false
     t.datetime "updated_at", null: false
     t.index ["key"], name: "index_email_templates_on_key", unique: true
+    t.index ["needs_review"], name: "index_email_templates_on_needs_review"
   end
 
   create_table "incident_report_links", force: :cascade do |t|
@@ -263,6 +284,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.string "webhook_type", null: false
     t.index ["slug"], name: "index_incoming_webhooks_on_slug", unique: true
     t.index ["webhook_type"], name: "index_incoming_webhooks_on_webhook_type", unique: true
+  end
+
+  create_table "invitations", force: :cascade do |t|
+    t.datetime "accepted_at"
+    t.datetime "cancelled_at"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at", null: false
+    t.bigint "invited_by_id", null: false
+    t.string "membership_type", default: "member", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["email"], name: "index_invitations_on_email"
+    t.index ["expires_at"], name: "index_invitations_on_expires_at"
+    t.index ["invited_by_id"], name: "index_invitations_on_invited_by_id"
+    t.index ["membership_type"], name: "index_invitations_on_membership_type"
+    t.index ["token"], name: "index_invitations_on_token", unique: true
+    t.index ["user_id"], name: "index_invitations_on_user_id"
   end
 
   create_table "journals", force: :cascade do |t|
@@ -322,6 +362,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.index ["email"], name: "index_local_accounts_on_email", unique: true
   end
 
+  create_table "mail_log_entries", force: :cascade do |t|
+    t.bigint "actor_id"
+    t.datetime "created_at", null: false
+    t.string "details"
+    t.string "event", null: false
+    t.bigint "queued_mail_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_mail_log_entries_on_actor_id"
+    t.index ["created_at"], name: "index_mail_log_entries_on_created_at"
+    t.index ["event"], name: "index_mail_log_entries_on_event"
+    t.index ["queued_mail_id"], name: "index_mail_log_entries_on_queued_mail_id"
+  end
+
   create_table "member_sources", force: :cascade do |t|
     t.boolean "api_configured", default: false
     t.datetime "created_at", null: false
@@ -352,19 +405,48 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.string "paypal_transaction_subject"
     t.string "plan_type", default: "primary", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.boolean "visible", default: true, null: false
     t.index ["display_order"], name: "index_membership_plans_on_display_order"
     t.index ["manual"], name: "index_membership_plans_on_manual"
-    t.index ["name"], name: "index_membership_plans_on_name", unique: true
+    t.index ["name"], name: "index_membership_plans_on_name_shared", unique: true, where: "(user_id IS NULL)"
     t.index ["plan_type"], name: "index_membership_plans_on_plan_type"
+    t.index ["user_id"], name: "index_membership_plans_on_user_id"
     t.index ["visible"], name: "index_membership_plans_on_visible"
   end
 
   create_table "membership_settings", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "invitation_expiry_hours", default: 72, null: false
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "payment_events", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2
+    t.bigint "cash_payment_id"
+    t.datetime "created_at", null: false
+    t.string "currency", default: "USD"
+    t.text "details"
+    t.string "event_type", null: false
+    t.string "external_id"
+    t.bigint "kofi_payment_id"
+    t.datetime "occurred_at", null: false
+    t.bigint "paypal_payment_id"
+    t.bigint "recharge_payment_id"
+    t.string "source", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["cash_payment_id"], name: "index_payment_events_on_cash_payment_id"
+    t.index ["event_type"], name: "index_payment_events_on_event_type"
+    t.index ["external_id"], name: "index_payment_events_on_external_id"
+    t.index ["kofi_payment_id"], name: "index_payment_events_on_kofi_payment_id"
+    t.index ["occurred_at"], name: "index_payment_events_on_occurred_at"
+    t.index ["paypal_payment_id"], name: "index_payment_events_on_paypal_payment_id"
+    t.index ["recharge_payment_id"], name: "index_payment_events_on_recharge_payment_id"
+    t.index ["source"], name: "index_payment_events_on_source"
+    t.index ["user_id"], name: "index_payment_events_on_user_id"
   end
 
   create_table "payment_processors", force: :cascade do |t|
@@ -419,6 +501,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
     t.index ["payer_email"], name: "index_paypal_payments_on_payer_email"
     t.index ["paypal_id"], name: "index_paypal_payments_on_paypal_id", unique: true
     t.index ["user_id"], name: "index_paypal_payments_on_user_id"
+  end
+
+  create_table "queued_mails", force: :cascade do |t|
+    t.text "body_html", null: false
+    t.text "body_text"
+    t.datetime "created_at", null: false
+    t.bigint "email_template_id"
+    t.text "last_error"
+    t.datetime "last_error_at"
+    t.string "mailer_action", null: false
+    t.jsonb "mailer_args", default: {}
+    t.string "reason", null: false
+    t.bigint "recipient_id"
+    t.datetime "reviewed_at"
+    t.bigint "reviewed_by_id"
+    t.integer "send_attempts", default: 0, null: false
+    t.datetime "sent_at"
+    t.string "status", default: "pending", null: false
+    t.string "subject", null: false
+    t.string "to", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_template_id"], name: "index_queued_mails_on_email_template_id"
+    t.index ["recipient_id"], name: "index_queued_mails_on_recipient_id"
+    t.index ["reviewed_by_id"], name: "index_queued_mails_on_reviewed_by_id"
+    t.index ["status"], name: "index_queued_mails_on_status"
   end
 
   create_table "recharge_payments", force: :cascade do |t|
@@ -659,22 +766,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_214315) do
   add_foreign_key "access_logs", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "application_groups", "application_groups", column: "sync_with_group_id"
   add_foreign_key "application_groups", "applications"
   add_foreign_key "application_groups", "training_topics"
   add_foreign_key "application_groups_users", "application_groups"
   add_foreign_key "application_groups_users", "users"
   add_foreign_key "authentik_users", "users"
+  add_foreign_key "cash_payments", "membership_plans"
+  add_foreign_key "cash_payments", "users"
+  add_foreign_key "cash_payments", "users", column: "recorded_by_id"
   add_foreign_key "document_training_topics", "documents"
   add_foreign_key "document_training_topics", "training_topics"
   add_foreign_key "incident_report_links", "incident_reports"
   add_foreign_key "incident_report_members", "incident_reports"
   add_foreign_key "incident_report_members", "users"
   add_foreign_key "incident_reports", "users", column: "reporter_id"
+  add_foreign_key "invitations", "users"
+  add_foreign_key "invitations", "users", column: "invited_by_id"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
   add_foreign_key "kofi_payments", "sheet_entries"
   add_foreign_key "kofi_payments", "users"
+  add_foreign_key "mail_log_entries", "queued_mails"
+  add_foreign_key "mail_log_entries", "users", column: "actor_id"
+  add_foreign_key "membership_plans", "users"
+  add_foreign_key "payment_events", "cash_payments"
+  add_foreign_key "payment_events", "kofi_payments"
+  add_foreign_key "payment_events", "paypal_payments"
+  add_foreign_key "payment_events", "recharge_payments"
+  add_foreign_key "payment_events", "users"
   add_foreign_key "paypal_payments", "users"
+  add_foreign_key "queued_mails", "email_templates"
+  add_foreign_key "queued_mails", "users", column: "recipient_id"
+  add_foreign_key "queued_mails", "users", column: "reviewed_by_id"
   add_foreign_key "recharge_payments", "users"
   add_foreign_key "rfids", "users"
   add_foreign_key "sheet_entries", "users"

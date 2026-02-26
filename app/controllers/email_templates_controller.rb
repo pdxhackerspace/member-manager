@@ -1,8 +1,17 @@
 class EmailTemplatesController < AdminController
-  before_action :set_email_template, only: [:show, :edit, :update, :preview, :toggle]
+  before_action :set_email_template, only: [:show, :edit, :update, :preview, :toggle, :mark_reviewed, :mark_needs_review]
 
   def index
     @email_templates = EmailTemplate.ordered
+    @filter = params[:filter]
+
+    @email_templates = case @filter
+                       when 'needs_review' then @email_templates.needs_review
+                       when 'reviewed' then @email_templates.reviewed
+                       when 'enabled' then @email_templates.enabled
+                       when 'disabled' then @email_templates.disabled
+                       else @email_templates
+                       end
   end
 
   def show; end
@@ -31,6 +40,16 @@ class EmailTemplatesController < AdminController
   def seed
     EmailTemplate.seed_defaults!
     redirect_to email_templates_path, notice: "Default email templates have been seeded."
+  end
+
+  def mark_reviewed
+    @email_template.update!(needs_review: false)
+    redirect_to email_template_path(@email_template), notice: "Template '#{@email_template.name}' marked as reviewed."
+  end
+
+  def mark_needs_review
+    @email_template.update!(needs_review: true)
+    redirect_to email_template_path(@email_template), notice: "Template '#{@email_template.name}' flagged for review."
   end
 
   def test_send

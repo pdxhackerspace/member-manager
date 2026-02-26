@@ -20,6 +20,7 @@ class Invitation < ApplicationRecord
   validates :token, presence: true, uniqueness: true
   validates :expires_at, presence: true
   validates :membership_type, presence: true, inclusion: { in: MEMBERSHIP_TYPES }
+  validate :email_not_already_registered, on: :create
 
   before_validation :generate_token, on: :create
   before_validation :set_expiry, on: :create
@@ -70,6 +71,15 @@ class Invitation < ApplicationRecord
   end
 
   private
+
+  def email_not_already_registered
+    return if email.blank?
+
+    existing = User.find_by('LOWER(email) = ?', email.strip.downcase)
+    return unless existing
+
+    errors.add(:email, "is already registered to @#{existing.username}")
+  end
 
   def generate_token
     self.token ||= SecureRandom.urlsafe_base64(32)

@@ -1,12 +1,14 @@
 <div class="row justify-content-center mt-5">
   <div class="col-lg-6 col-md-8">
 
-    <% if @error == :not_found %>
+    <% if @error == :already_accepted %>
       <div class="card shadow-sm border-0">
         <div class="card-body text-center py-5">
-          <i class="bi bi-question-circle display-3 text-muted d-block mb-3"></i>
-          <h2 class="h4 mb-2">Invitation Not Found</h2>
-          <p class="text-muted">This invitation link is not valid. Please check the link in your email and try again.</p>
+          <i class="bi bi-check-circle display-3 text-success d-block mb-3"></i>
+          <h2 class="h4 mb-2">Invitation Already Used</h2>
+          <div class="text-muted">
+            <%= sanitize(TextFragment.content_for('invite_already_accepted') || '<p>This invitation has already been used to create an account.</p>') %>
+          </div>
         </div>
       </div>
       <% return %>
@@ -17,29 +19,22 @@
         <div class="card-body text-center py-5">
           <i class="bi bi-clock-history display-3 text-warning d-block mb-3"></i>
           <h2 class="h4 mb-2">Invitation Expired</h2>
-          <p class="text-muted">This invitation has expired. Please contact an administrator to receive a new invitation.</p>
+          <div class="text-muted">
+            <%= sanitize(TextFragment.content_for('invite_expired') || '<p>This invitation has expired. Please contact an administrator to receive a new invitation.</p>') %>
+          </div>
         </div>
       </div>
       <% return %>
     <% end %>
 
-    <% if @error == :cancelled %>
+    <% if @error == :not_found || @error == :cancelled %>
       <div class="card shadow-sm border-0">
         <div class="card-body text-center py-5">
-          <i class="bi bi-x-circle display-3 text-danger d-block mb-3"></i>
-          <h2 class="h4 mb-2">Invitation Cancelled</h2>
-          <p class="text-muted">This invitation has been cancelled. Please contact an administrator if you believe this is a mistake.</p>
-        </div>
-      </div>
-      <% return %>
-    <% end %>
-
-    <% if @error == :already_accepted %>
-      <div class="card shadow-sm border-0">
-        <div class="card-body text-center py-5">
-          <i class="bi bi-check-circle display-3 text-success d-block mb-3"></i>
-          <h2 class="h4 mb-2">Already Accepted</h2>
-          <p class="text-muted">This invitation has already been used to create an account.</p>
+          <i class="bi bi-question-circle display-3 text-muted d-block mb-3"></i>
+          <h2 class="h4 mb-2">Invalid Invitation</h2>
+          <div class="text-muted">
+            <%= sanitize(TextFragment.content_for('invite_invalid') || '<p>This invitation link is not valid or has been cancelled.</p><p>If you think this is a mistake, please contact an administrator.</p>') %>
+          </div>
         </div>
       </div>
       <% return %>

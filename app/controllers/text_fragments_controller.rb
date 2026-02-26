@@ -140,5 +140,32 @@ class TextFragmentsController < AdminController
         </p>
       HTML
     )
+
+    TextFragment.ensure_exists!(
+      key: 'invite_already_accepted',
+      title: 'Invitation: Already Accepted',
+      content: <<~HTML
+        <p>This invitation has already been used to create an account.</p>
+        <p>If you need help accessing your account, please contact an administrator.</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
+      key: 'invite_expired',
+      title: 'Invitation: Expired',
+      content: <<~HTML
+        <p>This invitation has expired and can no longer be used.</p>
+        <p>Please contact an administrator to request a new invitation.</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
+      key: 'invite_invalid',
+      title: 'Invitation: Invalid or Cancelled',
+      content: <<~HTML
+        <p>This invitation link is not valid or has been cancelled.</p>
+        <p>If you believe you received this link in error, please contact an administrator.</p>
+      HTML
+    )
   end
 end

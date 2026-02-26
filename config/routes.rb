@@ -6,6 +6,10 @@ Rails.application.routes.draw do
 
   root "dashboard#index"
 
+  get  "/invite/:token",         to: "invite#show",     as: :invite
+  post "/invite/:token/accept",  to: "invite#accept",   as: :accept_invite
+  get  "/invite/:token/accepted", to: "invite#accepted", as: :invite_accepted
+
   get "/login", to: "sessions#new"
   get "/apply", to: "pages#apply"
   get "/help", to: "pages#help", as: :help

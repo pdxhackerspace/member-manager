@@ -1,18 +1,19 @@
 class InvitationsController < AdminController
   def new
-    @invitation = Invitation.new
+    @invitation = Invitation.new(membership_type: 'member')
     @expiry_hours = MembershipSetting.instance.invitation_expiry_hours
   end
 
   def create
     @invitation = Invitation.new(
       email: params[:invitation][:email]&.strip,
+      membership_type: params[:invitation][:membership_type],
       invited_by: current_user
     )
 
     if @invitation.save
       enqueue_invitation_email(@invitation)
-      redirect_to root_path, notice: "Invitation sent to #{@invitation.email}. It will expire in #{humanize_hours(MembershipSetting.instance.invitation_expiry_hours)}."
+      redirect_to root_path, notice: "#{@invitation.type_label} invitation sent to #{@invitation.email}. It will expire in #{humanize_hours(MembershipSetting.instance.invitation_expiry_hours)}."
     else
       @expiry_hours = MembershipSetting.instance.invitation_expiry_hours
       render :new, status: :unprocessable_entity
@@ -30,7 +31,9 @@ class InvitationsController < AdminController
       date: Date.current.strftime('%B %d, %Y'),
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000'),
       invitation_url: invitation.invitation_url,
-      invitation_expiry: humanize_expiry(invitation.expires_at)
+      invitation_expiry: humanize_expiry(invitation.expires_at),
+      invitation_type: invitation.type_label,
+      invitation_type_details: invitation.type_description
     }
 
     if template
@@ -40,7 +43,7 @@ class InvitationsController < AdminController
         subject: rendered[:subject],
         body_html: rendered[:body_html],
         body_text: rendered[:body_text] || '',
-        reason: "Membership invitation for #{invitation.email}",
+        reason: "#{invitation.type_label} invitation for #{invitation.email}",
         email_template: template,
         mailer_action: 'member_invitation',
         mailer_args: { invitation_id: invitation.id },
@@ -49,17 +52,17 @@ class InvitationsController < AdminController
     else
       mail = QueuedMail.create!(
         to: invitation.email,
-        subject: "#{org}: You're Invited to Join!",
-        body_html: "<p>You've been invited to join #{org}.</p><p><a href=\"#{invitation.invitation_url}\">Click here to create your account</a></p><p>This invitation expires #{humanize_expiry(invitation.expires_at)}.</p>",
-        body_text: "You've been invited to join #{org}.\n\nCreate your account: #{invitation.invitation_url}\n\nThis invitation expires #{humanize_expiry(invitation.expires_at)}.",
-        reason: "Membership invitation for #{invitation.email}",
+        subject: "#{org}: You're Invited to Join as a #{invitation.type_label}!",
+        body_html: "<p>You've been invited to join #{org} as a <strong>#{invitation.type_label}</strong>.</p><p>#{invitation.type_description}</p><p><a href=\"#{invitation.invitation_url}\">Click here to create your account</a></p><p>This invitation expires #{humanize_expiry(invitation.expires_at)}.</p>",
+        body_text: "You've been invited to join #{org} as a #{invitation.type_label}.\n\n#{invitation.type_description}\n\nCreate your account: #{invitation.invitation_url}\n\nThis invitation expires #{humanize_expiry(invitation.expires_at)}.",
+        reason: "#{invitation.type_label} invitation for #{invitation.email}",
         mailer_action: 'member_invitation',
         mailer_args: { invitation_id: invitation.id },
         status: 'approved'
       )
     end
 
-    MailLogEntry.log!(mail, 'created', details: "Queued invitation to #{invitation.email}")
+    MailLogEntry.log!(mail, 'created', details: "Queued #{invitation.type_label} invitation to #{invitation.email}")
     QueuedMailDeliveryJob.perform_later(mail.id)
   end
 

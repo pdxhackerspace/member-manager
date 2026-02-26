@@ -1,10 +1,25 @@
 class Invitation < ApplicationRecord
+  MEMBERSHIP_TYPES = %w[member sponsored guest].freeze
+
+  MEMBERSHIP_TYPE_LABELS = {
+    'member' => 'Member',
+    'sponsored' => 'Sponsored Member',
+    'guest' => 'Guest'
+  }.freeze
+
+  MEMBERSHIP_TYPE_DESCRIPTIONS = {
+    'member' => 'Full membership — standard dues-paying member account.',
+    'sponsored' => 'Sponsored membership — full access including building access, no dues required.',
+    'guest' => 'Guest account — Slack access and software services, no building access.'
+  }.freeze
+
   belongs_to :invited_by, class_name: 'User'
   belongs_to :user, optional: true
 
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :token, presence: true, uniqueness: true
   validates :expires_at, presence: true
+  validates :membership_type, presence: true, inclusion: { in: MEMBERSHIP_TYPES }
 
   before_validation :generate_token, on: :create
   before_validation :set_expiry, on: :create
@@ -26,8 +41,19 @@ class Invitation < ApplicationRecord
     accepted_at.present?
   end
 
+  def type_label
+    MEMBERSHIP_TYPE_LABELS[membership_type] || membership_type.humanize
+  end
+
+  def type_description
+    MEMBERSHIP_TYPE_DESCRIPTIONS[membership_type] || ''
+  end
+
   def accept!(new_user)
-    update!(accepted_at: Time.current, user: new_user)
+    transaction do
+      apply_membership_type!(new_user)
+      update!(accepted_at: Time.current, user: new_user)
+    end
   end
 
   def invitation_url
@@ -42,5 +68,21 @@ class Invitation < ApplicationRecord
 
   def set_expiry
     self.expires_at ||= Time.current + MembershipSetting.instance.invitation_expiry_hours.hours
+  end
+
+  def apply_membership_type!(user)
+    case membership_type
+    when 'sponsored'
+      user.update!(
+        is_sponsored: true,
+        membership_status: 'sponsored',
+        dues_status: 'current'
+      )
+    when 'guest'
+      user.update!(
+        membership_status: 'guest',
+        dues_status: 'current'
+      )
+    end
   end
 end

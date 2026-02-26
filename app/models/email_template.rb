@@ -11,7 +11,9 @@ class EmailTemplate < ApplicationRecord
     '{{app_url}}' => 'Base URL of the application',
     '{{training_topic}}' => 'Name of the training topic (training emails only)',
     '{{invitation_url}}' => 'URL for the invitation to create an account (invitation emails only)',
-    '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)'
+    '{{invitation_expiry}}' => 'When the invitation expires (invitation emails only)',
+    '{{invitation_type}}' => 'Type of membership being offered, e.g. Sponsored Member (invitation emails only)',
+    '{{invitation_type_details}}' => 'Description of what the membership type includes (invitation emails only)'
   }.freeze
 
   # Default templates that can be seeded
@@ -300,11 +302,12 @@ class EmailTemplate < ApplicationRecord
     'member_invitation' => {
       name: 'Member Invitation',
       description: 'Sent to invite someone to create a new member account',
-      subject: '{{organization_name}}: You\'re Invited to Join!',
+      subject: '{{organization_name}}: You\'re Invited to Join as a {{invitation_type}}!',
       body_html: <<~HTML,
         <h1>You're Invited!</h1>
         <p>Hello,</p>
-        <p>You've been invited to create a member account at <strong>{{organization_name}}</strong>.</p>
+        <p>You've been invited to join <strong>{{organization_name}}</strong> as a <strong>{{invitation_type}}</strong>.</p>
+        <p>{{invitation_type_details}}</p>
         <p>Click the link below to get started:</p>
         <p><a href="{{invitation_url}}" style="display: inline-block; padding: 12px 24px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">Create Your Account</a></p>
         <p>Or copy and paste this URL into your browser:</p>
@@ -318,7 +321,9 @@ class EmailTemplate < ApplicationRecord
 
         Hello,
 
-        You've been invited to create a member account at {{organization_name}}.
+        You've been invited to join {{organization_name}} as a {{invitation_type}}.
+
+        {{invitation_type_details}}
 
         Click here to get started: {{invitation_url}}
 
@@ -404,7 +409,9 @@ class EmailTemplate < ApplicationRecord
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000'),
       training_topic: 'Laser Cutter',
       invitation_url: "#{ENV.fetch('APP_BASE_URL', 'http://localhost:3000')}/invite/sample-token-abc123",
-      invitation_expiry: 'in 3 days'
+      invitation_expiry: 'in 3 days',
+      invitation_type: 'Sponsored Member',
+      invitation_type_details: 'Sponsored membership — full access including building access, no dues required.'
     }
     render(sample_variables)
   end

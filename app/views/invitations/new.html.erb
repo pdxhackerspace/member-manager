@@ -22,7 +22,19 @@
           <div>
             <%= f.label :email, "Email Address", class: "form-label" %> <span class="text-danger">*</span>
             <%= f.email_field :email, class: "form-control", required: true, placeholder: "Enter the recipient's email address", autofocus: true %>
-            <div class="form-text">An invitation email will be sent to this address with a link to create their account.</div>
+          </div>
+
+          <div>
+            <label class="form-label">Membership Type <span class="text-danger">*</span></label>
+            <% Invitation::MEMBERSHIP_TYPES.each do |type| %>
+              <div class="form-check mb-2">
+                <%= f.radio_button :membership_type, type, class: "form-check-input", id: "membership_type_#{type}" %>
+                <label class="form-check-label" for="membership_type_<%= type %>">
+                  <strong><%= Invitation::MEMBERSHIP_TYPE_LABELS[type] %></strong>
+                  <div class="text-muted small"><%= Invitation::MEMBERSHIP_TYPE_DESCRIPTIONS[type] %></div>
+                </label>
+              </div>
+            <% end %>
           </div>
 
           <div class="d-flex gap-2">
@@ -41,7 +53,8 @@
       </div>
       <div class="card-body">
         <p class="small text-muted mb-2">
-          The recipient will receive an email with a link to create their member account.
+          The recipient will receive an email with a link to create their account.
+          The membership type you select will be applied when they accept the invitation.
         </p>
         <p class="small text-muted mb-2">
           <strong>Expiry:</strong> Invitations expire after
@@ -56,7 +69,8 @@
           <%= link_to "Membership Settings", membership_settings_path %>.
         </p>
         <p class="small text-muted mb-0">
-          The invitation email will be queued for delivery and sent automatically.
+          <strong>Sponsored</strong> members get full access including building access with no dues.
+          <strong>Guest</strong> accounts get Slack and software services access only.
         </p>
       </div>
     </div>

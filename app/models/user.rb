@@ -440,6 +440,7 @@ class User < ApplicationRecord
   before_save :mark_authentik_dirty_if_needed
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
+  after_create_commit :provision_to_authentik
   after_create_commit :sync_application_group_memberships_on_create
   after_update_commit :journal_updated!
   after_update_commit :sync_to_authentik_if_needed
@@ -712,6 +713,12 @@ class User < ApplicationRecord
     return if changed.empty?
 
     self.authentik_dirty = true
+  end
+
+  def provision_to_authentik
+    return if Current.skip_authentik_sync
+
+    Authentik::ProvisionUserJob.perform_later(id)
   end
 
   def sync_to_authentik_if_needed

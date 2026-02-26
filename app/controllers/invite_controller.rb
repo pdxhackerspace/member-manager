@@ -66,7 +66,8 @@ class InviteController < ApplicationController
     if @invitation.nil?
       @error = :not_found
     elsif @invitation.accepted?
-      @error = :already_accepted
+      handle_already_accepted_invitation
+      return
     elsif @invitation.cancelled?
       @error = :cancelled
     elsif @invitation.expired?
@@ -74,6 +75,19 @@ class InviteController < ApplicationController
     end
 
     render :show if @error && !performed?
+  end
+
+  def handle_already_accepted_invitation
+    return if performed?
+
+    user = @invitation.user
+    if user.present?
+      session[:user_id] = user.id
+      redirect_to root_path, notice: "Welcome back! You're already signed in."
+    else
+      @error = :already_accepted
+      render :show
+    end
   end
 
   def user_params

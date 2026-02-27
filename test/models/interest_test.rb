@@ -70,6 +70,46 @@ class InterestTest < ActiveSupport::TestCase
     assert_equal 5, result.size
   end
 
+  # seeded / needs_review flags
+
+  test 'seeded? returns false when no interests are seeded' do
+    assert_not Interest.seeded?
+  end
+
+  test 'seeded? returns true once a seeded interest exists' do
+    Interest.create!(name: 'Seeded One', seeded: true)
+    assert Interest.seeded?
+  end
+
+  test 'seeded_set scope returns only seeded interests' do
+    Interest.create!(name: 'Seeded Two', seeded: true)
+    Interest.create!(name: 'Unseeded',   seeded: false)
+    seeded_names = Interest.seeded_set.pluck(:name)
+    assert_includes seeded_names, 'Seeded Two'
+    assert_not_includes seeded_names, 'Unseeded'
+  end
+
+  test 'needs_review scope returns only interests flagged for review' do
+    Interest.create!(name: 'Pending Review', needs_review: true)
+    review_names = Interest.needs_review.pluck(:name)
+    assert_includes review_names, 'Pending Review'
+    # Fixture interests default to needs_review: false
+    assert_not_includes review_names, 'Electronics'
+  end
+
+  test 'approved scope excludes interests needing review' do
+    Interest.create!(name: 'Flagged', needs_review: true)
+    approved_names = Interest.approved.pluck(:name)
+    assert_not_includes approved_names, 'Flagged'
+    assert_includes approved_names, 'Electronics'
+  end
+
+  test 'suggested includes needs_review interests immediately' do
+    pending_interest = Interest.create!(name: 'Pending Interest', needs_review: true)
+    result = Interest.suggested(limit: 100)
+    assert_includes result.map(&:id), pending_interest.id
+  end
+
   # Associations
 
   test 'member_count returns number of users with this interest' do

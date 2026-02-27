@@ -139,6 +139,81 @@ class InterestsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to interests_path
   end
 
+  # Seed
+
+  test 'seed creates 50 interests and marks them seeded' do
+    assert_not Interest.seeded?, 'precondition: no seeded interests'
+    assert_difference 'Interest.count' do
+      post seed_interests_path
+    end
+    assert Interest.seeded?
+    assert Interest.seeded_set.count >= 1
+    assert_redirected_to interests_path
+    assert_match /seeded/i, flash[:notice]
+  end
+
+  test 'seed is idempotent when already seeded' do
+    Interest.create!(name: 'Seed Guard', seeded: true)
+    assert_no_difference 'Interest.count' do
+      post seed_interests_path
+    end
+    assert_redirected_to interests_path
+    assert_match /already been seeded/i, flash[:alert]
+  end
+
+  test 'seed button appears when no seeded interests exist' do
+    get interests_path
+    assert_match /Seed Interests/i, response.body
+  end
+
+  test 'seed button is hidden after seeding' do
+    Interest.create!(name: 'Seed Guard', seeded: true)
+    get interests_path
+    assert_no_match /Seed Interests/i, response.body
+  end
+
+  # Approve
+
+  test 'approve sets needs_review to false' do
+    @interest.update!(needs_review: true)
+    post approve_interest_path(@interest)
+    assert_not @interest.reload.needs_review?
+    assert_redirected_to interests_path
+    assert_match /approved/i, flash[:notice]
+  end
+
+  test 'approve is a no-op on already approved interest' do
+    assert_not @interest.needs_review?, 'precondition: already approved'
+    post approve_interest_path(@interest)
+    assert_not @interest.reload.needs_review?
+    assert_redirected_to interests_path
+  end
+
+  # Filter: needs_review
+
+  test 'index with filter=needs_review shows only flagged interests' do
+    @interest.update!(needs_review: true)
+    get interests_path(filter: 'needs_review')
+    assert_response :success
+    assert_match @interest.name, response.body
+    # An approved interest should not appear
+    assert_no_match interests(:woodworking).name, response.body
+  end
+
+  test 'index with no filter shows all interests' do
+    @interest.update!(needs_review: true)
+    get interests_path
+    assert_response :success
+    assert_match @interest.name, response.body
+    assert_match interests(:woodworking).name, response.body
+  end
+
+  test 'needs_review filter shows empty state when none pending' do
+    get interests_path(filter: 'needs_review')
+    assert_response :success
+    assert_match /No interests are waiting for review/i, response.body
+  end
+
   # Members list
 
   test 'members lists users who selected the interest' do

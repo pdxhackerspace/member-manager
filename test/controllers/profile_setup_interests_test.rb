@@ -100,6 +100,50 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_redirected_to profile_setup_interests_path
   end
 
+  # POST /profile/setup/interests/suggest
+
+  test 'suggest creates a new interest with needs_review true and adds it to the user' do
+    assert_difference 'Interest.count', 1 do
+      post profile_setup_suggest_interest_path, params: { interest_name: 'Textile Electronics' }
+    end
+    new_interest = Interest.find_by(name: 'Textile Electronics')
+    assert new_interest.needs_review?
+    assert_not new_interest.seeded?
+    assert @current_user.reload.interests.include?(new_interest)
+    assert_redirected_to profile_setup_interests_path
+    assert_match /submitted for review/i, flash[:notice]
+  end
+
+  test 'suggest with an existing interest reuses it and adds to the user' do
+    existing = interests(:laser_cutting)
+    assert_no_difference 'Interest.count' do
+      post profile_setup_suggest_interest_path, params: { interest_name: existing.name }
+    end
+    assert @current_user.reload.interests.include?(existing)
+    assert_redirected_to profile_setup_interests_path
+  end
+
+  test 'suggest is case-insensitive when matching existing interests' do
+    assert_no_difference 'Interest.count' do
+      post profile_setup_suggest_interest_path, params: { interest_name: 'ELECTRONICS' }
+    end
+    assert @current_user.reload.interests.include?(interests(:electronics))
+  end
+
+  test 'suggest with blank name redirects with alert and does not create interest' do
+    assert_no_difference 'Interest.count' do
+      post profile_setup_suggest_interest_path, params: { interest_name: '   ' }
+    end
+    assert_redirected_to profile_setup_interests_path
+    assert_match /enter an interest name/i, flash[:alert]
+  end
+
+  test 'suggest requires authentication' do
+    delete logout_path rescue nil
+    post profile_setup_suggest_interest_path, params: { interest_name: 'Test' }
+    assert_redirected_to login_path
+  end
+
   private
 
   def sign_in_as_member

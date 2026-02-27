@@ -1,0 +1,14 @@
+electronics:
+  name: Electronics
+
+three_d_printing:
+  name: 3D Printing
+
+woodworking:
+  name: Woodworking
+
+programming:
+  name: Programming
+
+laser_cutting:
+  name: Laser Cutting

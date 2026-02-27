@@ -1,0 +1,30 @@
+pending:
+  email: newmember@example.com
+  token: pending-test-token-abcdef
+  membership_type: member
+  invited_by: one
+  expires_at: <%= 30.days.from_now.iso8601 %>
+
+accepted:
+  email: accepteduser@example.com
+  token: accepted-test-token-abcdef
+  membership_type: member
+  invited_by: one
+  user: two
+  accepted_at: <%= 1.day.ago.iso8601 %>
+  expires_at: <%= 30.days.from_now.iso8601 %>
+
+expired:
+  email: expired@example.com
+  token: expired-test-token-abcdef
+  membership_type: member
+  invited_by: one
+  expires_at: <%= 30.days.ago.iso8601 %>
+
+cancelled:
+  email: cancelled@example.com
+  token: cancelled-test-token-abcdef
+  membership_type: member
+  invited_by: one
+  expires_at: <%= 30.days.from_now.iso8601 %>
+  cancelled_at: <%= 1.day.ago.iso8601 %>

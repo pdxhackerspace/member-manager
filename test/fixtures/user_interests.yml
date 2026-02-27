@@ -1,0 +1,15 @@
+one_electronics:
+  user: one
+  interest: electronics
+
+one_programming:
+  user: one
+  interest: programming
+
+two_electronics:
+  user: two
+  interest: electronics
+
+two_woodworking:
+  user: two
+  interest: woodworking

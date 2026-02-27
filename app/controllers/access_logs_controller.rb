@@ -47,33 +47,57 @@ class AccessLogsController < AdminController
     @all_users = User.ordered_by_display_name if @unlinked_count.positive?
   end
 
-  def generate_users_json
-    users_data = {}
+  def upload
+    file = params[:log_file]
 
-    # Find all active users with RFID records
-    User.where(active: true).includes(:rfids, trainings_as_trainee: :training_topic).find_each do |user|
-      next unless user.rfids.any?
+    if file.blank?
+      redirect_to access_logs_path, alert: 'Please select a log file to upload.'
+      return
+    end
 
-      # Build permissions list: "active member" + training topics
-      permissions = ['active member']
-      trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq
-      permissions += trained_topics.map(&:name)
+    lines        = file.read.force_encoding('UTF-8').scrub.lines
+    imported     = 0
+    skipped      = 0
+    duplicate    = 0
+    error        = 0
+    file_year    = Time.current.year
 
-      # Create one entry per RFID
-      user.rfids.each do |rfid_record|
-        users_data[rfid_record.rfid.to_s] = {
-          'name' => user.full_name.presence || user.display_name,
-          'permissions' => permissions
-        }
+    lines.each do |line|
+      line = line.chomp
+      next if line.blank?
+
+      begin
+        parser = AccessLogParser.new(line, file_year: file_year)
+
+        if parser.should_skip?
+          skipped += 1
+          next
+        end
+
+        parsed = parser.parse
+
+        raw = parsed ? parsed[:raw_text] : line
+        ts  = parsed ? parsed[:logged_at] : nil
+
+        if AccessLog.exists?(raw_text: raw, logged_at: ts)
+          duplicate += 1
+          next
+        end
+
+        parser.create_access_log!
+        imported += 1
+      rescue StandardError => e
+        Rails.logger.warn("Access log upload: error on line: #{e.message}")
+        error += 1
       end
     end
 
-    send_data(
-      JSON.pretty_generate(users_data),
-      filename: 'users.json',
-      type: 'application/json',
-      disposition: 'attachment'
-    )
+    parts = ["#{imported} #{'entry'.pluralize(imported)} imported"]
+    parts << "#{duplicate} duplicate#{'s' if duplicate != 1} skipped" if duplicate > 0
+    parts << "#{skipped} system message#{'s' if skipped != 1} skipped" if skipped > 0
+    parts << "#{error} error#{'s' if error != 1}" if error > 0
+
+    redirect_to access_logs_path, notice: parts.join(', ') + '.'
   end
 
   def link_user

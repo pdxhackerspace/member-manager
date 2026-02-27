@@ -326,7 +326,15 @@
 
 <% else %>
   <%# ===== PUBLIC VIEW - NO TABS ===== %>
-  <%= render 'users/tab_profile_public', user: @user %>
+  <% if @user.profile_visibility != 'public' %>
+    <div class="text-center py-5">
+      <h1 class="display-6 fw-bold text-muted">404</h1>
+      <p class="lead text-muted mb-1">Page not found</p>
+      <p class="text-muted small">This profile is not visible to the public.</p>
+    </div>
+  <% else %>
+    <%= render 'users/tab_profile_public', user: @user %>
+  <% end %>
 <% end %>
 
 <%# Member Help Modal - only for profile owner %>

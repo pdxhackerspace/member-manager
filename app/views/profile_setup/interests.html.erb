@@ -84,9 +84,6 @@
                       class: "btn btn-primary btn-sm rounded-pill",
                       form: { data: { turbo: false } } do %>
                     <i class="bi bi-check me-1"></i><%= interest.name %>
-                    <% if interest.needs_review? %>
-                      <span class="badge text-bg-warning ms-1" title="Pending review">&#8987;</span>
-                    <% end %>
                     <i class="bi bi-x ms-1"></i>
                   <% end %>
                 <% end %>
@@ -97,9 +94,9 @@
             <p class="text-muted fst-italic mb-4">No interests have been added yet. An admin can add interests under Settings.</p>
           <% end %>
 
-          <!-- Suggest a new interest -->
+          <!-- Add new interest -->
           <div class="border-top pt-4 mt-2">
-            <p class="text-muted small mb-2">Don't see your interest? Suggest one and it'll be added to your profile pending review:</p>
+            <p class="text-muted small mb-2">Don't see your interest? Add it:</p>
             <%= form_with url: profile_setup_suggest_interest_path, method: :post, local: true, class: "row g-2 align-items-end" do %>
               <div class="col-md-8">
                 <input type="text" name="interest_name" class="form-control form-control-sm"
@@ -107,7 +104,7 @@
                        maxlength="80" autocomplete="off">
               </div>
               <div class="col-md-4">
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Suggest</button>
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Add New Interest</button>
               </div>
             <% end %>
           </div>

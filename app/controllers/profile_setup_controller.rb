@@ -68,7 +68,7 @@ class ProfileSetupController < AuthenticatedController
     end
 
     @user.interests << interest unless @user.interests.include?(interest)
-    notice = interest.needs_review? ? "'#{interest.name}' added to your profile and submitted for review." : "'#{interest.name}' added to your profile."
+    notice = "'#{interest.name}' added to your profile."
     redirect_to profile_setup_interests_path, notice: notice, status: :see_other
   rescue ActiveRecord::RecordInvalid => e
     redirect_to profile_setup_interests_path, alert: "Couldn't add interest: #{e.message}", status: :see_other

@@ -49,10 +49,19 @@
         <i class="bi bi-gear-fill me-1"></i>Service: <strong><%= @service_account_count %></strong>
       <% end %>
     </div>
-    <div class="d-flex gap-2">
-      <input type="text" id="access_logs_search" class="form-control" placeholder="Search by name, location, or raw text…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="<%= params[:q] %>">
-      <button type="button" id="clear_access_logs_search" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>">Clear</button>
-    </div>
+    <%= form_with url: access_logs_path, method: :get, local: true, class: "d-flex gap-2" do %>
+      <% if params[:linked].present? %>
+        <input type="hidden" name="linked" value="<%= params[:linked] %>">
+      <% end %>
+      <input type="search" name="q" value="<%= params[:q] %>"
+             class="form-control"
+             placeholder="Search by name, location, or raw text…"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <button type="submit" class="btn btn-outline-primary">Search</button>
+      <% if params[:q].present? %>
+        <%= link_to "Clear", access_logs_path(linked: params[:linked].presence), class: "btn btn-outline-secondary" %>
+      <% end %>
+    <% end %>
   </div>
 </div>
 
@@ -72,14 +81,7 @@
       <tbody id="access_logs_table_body">
         <% if @access_logs.any? %>
           <% @access_logs.each do |log| %>
-            <tr class="access-log-row" 
-                data-search-text="<%= [
-                  log.name,
-                  log.user&.display_name,
-                  log.location,
-                  log.action,
-                  log.raw_text
-                ].compact.join(' ').downcase %>">
+            <tr>
               <td>
                 <% if log.logged_at.present? %>
                   <%= l(log.logged_at, format: :long) %>
@@ -293,51 +295,4 @@
 </script>
 <% end %>
 
-<script>
-  (function() {
-    const searchInput = document.getElementById('access_logs_search');
-    const clearButton = document.getElementById('clear_access_logs_search');
-    const tableBody = document.getElementById('access_logs_table_body');
-    
-    if (!searchInput || !tableBody) return;
-    
-    function filterLogs() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      const rows = tableBody.querySelectorAll('.access-log-row');
-      
-      rows.forEach(function(row) {
-        const searchText = row.getAttribute('data-search-text');
-        if (searchText && searchText.includes(searchTerm)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-      
-      // Show/hide clear button
-      if (clearButton) {
-        if (searchTerm !== '') {
-          clearButton.style.display = '';
-        } else {
-          clearButton.style.display = 'none';
-        }
-      }
-    }
-    
-    searchInput.addEventListener('input', filterLogs);
-    
-    if (clearButton) {
-      clearButton.addEventListener('click', function() {
-        searchInput.value = '';
-        filterLogs();
-        searchInput.focus();
-      });
-    }
-    
-    // Initial filter if there's a value in the search box
-    if (searchInput.value) {
-      filterLogs();
-    }
-  })();
-</script>
 

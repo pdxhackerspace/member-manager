@@ -20,14 +20,19 @@ class ProfileSetupController < AuthenticatedController
 
   def save_optional_info
     if @user.update(optional_info_params)
-      redirect_to profile_setup_visibility_path, status: :see_other
+      redirect_to profile_setup_links_path, status: :see_other
     else
       @user_links = @user.user_links.ordered
       render :optional_info, status: :unprocessable_entity
     end
   end
 
-  # Step 3: Visibility & Greeting (with preview)
+  # Step 3: Profile Links
+  def links
+    @user_links = @user.user_links.ordered
+  end
+
+  # Step 4: Visibility & Greeting (with preview)
   def visibility
   end
 
@@ -64,15 +69,15 @@ class ProfileSetupController < AuthenticatedController
 
   def add_link
     @user.user_links.create!(link_params)
-    redirect_to profile_setup_optional_path, status: :see_other
+    redirect_to profile_setup_links_path, status: :see_other
   rescue ActiveRecord::RecordInvalid
-    redirect_to profile_setup_optional_path, alert: 'Please provide both a title and URL for the link.'
+    redirect_to profile_setup_links_path, alert: 'Please provide both a title and URL for the link.'
   end
 
   def remove_link
     link = @user.user_links.find(params[:link_id])
     link.destroy!
-    redirect_to profile_setup_optional_path, status: :see_other
+    redirect_to profile_setup_links_path, status: :see_other
   end
 
   private

@@ -60,8 +60,9 @@ Rails.application.routes.draw do
   post "/profile/setup/visibility", to: "profile_setup#save_visibility",  as: :profile_setup_save_visibility
   get  "/profile/setup/optional",   to: "profile_setup#optional_info",    as: :profile_setup_optional
   post "/profile/setup/optional",   to: "profile_setup#save_optional_info", as: :profile_setup_save_optional
-  post "/profile/setup/links",      to: "profile_setup#add_link",         as: :profile_setup_add_link
-  delete "/profile/setup/links/:link_id", to: "profile_setup#remove_link", as: :profile_setup_remove_link
+  get    "/profile/setup/links",           to: "profile_setup#links",        as: :profile_setup_links
+  post   "/profile/setup/links",           to: "profile_setup#add_link",     as: :profile_setup_add_link
+  delete "/profile/setup/links/:link_id",  to: "profile_setup#remove_link",  as: :profile_setup_remove_link
 
   # Member onboarding wizard
   get  "/onboard",              to: "onboarding#member_info",      as: :onboard

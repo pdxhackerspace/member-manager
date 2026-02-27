@@ -37,6 +37,7 @@ class ProfileSetupController < AuthenticatedController
     @user_interests    = @user.interests.order(:name)
     @user_interest_ids = @user_interests.map(&:id).to_set
     @suggested         = Interest.suggested(limit: 20, exclude_ids: [])
+    @all_interests     = Interest.alphabetical.pluck(:id, :name).map { |id, name| { id: id, name: name } }
   end
 
   def add_interest

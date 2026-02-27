@@ -95,19 +95,110 @@
           <% end %>
 
           <!-- Add new interest -->
+          <script type="application/json" id="all-interests-data"><%= @all_interests.to_json.html_safe %></script>
+          <script type="application/json" id="user-interest-ids"><%= @user_interest_ids.to_a.to_json.html_safe %></script>
+
           <div class="border-top pt-4 mt-2">
             <p class="text-muted small mb-2">Don't see your interest? Add it:</p>
-            <%= form_with url: profile_setup_suggest_interest_path, method: :post, local: true, class: "row g-2 align-items-end" do %>
-              <div class="col-md-8">
-                <input type="text" name="interest_name" class="form-control form-control-sm"
-                       placeholder="e.g., Textile Electronics, Hydroponics…"
+            <%= form_with url: profile_setup_suggest_interest_path, method: :post, local: true, class: "row g-2 align-items-end", id: "add-interest-form" do %>
+              <div class="col-md-8 position-relative">
+                <input type="text" name="interest_name" id="interest-name-input"
+                       class="form-control form-control-sm"
+                       placeholder="e.g., textile electronics, hydroponics…"
                        maxlength="80" autocomplete="off">
+                <div id="interest-suggestions"
+                     class="list-group shadow-sm position-absolute w-100 mt-1"
+                     style="display:none; z-index:1000; max-height:220px; overflow-y:auto;"></div>
               </div>
               <div class="col-md-4">
                 <button type="submit" class="btn btn-outline-primary btn-sm w-100">Add New Interest</button>
               </div>
             <% end %>
           </div>
+
+          <script>
+            (function () {
+              var allInterests   = JSON.parse(document.getElementById('all-interests-data').textContent);
+              var userInterestIds = new Set(JSON.parse(document.getElementById('user-interest-ids').textContent));
+              var input       = document.getElementById('interest-name-input');
+              var suggestions = document.getElementById('interest-suggestions');
+              var form        = document.getElementById('add-interest-form');
+
+              if (!input || !suggestions || !form) return;
+
+              function showSuggestions(query) {
+                suggestions.innerHTML = '';
+                if (query.length === 0) { suggestions.style.display = 'none'; return; }
+
+                var matches = allInterests.filter(function (i) {
+                  return !userInterestIds.has(i.id) && i.name.toLowerCase().startsWith(query);
+                }).slice(0, 10);
+
+                if (matches.length === 0) { suggestions.style.display = 'none'; return; }
+
+                matches.forEach(function (interest) {
+                  var btn = document.createElement('button');
+                  btn.type = 'button';
+                  btn.className = 'list-group-item list-group-item-action py-1 small';
+                  btn.textContent = interest.name;
+                  btn.addEventListener('mousedown', function (e) {
+                    // mousedown fires before blur; prevent blur from hiding list first
+                    e.preventDefault();
+                    input.value = interest.name;
+                    suggestions.style.display = 'none';
+                    form.submit();
+                  });
+                  suggestions.appendChild(btn);
+                });
+
+                suggestions.style.display = 'block';
+              }
+
+              input.addEventListener('input', function () {
+                showSuggestions(this.value.toLowerCase().trim());
+              });
+
+              input.addEventListener('blur', function () {
+                setTimeout(function () { suggestions.style.display = 'none'; }, 150);
+              });
+
+              input.addEventListener('focus', function () {
+                if (this.value.trim().length > 0) {
+                  showSuggestions(this.value.toLowerCase().trim());
+                }
+              });
+
+              // Keyboard navigation
+              input.addEventListener('keydown', function (e) {
+                var items = suggestions.querySelectorAll('.list-group-item');
+                if (!items.length) return;
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  items[0].focus();
+                } else if (e.key === 'Escape') {
+                  suggestions.style.display = 'none';
+                }
+              });
+
+              suggestions.addEventListener('keydown', function (e) {
+                var items = Array.from(suggestions.querySelectorAll('.list-group-item'));
+                var idx   = items.indexOf(document.activeElement);
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  if (idx < items.length - 1) items[idx + 1].focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  if (idx > 0) items[idx - 1].focus(); else input.focus();
+                } else if (e.key === 'Escape') {
+                  suggestions.style.display = 'none';
+                  input.focus();
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  items[idx].dispatchEvent(new MouseEvent('mousedown'));
+                }
+              });
+            })();
+          </script>
 
           <div class="d-flex justify-content-between mt-4">
             <%= link_to "Back", profile_setup_links_path, class: "btn btn-outline-secondary btn-lg" %>

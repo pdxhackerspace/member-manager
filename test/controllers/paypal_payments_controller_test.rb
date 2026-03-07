@@ -5,8 +5,14 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 
   setup do
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
     sign_in_as_local_admin
     @payment = paypal_payments(:sample_payment)
+  end
+
+  teardown do
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
   test 'shows index' do

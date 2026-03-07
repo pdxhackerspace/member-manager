@@ -2,10 +2,16 @@ require 'test_helper'
 
 class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
   setup do
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
     sign_in_as_local_admin
     @payment = cash_payments(:sample_cash_payment)
     @user = users(:cash_payer)
     @plan = membership_plans(:personal_equipment_donation)
+  end
+
+  teardown do
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
   test 'shows index' do

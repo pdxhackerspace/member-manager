@@ -1,4 +1,7 @@
 class KofiPayment < ApplicationRecord
+  include NormalizesEmail
+  normalizes_email_field :email
+
   belongs_to :user, optional: true
   belongs_to :sheet_entry, optional: true
   has_many :payment_events, dependent: :nullify
@@ -8,8 +11,6 @@ class KofiPayment < ApplicationRecord
   scope :ordered, -> { order(timestamp: :desc, created_at: :desc) }
   scope :for_user, ->(user) { where(user_id: user.id) }
   scope :for_sheet_entry, ->(entry) { where(sheet_entry_id: entry.id) }
-
-  before_validation :normalize_email
 
   def amount_with_currency
     return nil if amount.blank?
@@ -25,9 +26,4 @@ class KofiPayment < ApplicationRecord
     timestamp
   end
 
-  private
-
-  def normalize_email
-    self.email = email.to_s.strip.downcase.presence
-  end
 end

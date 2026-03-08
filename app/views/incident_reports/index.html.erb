@@ -36,11 +36,14 @@
   </ul>
 </div>
 
+<div data-controller="live-filter">
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
     <div class="d-flex gap-2">
-      <input type="text" id="incident_search" class="form-control" placeholder="Search by subject, type, reporter, or involved members…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button type="button" id="clear_incident_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+      <input type="text" class="form-control" placeholder="Search by subject, type, reporter, or involved members…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             data-live-filter-target="input" data-action="input->live-filter#filter">
+      <button type="button" class="btn btn-outline-secondary" style="display: none;"
+              data-live-filter-target="clearButton" data-action="click->live-filter#clear">Clear</button>
     </div>
   </div>
 </div>
@@ -61,6 +64,7 @@
       <tbody id="incident_reports_table_body">
         <% @incident_reports.each do |report| %>
           <tr class="incident-report-row"
+              data-live-filter-target="item"
               data-search-text="<%= [
                 report.subject,
                 report.incident_type_display,
@@ -106,41 +110,4 @@
     </table>
   </div>
 </div>
-
-<script>
-  (function() {
-    const searchInput = document.getElementById('incident_search');
-    const clearButton = document.getElementById('clear_incident_search');
-    const tableBody = document.getElementById('incident_reports_table_body');
-
-    if (!searchInput || !tableBody) return;
-
-    function filterReports() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      const rows = tableBody.querySelectorAll('.incident-report-row');
-
-      rows.forEach(function(row) {
-        const searchText = row.getAttribute('data-search-text');
-        if (searchText && searchText.includes(searchTerm)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-
-      if (clearButton) {
-        clearButton.style.display = searchTerm !== '' ? '' : 'none';
-      }
-    }
-
-    searchInput.addEventListener('input', filterReports);
-
-    if (clearButton) {
-      clearButton.addEventListener('click', function() {
-        searchInput.value = '';
-        filterReports();
-        searchInput.focus();
-      });
-    }
-  })();
-</script>
+</div><%# /data-controller="live-filter" %>

@@ -1,4 +1,7 @@
 class RechargePayment < ApplicationRecord
+  include NormalizesEmail
+  normalizes_email_field :customer_email
+
   belongs_to :user, optional: true
   has_many :payment_events, dependent: :nullify
 
@@ -6,14 +9,13 @@ class RechargePayment < ApplicationRecord
 
   scope :ordered, -> { order(processed_at: :desc, created_at: :desc) }
   scope :for_user, ->(user) { where(user_id: user.id) }
-  
+
   # Unmatched payments - no user with matching recharge_customer_id
   scope :unmatched, -> {
     where.not(customer_id: [nil, ''])
          .where.not(customer_id: User.where.not(recharge_customer_id: [nil, '']).select(:recharge_customer_id))
   }
 
-  before_validation :normalize_email
   before_save :extract_customer_id
 
   # When a RechargePayment is linked to a User, notify the User to sync data
@@ -35,10 +37,6 @@ class RechargePayment < ApplicationRecord
 
   private
 
-  def normalize_email
-    self.customer_email = customer_email.to_s.strip.downcase.presence
-  end
-  
   def extract_customer_id
     return if raw_attributes.blank?
     

@@ -60,17 +60,10 @@ class KofiPaymentsController < AdminController
                           end
 
     if most_recent_payment&.timestamp
-      payment_date = most_recent_payment.timestamp.to_date
-
-      # Update last_payment_date to the most recent payment date
-      updates[:last_payment_date] = payment_date if user.last_payment_date.nil? || payment_date > user.last_payment_date
-
-      # If payment is within the last 32 days, update membership and dues status
-      # (active is computed automatically by the User before_save callback)
-      if payment_date >= 32.days.ago.to_date
-        updates[:membership_status] = 'paying' if user.membership_status != 'paying'
-        updates[:dues_status] = 'current' if user.dues_status != 'current'
-      end
+      updates = user.apply_payment_updates(
+        { time: most_recent_payment.timestamp, amount: most_recent_payment.amount },
+        updates
+      )
     end
 
     user.update!(updates) if updates.present?

@@ -9,7 +9,9 @@ class ApplicationGroup < ApplicationRecord
   has_and_belongs_to_many :users
 
   validates :name, presence: true
-  validates :authentik_name, presence: true
+  validates :authentik_name, presence: true,
+    format: { with: /\A[\w\-.:\/ ]+\z/,
+              message: "may only contain letters, numbers, hyphens, underscores, periods, colons, slashes, and spaces" }
   validates :member_source, presence: true, inclusion: { in: MEMBER_SOURCES }
   validates :training_topic_id, presence: true, if: -> { can_train? || trained_in? }
   validates :sync_with_group_id, presence: true, if: -> { sync_group? }

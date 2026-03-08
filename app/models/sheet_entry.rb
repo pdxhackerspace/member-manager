@@ -1,4 +1,7 @@
 class SheetEntry < ApplicationRecord
+  include NormalizesEmail
+  normalizes_email_field :email
+
   belongs_to :user, optional: true
   ACCESS_COLUMNS = %i[
     rfid
@@ -22,8 +25,6 @@ class SheetEntry < ApplicationRecord
 
   scope :with_email, -> { where.not(email: nil) }
 
-  before_validation :normalize_email
-
   def access_permissions
     ACCESS_COLUMNS.filter_map do |column|
       value = self[column]
@@ -33,9 +34,4 @@ class SheetEntry < ApplicationRecord
     end
   end
 
-  private
-
-  def normalize_email
-    self.email = email.to_s.strip.downcase.presence
-  end
 end

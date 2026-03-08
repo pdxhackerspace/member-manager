@@ -77,11 +77,14 @@
   </div>
 </div>
 
+<div data-controller="live-filter">
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
     <div class="d-flex gap-2">
-      <input type="text" id="recharge_search" class="form-control" placeholder="Search by charge ID, customer name, email, or status…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-      <button type="button" id="clear_recharge_search" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+      <input type="text" class="form-control" placeholder="Search by charge ID, customer name, email, or status…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             data-live-filter-target="input" data-action="input->live-filter#filter">
+      <button type="button" class="btn btn-outline-secondary" style="display: none;"
+              data-live-filter-target="clearButton" data-action="click->live-filter#clear">Clear</button>
     </div>
   </div>
 </div>
@@ -101,7 +104,8 @@
       </thead>
       <tbody id="recharge_payments_table_body">
         <% @payments.includes(:user).each do |payment| %>
-          <tr class="recharge-payment-row" 
+          <tr class="recharge-payment-row"
+              data-live-filter-target="item"
               data-search-text="<%= [
                 payment.recharge_id,
                 payment.customer_name,
@@ -136,47 +140,5 @@
     </table>
   </div>
 </div>
-
-<script>
-  (function() {
-    const searchInput = document.getElementById('recharge_search');
-    const clearButton = document.getElementById('clear_recharge_search');
-    const tableBody = document.getElementById('recharge_payments_table_body');
-    
-    if (!searchInput || !tableBody) return;
-    
-    function filterPayments() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      const rows = tableBody.querySelectorAll('.recharge-payment-row');
-      
-      rows.forEach(function(row) {
-        const searchText = row.getAttribute('data-search-text');
-        if (searchText && searchText.includes(searchTerm)) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
-      });
-      
-      // Show/hide clear button
-      if (clearButton) {
-        if (searchTerm !== '') {
-          clearButton.style.display = '';
-        } else {
-          clearButton.style.display = 'none';
-        }
-      }
-    }
-    
-    searchInput.addEventListener('input', filterPayments);
-    
-    if (clearButton) {
-      clearButton.addEventListener('click', function() {
-        searchInput.value = '';
-        filterPayments();
-        searchInput.focus();
-      });
-    }
-  })();
-</script>
+</div><%# /data-controller="live-filter" %>
 

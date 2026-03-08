@@ -75,12 +75,14 @@ class CashPaymentsController < AdminController
   def update_user_dues_status(cash_payment)
     user = cash_payment.user
     old_dues_status = user.dues_status
-    user.update!(
-      dues_status: 'current',
-      last_payment_date: cash_payment.paid_on,
-      membership_status: 'paying',
-      payment_type: 'cash'
+
+    updates = user.apply_payment_updates(
+      { time: cash_payment.paid_on.beginning_of_day, amount: cash_payment.amount },
+      { payment_type: 'cash', last_payment_date: cash_payment.paid_on }
     )
+
+    user.update!(updates) if updates.present?
+
     Journal.create!(
       user: user,
       actor_user: current_user,

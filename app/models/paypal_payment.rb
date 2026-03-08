@@ -1,4 +1,7 @@
 class PaypalPayment < ApplicationRecord
+  include NormalizesEmail
+  normalizes_email_field :payer_email
+
   belongs_to :user, optional: true
   has_many :payment_events, dependent: :nullify
 
@@ -8,8 +11,6 @@ class PaypalPayment < ApplicationRecord
   scope :for_user, ->(user) { where(user_id: user.id) }
   scope :matching_plan, -> { where(matches_plan: true) }
   scope :not_matching_plan, -> { where(matches_plan: false) }
-
-  before_validation :normalize_payer_email
 
   # When a PaypalPayment is linked to a User, notify the User to sync data
   after_save :notify_user_of_link, if: :user_id_changed_to_present?
@@ -29,10 +30,6 @@ class PaypalPayment < ApplicationRecord
   end
 
   private
-
-  def normalize_payer_email
-    self.payer_email = payer_email.to_s.strip.downcase.presence
-  end
 
   def user_id_changed_to_present?
     saved_change_to_user_id? && user_id.present?

@@ -159,11 +159,14 @@
   </div>
 </div>
 
+<div data-controller="live-filter">
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
     <div class="d-flex gap-2">
-      <input type="text" id="user_search" class="form-control" placeholder="Search by name, email, or Authentik ID…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="<%= params[:q] %>">
-      <button type="button" id="clear_search" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>">Clear</button>
+      <input type="text" class="form-control" placeholder="Search by name, email, or Authentik ID…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" value="<%= params[:q] %>"
+             data-live-filter-target="input" data-action="input->live-filter#filter">
+      <button type="button" class="btn btn-outline-secondary" style="<%= params[:q].present? ? '' : 'display: none;' %>"
+              data-live-filter-target="clearButton" data-action="click->live-filter#clear">Clear</button>
     </div>
   </div>
 </div>
@@ -242,7 +245,8 @@
       </thead>
       <tbody id="users_table_body">
         <% @users.each do |user| %>
-          <tr class="user-row" 
+          <tr class="user-row"
+              data-live-filter-target="item"
               data-search-text="<%= [user.username, user.display_name, user.email, user.authentik_id].compact.join(' ').downcase %>">
             <td>
               <%= link_to user_path(user, @list_params) do %>
@@ -312,56 +316,5 @@
     </table>
   </div>
 </div>
-
-<script>
-  // Legacy toggle is now handled via badge link, no JS needed
-
-  (function() {
-    const searchInput = document.getElementById('user_search');
-    const clearButton = document.getElementById('clear_search');
-    const tableBody = document.getElementById('users_table_body');
-    
-    if (!searchInput || !tableBody) return;
-    
-    function filterUsers() {
-      const searchTerm = searchInput.value.toLowerCase().trim();
-      const rows = tableBody.querySelectorAll('.user-row');
-      let visibleCount = 0;
-      
-      rows.forEach(function(row) {
-        const searchText = row.getAttribute('data-search-text');
-        if (searchText && searchText.includes(searchTerm)) {
-          row.style.display = '';
-          visibleCount++;
-        } else {
-          row.style.display = 'none';
-        }
-      });
-      
-      // Show/hide clear button
-      if (clearButton) {
-        if (searchTerm !== '') {
-          clearButton.style.display = '';
-        } else {
-          clearButton.style.display = 'none';
-        }
-      }
-    }
-    
-    searchInput.addEventListener('input', filterUsers);
-    
-    if (clearButton) {
-      clearButton.addEventListener('click', function() {
-        searchInput.value = '';
-        filterUsers();
-        searchInput.focus();
-      });
-    }
-    
-    // Initial filter if there's a value in the search box
-    if (searchInput.value) {
-      filterUsers();
-    }
-  })();
-</script>
+</div><%# /data-controller="live-filter" %>
 

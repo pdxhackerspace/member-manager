@@ -1,0 +1,50 @@
+<% if parking_notices.any? %>
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Type</th>
+            <th>Location</th>
+            <th>Description</th>
+            <th>Expires</th>
+            <th>Status</th>
+            <% if defined?(show_actions) && show_actions %>
+              <th class="text-end">Actions</th>
+            <% end %>
+          </tr>
+        </thead>
+        <tbody>
+          <% parking_notices.each do |notice| %>
+            <tr>
+              <td>
+                <span class="badge bg-<%= notice.badge_color %>"><%= notice.notice_type_display %></span>
+              </td>
+              <td><%= notice.location_display.presence || '—' %></td>
+              <td><%= truncate(notice.description.to_s, length: 60) %></td>
+              <td>
+                <% if notice.active? && notice.past_expiration? %>
+                  <span class="text-danger fw-semibold"><%= notice.expires_at.strftime('%b %d, %Y') %></span>
+                <% else %>
+                  <%= notice.expires_at.strftime('%b %d, %Y') %>
+                <% end %>
+              </td>
+              <td>
+                <span class="badge bg-<%= notice.status_badge_color %>"><%= notice.status_display %></span>
+              </td>
+              <% if defined?(show_actions) && show_actions %>
+                <td class="text-end">
+                  <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-primary" %>
+                </td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% else %>
+  <div class="text-center text-muted py-4">
+    <p>No parking notices for this member.</p>
+  </div>
+<% end %>

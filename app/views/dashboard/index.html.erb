@@ -232,6 +232,54 @@
             <% item_number += 1 %>
             <li class="list-group-item d-flex align-items-start gap-2 py-3">
               <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @active_parking_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No active parking notices
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
+                  <%= link_to parking_notices_path(status: 'active'), class: 'text-decoration-none fw-semibold' do %>
+                    <strong><%= @active_parking_count %></strong> active parking <%= 'notice'.pluralize(@active_parking_count) %>
+                  <% end %>
+                  <div class="text-muted small mt-1">
+                    <% parts = [] %>
+                    <% parts << "#{@active_parking_permit_count} #{'permit'.pluralize(@active_parking_permit_count)}" if @active_parking_permit_count > 0 %>
+                    <% parts << "#{@active_parking_ticket_count} #{'ticket'.pluralize(@active_parking_ticket_count)}" if @active_parking_ticket_count > 0 %>
+                    <%= parts.join(', ') %>
+                  </div>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
+              <% if @expired_parking_count == 0 %>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  No expired parking notices
+                </div>
+              <% else %>
+                <div>
+                  <i class="bi bi-x-circle-fill text-danger me-1"></i>
+                  <%= link_to parking_notices_path(status: 'expired'), class: 'text-decoration-none fw-semibold' do %>
+                    <strong><%= @expired_parking_count %></strong> expired parking <%= 'notice'.pluralize(@expired_parking_count) %>
+                  <% end %>
+                  <div class="text-muted small mt-1">
+                    <% parts = [] %>
+                    <% parts << "#{@expired_parking_permit_count} #{'permit'.pluralize(@expired_parking_permit_count)}" if @expired_parking_permit_count > 0 %>
+                    <% parts << "#{@expired_parking_ticket_count} #{'ticket'.pluralize(@expired_parking_ticket_count)}" if @expired_parking_ticket_count > 0 %>
+                    <%= parts.join(', ') %>
+                  </div>
+                </div>
+              <% end %>
+            </li>
+
+            <% item_number += 1 %>
+            <li class="list-group-item d-flex align-items-start gap-2 py-3">
+              <span class="badge rounded-pill text-bg-secondary"><%= item_number %></span>
               <div>
                 <i class="bi bi-check-circle-fill text-success me-1"></i>
                 <span class="text-muted">Manual payments due</span>

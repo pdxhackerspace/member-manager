@@ -1,0 +1,135 @@
+<%= form_with model: parking_notice, local: true do |f| %>
+  <% if parking_notice.errors.any? %>
+    <div class="alert alert-danger">
+      <h6><%= pluralize(parking_notice.errors.count, 'error') %> prevented this parking notice from being saved:</h6>
+      <ul class="mb-0">
+        <% parking_notice.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= f.hidden_field :notice_type %>
+
+  <div class="row">
+    <div class="col-md-6">
+      <%# Member selection %>
+      <div class="mb-3">
+        <%= f.label :user_id, 'Member', class: 'form-label' %>
+        <% if parking_notice.permit? %>
+          <span class="text-danger">*</span>
+        <% end %>
+        <%= f.select :user_id,
+            options_from_collection_for_select(@users, :id, :display_name, parking_notice.user_id),
+            { include_blank: parking_notice.permit? ? 'Select a member...' : '(Optional) Select a member...' },
+            class: 'form-select',
+            required: parking_notice.permit? %>
+      </div>
+
+      <%# Description %>
+      <div class="mb-3">
+        <%= f.label :description, class: 'form-label' %>
+        <%= f.text_area :description, class: 'form-control', rows: 3,
+            placeholder: 'Describe the project that is being left out...' %>
+      </div>
+
+      <%# Notes %>
+      <div class="mb-3">
+        <%= f.label :notes, 'Admin Notes', class: 'form-label' %>
+        <%= f.text_area :notes, class: 'form-control', rows: 2,
+            placeholder: 'Internal notes (not shown to members)...' %>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <%# Expiration with quick-select buttons %>
+      <div class="mb-3">
+        <%= f.label :expires_at, 'Expiration', class: 'form-label' %>
+        <span class="text-danger">*</span>
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="1">1 Day</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="3">3 Days</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="7">1 Week</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="10">10 Days</button>
+        </div>
+        <%= f.datetime_local_field :expires_at, class: 'form-control', required: true,
+            value: parking_notice.expires_at&.strftime('%Y-%m-%dT%H:%M') %>
+      </div>
+
+      <%# Location with room quick-select %>
+      <div class="mb-3">
+        <%= f.label :location, 'Room / Location', class: 'form-label' %>
+        <% if @rooms.any? %>
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            <% @rooms.each do |room| %>
+              <button type="button" class="btn btn-sm btn-outline-secondary quick-room"
+                      data-room="<%= room.name %>"><%= room.name %></button>
+            <% end %>
+          </div>
+        <% end %>
+        <%= f.text_field :location, class: 'form-control', placeholder: 'Room name...' %>
+      </div>
+
+      <%# Location detail %>
+      <div class="mb-3">
+        <%= f.label :location_detail, 'Location Detail', class: 'form-label' %>
+        <%= f.text_field :location_detail, class: 'form-control',
+            placeholder: 'Additional location info (e.g. near the south wall)...' %>
+      </div>
+
+      <%# Photos %>
+      <div class="mb-3">
+        <%= f.label :photos, class: 'form-label' %>
+        <%= f.file_field :photos, multiple: true, accept: 'image/*', class: 'form-control' %>
+        <div class="form-text">You can select multiple photos.</div>
+      </div>
+
+      <% if parking_notice.persisted? && parking_notice.photos.attached? %>
+        <div class="mb-3">
+          <label class="form-label">Existing Photos</label>
+          <div class="d-flex flex-wrap gap-2">
+            <% parking_notice.photos.each do |photo| %>
+              <div class="position-relative">
+                <%= link_to download_photo_parking_notice_path(parking_notice, photo_id: photo.id, disposition: 'inline'), target: '_blank' do %>
+                  <%= image_tag url_for(photo), class: 'rounded', style: 'width: 80px; height: 80px; object-fit: cover;' %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit class: "btn btn-#{parking_notice.permit? ? 'success' : 'danger'}" %>
+    <%= link_to "Cancel", parking_notice.persisted? ? parking_notice_path(parking_notice) : parking_notices_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.quick-expire').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var days = parseInt(this.dataset.days);
+        var date = new Date();
+        date.setDate(date.getDate() + days);
+        date.setHours(17, 0, 0, 0);
+        var field = document.querySelector('input[name="parking_notice[expires_at]"]');
+        if (field) {
+          var pad = function(n) { return n < 10 ? '0' + n : n; };
+          field.value = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' +
+                        pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+        }
+      });
+    });
+
+    document.querySelectorAll('.quick-room').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var field = document.querySelector('input[name="parking_notice[location]"]');
+        if (field) field.value = this.dataset.room;
+      });
+    });
+  });
+</script>

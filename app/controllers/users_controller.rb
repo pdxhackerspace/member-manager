@@ -152,6 +152,13 @@ class UsersController < AuthenticatedController
     # Default tab
     @active_tab = params[:tab]&.to_sym || :profile
 
+    # Parking notices for admin and self views
+    if @view_level == :admin || @view_level == :self
+      parking_query = @user.parking_notices.not_cleared.newest_first
+      @parking_notices_count = parking_query.count
+      @parking_notices_list = parking_query.limit(50)
+    end
+
     # Load payment history for admin and self views (paginated)
     if @view_level == :admin || @view_level == :self
       @payment_event_filter = params[:event_type].presence

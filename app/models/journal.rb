@@ -23,6 +23,10 @@ class Journal < ApplicationRecord
     trainer_capability_removed
     subscription_created
     subscription_cancelled
+    parking_permit_issued
+    parking_ticket_issued
+    parking_notice_expired
+    parking_notice_cleared
   ].freeze
 
   # Fields whose changes should trigger a highlight

@@ -252,6 +252,16 @@
         <% end %>
       </li>
     <% end %>
+    <% if @parking_notices_count.to_i > 0 %>
+      <li class="nav-item" role="presentation">
+        <%= link_to user_path(@user, tab: :parking, view_as: params[:view_as]),
+            class: "nav-link #{'active' if @active_tab == :parking}",
+            role: "tab" do %>
+          <i class="bi bi-car-front me-1"></i> Parking
+          <span class="badge bg-secondary ms-1"><%= @parking_notices_count %></span>
+        <% end %>
+      </li>
+    <% end %>
     <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :journal, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :journal}", 
@@ -283,6 +293,8 @@
       <%= render 'users/tab_access', recent_accesses: @recent_accesses, pagy: @pagy_accesses, user: @user %>
     <% elsif @active_tab == :incidents %>
       <%= render 'users/tab_incidents', user_incidents: @user_incidents, pagy: @pagy_incidents, user: @user %>
+    <% elsif @active_tab == :parking %>
+      <%= render 'users/tab_parking', parking_notices: @parking_notices_list, show_actions: true %>
     <% elsif @active_tab == :journal %>
       <%= render 'users/tab_journal', journals: @journals, pagy: @pagy_journals, user: @user %>
     <% elsif @active_tab == :mail %>
@@ -310,6 +322,16 @@
         <% end %>
       <% end %>
     </li>
+    <% if @parking_notices_count.to_i > 0 %>
+      <li class="nav-item" role="presentation">
+        <%= link_to user_path(@user, tab: :parking, view_as: params[:view_as]),
+            class: "nav-link #{'active' if @active_tab == :parking}",
+            role: "tab" do %>
+          <i class="bi bi-car-front me-1"></i> Parking
+          <span class="badge bg-secondary ms-1"><%= @parking_notices_count %></span>
+        <% end %>
+      </li>
+    <% end %>
   </ul>
 
   <div class="tab-content">
@@ -317,6 +339,8 @@
       <%= render 'users/tab_profile_self', user: @user %>
     <% elsif @active_tab == :payments %>
       <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>
+    <% elsif @active_tab == :parking %>
+      <%= render 'users/tab_parking', parking_notices: @parking_notices_list, show_actions: false %>
     <% end %>
   </div>
 

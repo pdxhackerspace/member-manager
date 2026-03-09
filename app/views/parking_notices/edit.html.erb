@@ -1,0 +1,5 @@
+<h1 class="h3 mb-4">
+  Edit Parking <%= @parking_notice.notice_type_display %>
+  <span class="badge bg-<%= @parking_notice.badge_color %>"><%= @parking_notice.notice_type_display %></span>
+</h1>
+<%= render 'form', parking_notice: @parking_notice %>

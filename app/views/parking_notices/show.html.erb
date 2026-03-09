@@ -1,0 +1,120 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">
+    Parking <%= @parking_notice.notice_type_display %>
+    <span class="badge bg-<%= @parking_notice.badge_color %>"><%= @parking_notice.notice_type_display %></span>
+    <span class="badge bg-<%= @parking_notice.status_badge_color %>"><%= @parking_notice.status_display %></span>
+  </h1>
+  <div class="d-flex gap-2">
+    <% unless @parking_notice.cleared? %>
+      <%= link_to edit_parking_notice_path(@parking_notice), class: "btn btn-outline-primary" do %>
+        <i class="bi bi-pencil me-1"></i> Edit
+      <% end %>
+      <%= link_to clear_parking_notice_path(@parking_notice),
+          data: { turbo_method: :post, turbo_confirm: 'Mark this parking notice as cleared?' },
+          class: "btn btn-outline-success" do %>
+        <i class="bi bi-check-circle me-1"></i> Mark Cleared
+      <% end %>
+    <% end %>
+    <%= link_to download_pdf_parking_notice_path(@parking_notice), class: "btn btn-outline-dark" do %>
+      <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
+    <% end %>
+    <%= link_to parking_notices_path, class: "btn btn-outline-secondary" do %>
+      <i class="bi bi-arrow-left me-1"></i> Back
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-<%= @parking_notice.badge_color %> mb-4">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <dl>
+          <dt>Member</dt>
+          <dd>
+            <% if @parking_notice.user.present? %>
+              <%= link_to @parking_notice.user.display_name, user_path(@parking_notice.user) %>
+            <% else %>
+              <span class="text-muted">No member assigned</span>
+            <% end %>
+          </dd>
+
+          <dt>Location</dt>
+          <dd><%= @parking_notice.location_display.presence || '—' %></dd>
+
+          <dt>Description</dt>
+          <dd><%= simple_format(@parking_notice.description.to_s.presence || '—') %></dd>
+
+          <% if @parking_notice.notes.present? %>
+            <dt>Admin Notes</dt>
+            <dd><%= simple_format(@parking_notice.notes) %></dd>
+          <% end %>
+        </dl>
+      </div>
+
+      <div class="col-md-6">
+        <dl>
+          <dt>Expires</dt>
+          <dd>
+            <% if @parking_notice.active? && @parking_notice.past_expiration? %>
+              <span class="text-danger fw-bold"><%= @parking_notice.expires_at.strftime('%B %d, %Y at %l:%M %p') %></span>
+              <span class="badge bg-danger">Past due</span>
+            <% elsif @parking_notice.active? && @parking_notice.expires_at <= 2.days.from_now %>
+              <span class="text-warning fw-bold"><%= @parking_notice.expires_at.strftime('%B %d, %Y at %l:%M %p') %></span>
+              <span class="badge bg-warning text-dark">Expiring soon</span>
+            <% else %>
+              <%= @parking_notice.expires_at.strftime('%B %d, %Y at %l:%M %p') %>
+            <% end %>
+          </dd>
+
+          <dt>Issued by</dt>
+          <dd>
+            <%= link_to @parking_notice.issued_by.display_name, user_path(@parking_notice.issued_by) %>
+            <span class="text-muted small">on <%= @parking_notice.created_at.strftime('%B %d, %Y') %></span>
+          </dd>
+
+          <% if @parking_notice.cleared? %>
+            <dt>Cleared by</dt>
+            <dd>
+              <% if @parking_notice.cleared_by.present? %>
+                <%= link_to @parking_notice.cleared_by.display_name, user_path(@parking_notice.cleared_by) %>
+              <% end %>
+              <% if @parking_notice.cleared_at.present? %>
+                <span class="text-muted small">on <%= @parking_notice.cleared_at.strftime('%B %d, %Y') %></span>
+              <% end %>
+            </dd>
+          <% end %>
+
+          <dt>Created</dt>
+          <dd><%= @parking_notice.created_at.strftime('%B %d, %Y at %l:%M %p') %></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if @parking_notice.photos.attached? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Photos</h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-3">
+        <% @parking_notice.photos.each do |photo| %>
+          <div class="position-relative">
+            <%= link_to download_photo_parking_notice_path(@parking_notice, photo_id: photo.id, disposition: 'inline'), target: '_blank' do %>
+              <%= image_tag url_for(photo), class: 'rounded shadow-sm', style: 'width: 150px; height: 150px; object-fit: cover;' %>
+            <% end %>
+            <% unless @parking_notice.cleared? %>
+              <%= link_to remove_photo_parking_notice_path(@parking_notice, photo_id: photo.id),
+                  data: { turbo_method: :delete, turbo_confirm: 'Remove this photo?' },
+                  class: 'position-absolute top-0 end-0 btn btn-sm btn-danger rounded-circle m-1',
+                  style: 'line-height: 1;' do %>
+                <i class="bi bi-x"></i>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

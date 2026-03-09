@@ -1,0 +1,37 @@
+active_permit:
+  notice_type: permit
+  status: active
+  user: one
+  issued_by: one
+  description: Large woodworking project on table
+  location: Woodshop
+  location_detail: Near the south wall
+  expires_at: <%= 5.days.from_now.to_fs(:db) %>
+
+expired_ticket:
+  notice_type: ticket
+  status: expired
+  user: two
+  issued_by: one
+  description: Unattended electronics project
+  location: Electronics Lab
+  expires_at: <%= 2.days.ago.to_fs(:db) %>
+
+cleared_permit:
+  notice_type: permit
+  status: cleared
+  user: one
+  issued_by: one
+  description: Finished laser project
+  location: Main Area
+  expires_at: <%= 10.days.ago.to_fs(:db) %>
+  cleared_at: <%= 8.days.ago.to_fs(:db) %>
+  cleared_by: one
+
+anonymous_ticket:
+  notice_type: ticket
+  status: active
+  issued_by: one
+  description: Unknown project left on bench
+  location: Main Area
+  expires_at: <%= 3.days.from_now.to_fs(:db) %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -286,6 +286,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
     t.index ["webhook_type"], name: "index_incoming_webhooks_on_webhook_type", unique: true
   end
 
+  create_table "interests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.boolean "needs_review", default: false, null: false
+    t.boolean "seeded", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_interests_on_name", unique: true
+    t.index ["needs_review"], name: "index_interests_on_needs_review"
+    t.index ["seeded"], name: "index_interests_on_seeded"
+  end
+
   create_table "invitations", force: :cascade do |t|
     t.datetime "accepted_at"
     t.datetime "cancelled_at"
@@ -303,17 +314,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
     t.index ["membership_type"], name: "index_invitations_on_membership_type"
     t.index ["token"], name: "index_invitations_on_token", unique: true
     t.index ["user_id"], name: "index_invitations_on_user_id"
-  end
-
-  create_table "interests", force: :cascade do |t|
-    t.string "name", null: false
-    t.boolean "needs_review", default: false, null: false
-    t.boolean "seeded", default: false, null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_interests_on_name", unique: true
-    t.index ["needs_review"], name: "index_interests_on_needs_review"
-    t.index ["seeded"], name: "index_interests_on_seeded"
   end
 
   create_table "journals", force: :cascade do |t|
@@ -432,6 +432,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "parking_notices", force: :cascade do |t|
+    t.datetime "cleared_at"
+    t.bigint "cleared_by_id"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.datetime "expires_at", null: false
+    t.bigint "issued_by_id", null: false
+    t.string "location"
+    t.string "location_detail"
+    t.text "notes"
+    t.string "notice_type", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["cleared_by_id"], name: "index_parking_notices_on_cleared_by_id"
+    t.index ["expires_at"], name: "index_parking_notices_on_expires_at"
+    t.index ["issued_by_id"], name: "index_parking_notices_on_issued_by_id"
+    t.index ["notice_type", "status"], name: "index_parking_notices_on_notice_type_and_status"
+    t.index ["status"], name: "index_parking_notices_on_status"
+    t.index ["user_id"], name: "index_parking_notices_on_user_id"
   end
 
   create_table "payment_events", force: :cascade do |t|
@@ -581,6 +603,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
     t.index ["user_id"], name: "index_rfids_on_user_id"
   end
 
+  create_table "rooms", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_rooms_on_name", unique: true
+    t.index ["position"], name: "index_rooms_on_position"
+  end
+
   create_table "sheet_entries", force: :cascade do |t|
     t.string "alias_name"
     t.datetime "created_at", null: false
@@ -696,6 +727,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
     t.index ["training_topic_id"], name: "index_trainings_on_training_topic_id"
   end
 
+  create_table "user_interests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "interest_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["interest_id"], name: "index_user_interests_on_interest_id"
+    t.index ["user_id", "interest_id"], name: "index_user_interests_on_user_id_and_interest_id", unique: true
+    t.index ["user_id"], name: "index_user_interests_on_user_id"
+  end
+
   create_table "user_links", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "position", default: 0
@@ -705,16 +746,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
     t.bigint "user_id", null: false
     t.index ["user_id", "position"], name: "index_user_links_on_user_id_and_position"
     t.index ["user_id"], name: "index_user_links_on_user_id"
-  end
-
-  create_table "user_interests", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.bigint "interest_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["interest_id"], name: "index_user_interests_on_interest_id"
-    t.index ["user_id", "interest_id"], name: "index_user_interests_on_user_id_and_interest_id", unique: true
-    t.index ["user_id"], name: "index_user_interests_on_user_id"
   end
 
   create_table "user_supplementary_plans", force: :cascade do |t|
@@ -806,13 +837,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
   add_foreign_key "invitations", "users", column: "invited_by_id"
   add_foreign_key "journals", "users"
   add_foreign_key "journals", "users", column: "actor_user_id"
-  add_foreign_key "user_interests", "interests"
-  add_foreign_key "user_interests", "users"
   add_foreign_key "kofi_payments", "sheet_entries"
   add_foreign_key "kofi_payments", "users"
   add_foreign_key "mail_log_entries", "queued_mails"
   add_foreign_key "mail_log_entries", "users", column: "actor_id"
   add_foreign_key "membership_plans", "users"
+  add_foreign_key "parking_notices", "users"
+  add_foreign_key "parking_notices", "users", column: "cleared_by_id"
+  add_foreign_key "parking_notices", "users", column: "issued_by_id"
   add_foreign_key "payment_events", "cash_payments"
   add_foreign_key "payment_events", "kofi_payments"
   add_foreign_key "payment_events", "paypal_payments"
@@ -832,6 +864,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_27_020000) do
   add_foreign_key "trainings", "training_topics"
   add_foreign_key "trainings", "users", column: "trainee_id"
   add_foreign_key "trainings", "users", column: "trainer_id"
+  add_foreign_key "user_interests", "interests"
+  add_foreign_key "user_interests", "users"
   add_foreign_key "user_links", "users"
   add_foreign_key "user_supplementary_plans", "membership_plans"
   add_foreign_key "user_supplementary_plans", "users"

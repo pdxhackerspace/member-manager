@@ -330,6 +330,17 @@ Rails.application.routes.draw do
     end
   end
 
+  resources :parking_notices do
+    member do
+      post :clear
+      get :download_pdf
+      delete 'photos/:photo_id', action: :remove_photo, as: :remove_photo
+      get 'photos/:photo_id/download', action: :download_photo, as: :download_photo
+    end
+  end
+
+  resources :rooms, path: 'settings/rooms'
+
   get "/reports", to: "reports#index", as: :reports
   get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all
   post "/reports/update_user", to: "reports#update_user", as: :reports_update_user

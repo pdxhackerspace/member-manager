@@ -149,6 +149,22 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def parking_permit_issued(user, opts = {})
+    send_parking_notice_mail('parking_permit_issued', user, opts)
+  end
+
+  def parking_ticket_issued(user, opts = {})
+    send_parking_notice_mail('parking_ticket_issued', user, opts)
+  end
+
+  def parking_permit_expired(user, opts = {})
+    send_parking_notice_mail('parking_permit_expired', user, opts)
+  end
+
+  def parking_ticket_expired(user, opts = {})
+    send_parking_notice_mail('parking_ticket_expired', user, opts)
+  end
+
   # Notify admins of a new application
   def admin_new_application(user, admin_email)
     @user = user
@@ -192,6 +208,13 @@ class MemberMailer < ApplicationMailer
 
     vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
 
+    # Parking notice variables
+    vars[:location] = extra_args[:location].to_s if extra_args.key?(:location)
+    vars[:location_detail] = extra_args[:location_detail].to_s if extra_args.key?(:location_detail)
+    vars[:description] = extra_args[:description].to_s if extra_args.key?(:description)
+    vars[:expires_at] = extra_args[:expires_at].to_s if extra_args.key?(:expires_at)
+    vars[:notice_type] = extra_args[:notice_type].to_s if extra_args.key?(:notice_type)
+
     vars
   end
 
@@ -224,5 +247,28 @@ class MemberMailer < ApplicationMailer
       date: Date.current.strftime('%B %d, %Y'),
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
     }
+  end
+
+  def send_parking_notice_mail(template_key, user, opts = {})
+    @user = user
+    @organization = organization_name
+
+    extra_vars = {
+      location: opts[:location].to_s,
+      location_detail: opts[:location_detail].to_s,
+      description: opts[:description].to_s,
+      expires_at: opts[:expires_at].to_s,
+      notice_type: opts[:notice_type].to_s
+    }
+
+    subject_label = template_key.humanize.titleize
+    if send_from_template(template_key, user, extra_vars)
+      # Email sent from database template
+    else
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: #{subject_label}"
+      )
+    end
   end
 end

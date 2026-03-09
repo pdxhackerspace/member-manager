@@ -53,6 +53,14 @@ Sidekiq.configure_server do |config|
     class: 'AccessControllerBackupJob',
     active_job: true
   )
+
+  # Parking Notice Expiration - Daily at 7am
+  Sidekiq::Cron::Job.create(
+    name: 'Parking Notice Expiration - Daily at 7am',
+    cron: '0 7 * * *',
+    class: 'ParkingNoticeExpirationJob',
+    active_job: true
+  )
 end
 
 Sidekiq.configure_client do |config|

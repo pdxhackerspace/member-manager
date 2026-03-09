@@ -55,6 +55,14 @@ class DashboardController < AdminController
     # Important: Member-suggested interests needing review
     @interests_needing_review_count = Interest.needs_review.count
 
+    # Important: Parking notices
+    @active_parking_permit_count = ParkingNotice.permits.active_notices.count
+    @active_parking_ticket_count = ParkingNotice.tickets.active_notices.count
+    @active_parking_count = @active_parking_permit_count + @active_parking_ticket_count
+    @expired_parking_permit_count = ParkingNotice.permits.expired_notices.count
+    @expired_parking_ticket_count = ParkingNotice.tickets.expired_notices.count
+    @expired_parking_count = @expired_parking_permit_count + @expired_parking_ticket_count
+
     # Housekeeping: Lapsed members with access after lapse
     lapsed_users = User.where(dues_status: 'lapsed')
                        .where.not(membership_status: %w[banned deceased])

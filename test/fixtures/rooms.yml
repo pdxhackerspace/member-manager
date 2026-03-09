@@ -1,0 +1,11 @@
+woodshop:
+  name: Woodshop
+  position: 1
+
+electronics_lab:
+  name: Electronics Lab
+  position: 2
+
+main_area:
+  name: Main Area
+  position: 3

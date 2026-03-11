@@ -11,6 +11,9 @@ class CupsService
   rescue Errno::ENOENT
     Rails.logger.warn('CupsService: lpstat not found — CUPS client tools not installed')
     []
+  rescue PrintError => e
+    Rails.logger.warn("CupsService: CUPS not available — #{e.message}")
+    []
   end
 
   # Returns true if CUPS is reachable and has at least one printer.

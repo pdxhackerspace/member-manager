@@ -144,8 +144,13 @@ class MembershipApplicationsController < ApplicationController
     end
 
     answers = params[:answers] || {}
+    answers_other = params[:answers_other] || {}
     current_page.questions.each do |question|
       value = answers[question.id.to_s].to_s.strip
+      if value == 'Other'
+        other_value = answers_other[question.id.to_s].to_s.strip
+        value = other_value.presence || 'Other'
+      end
       answer = @application.application_answers.find_or_initialize_by(
         application_form_question: question
       )

@@ -22,13 +22,13 @@ class LoginLinksController < ApplicationController
 
     if user
       user.generate_login_token!
-      QueuedMail.enqueue('login_link_sent', user,
-                         login_url: login_link_authenticate_url(token: user.login_token))
+      MemberMailer.login_link_sent(user, login_url: login_link_authenticate_url(token: user.login_token))
+                  .deliver_later
     end
 
-    flash.now[:notice] = 'If an account matches, a login link has been sent. ' \
-                         'Links can only be used once and expire shortly.'
-    render 'sessions/new'
+    redirect_to login_path,
+                notice: 'If an account matches, a login link has been sent. ' \
+                        'Links can only be used once and expire shortly.'
   end
 
   def authenticate

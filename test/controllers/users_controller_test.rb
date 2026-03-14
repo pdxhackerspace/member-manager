@@ -25,6 +25,40 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Payment Events/i, response.body)
   end
 
+  # ─── Disabled Source Guards ──────────────────────────────────────
+
+  test 'sync from authentik redirects with alert when authentik source is disabled' do
+    member_sources(:authentik).update!(enabled: false)
+
+    post sync_users_path
+    assert_redirected_to users_path
+    assert_equal 'Authentik source is disabled.', flash[:alert]
+  end
+
+  test 'sync to authentik redirects with alert when member manager source is disabled' do
+    member_sources(:member_manager).update!(enabled: false)
+
+    post sync_all_to_authentik_users_path
+    assert_redirected_to users_path
+    assert_equal 'Member Manager source is disabled.', flash[:alert]
+  end
+
+  test 'per-user sync_to_authentik redirects with alert when member manager source is disabled' do
+    member_sources(:member_manager).update!(enabled: false)
+
+    post sync_to_authentik_user_path(@user)
+    assert_redirected_to user_path(@user)
+    assert_equal 'Member Manager source is disabled.', flash[:alert]
+  end
+
+  test 'per-user sync_from_authentik redirects with alert when authentik source is disabled' do
+    member_sources(:authentik).update!(enabled: false)
+
+    post sync_from_authentik_user_path(@user)
+    assert_redirected_to user_path(@user)
+    assert_equal 'Authentik source is disabled.', flash[:alert]
+  end
+
   private
 
   def sign_in_as_local_admin

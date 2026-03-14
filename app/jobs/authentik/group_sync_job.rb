@@ -3,6 +3,11 @@ module Authentik
     queue_as :default
 
     def perform
+      unless MemberSource.enabled?('authentik')
+        Rails.logger.info('Authentik source is disabled — skipping group sync.')
+        return
+      end
+
       ensure_api_configured!
       synced_count = GroupSynchronizer.new.call
       Rails.logger.info("Authentik group sync completed (#{synced_count} members).")

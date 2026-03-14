@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_14_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_15_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -180,6 +180,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_14_010000) do
     t.index ["application_group_id", "user_id"], name: "index_app_groups_users_on_group_and_user", unique: true
     t.index ["application_group_id"], name: "index_application_groups_users_on_application_group_id"
     t.index ["user_id"], name: "index_application_groups_users_on_user_id"
+  end
+
+  create_table "application_verifications", force: :cascade do |t|
+    t.boolean "confirmed_code_of_conduct", default: false, null: false
+    t.boolean "confirmed_open_house", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.boolean "email_verified", default: false, null: false
+    t.datetime "expires_at", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "verified_at"
+    t.index ["email"], name: "index_application_verifications_on_email"
+    t.index ["token"], name: "index_application_verifications_on_token", unique: true
   end
 
   create_table "applications", force: :cascade do |t|
@@ -478,6 +492,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_14_010000) do
 
   create_table "membership_settings", force: :cascade do |t|
     t.integer "admin_login_link_expiry_minutes", default: 15, null: false
+    t.integer "application_verification_expiry_hours", default: 24, null: false
     t.datetime "created_at", null: false
     t.integer "invitation_expiry_hours", default: 72, null: false
     t.integer "login_link_expiry_hours", default: 180, null: false

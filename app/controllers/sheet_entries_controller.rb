@@ -69,11 +69,21 @@ class SheetEntriesController < AdminController
   end
 
   def sync
+    unless MemberSource.enabled?('sheet')
+      redirect_to sheet_entries_path, alert: 'Google Sheet source is disabled.'
+      return
+    end
+
     GoogleSheets::SyncJob.perform_later
     redirect_to sheet_entries_path, notice: 'Google Sheet sync scheduled.'
   end
 
   def sync_to_users
+    unless MemberSource.enabled?('sheet')
+      redirect_to sheet_entries_path, alert: 'Google Sheet source is disabled.'
+      return
+    end
+
     linked_count = 0
     created_count = 0
     updated_count = 0

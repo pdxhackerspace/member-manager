@@ -165,6 +165,18 @@ class MemberMailer < ApplicationMailer
     send_parking_notice_mail('parking_ticket_expired', user, opts)
   end
 
+  def application_email_verification(email, opts = {})
+    @email = email
+    @organization = organization_name
+    @verification_url = opts[:verification_url] || opts['verification_url']
+    @expires_in = opts[:expires_in] || opts['expires_in'] || '24 hours'
+
+    mail(
+      to: email,
+      subject: "#{@organization}: Verify Your Email to Begin Your Membership Application"
+    )
+  end
+
   def login_link_sent(user, opts = {})
     @user = user
     @organization = organization_name

@@ -44,6 +44,11 @@ class AuthentikUsersController < AdminController
   end
 
   def sync
+    unless MemberSource.enabled?('authentik')
+      redirect_to authentik_users_path, alert: 'Authentik source is disabled.'
+      return
+    end
+
     Authentik::GroupSyncJob.perform_later
     redirect_to authentik_users_path, notice: 'Authentik sync started.'
   end

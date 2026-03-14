@@ -191,5 +191,11 @@ class TextFragmentsController < AdminController
         <p>If you need assistance, please contact an administrator.</p>
       HTML
     )
+
+    TextFragment.ensure_exists!(
+      key: 'code_of_conduct_url',
+      title: 'Code of Conduct URL',
+      content: ''
+    )
   end
 end

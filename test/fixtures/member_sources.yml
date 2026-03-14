@@ -1,0 +1,39 @@
+authentik:
+  key: authentik
+  name: Authentik
+  enabled: true
+  display_order: 1
+  api_configured: true
+  entry_count: 0
+  linked_count: 0
+  unlinked_count: 0
+
+member_manager:
+  key: member_manager
+  name: Member Manager
+  enabled: true
+  display_order: 2
+  api_configured: true
+  entry_count: 0
+  linked_count: 0
+  unlinked_count: 0
+
+sheet:
+  key: sheet
+  name: Google Sheet
+  enabled: true
+  display_order: 3
+  api_configured: true
+  entry_count: 0
+  linked_count: 0
+  unlinked_count: 0
+
+slack:
+  key: slack
+  name: Slack
+  enabled: true
+  display_order: 4
+  api_configured: true
+  entry_count: 0
+  linked_count: 0
+  unlinked_count: 0

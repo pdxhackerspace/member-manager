@@ -12,7 +12,7 @@
         </div>
       <% end %>
       <div class="card-body p-4">
-        <%= form_with url: apply_new_path, method: :post, local: true do %>
+        <%= form_with url: apply_start_path, method: :post, local: true do %>
           <input type="hidden" name="page_number" value="<%= @page_number %>">
 
           <% @questions.each do |question| %>
@@ -73,7 +73,7 @@
               <%= link_to "← Back", apply_page_path(page_number: @page_number - 1),
                   class: "btn btn-outline-secondary" %>
             <% else %>
-              <%= link_to "← Back", apply_new_path, class: "btn btn-outline-secondary" %>
+              <%= link_to "← Back", apply_start_path, class: "btn btn-outline-secondary" %>
             <% end %>
 
             <% if @page_number < @pages.size %>

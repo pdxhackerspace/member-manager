@@ -108,6 +108,26 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_path(new_user)
   end
 
+  # ─── Disabled Source Guards ──────────────────────────────────────
+
+  test 'sync redirects with alert when slack source is disabled' do
+    member_sources(:slack).update!(enabled: false)
+
+    post sync_slack_users_path
+    assert_redirected_to slack_users_path
+    assert_equal 'Slack source is disabled.', flash[:alert]
+  end
+
+  test 'sync_to_users redirects with alert when slack source is disabled' do
+    member_sources(:slack).update!(enabled: false)
+
+    post sync_to_users_slack_users_path
+    assert_redirected_to slack_users_path
+    assert_equal 'Slack source is disabled.', flash[:alert]
+  end
+
+  # ─── Create Member ─────────────────────────────────────────────
+
   test 'create_member rejects already-linked slack user' do
     slack_user = slack_users(:with_dept)
     slack_user.update_columns(user_id: users(:one).id)

@@ -3,6 +3,11 @@ module Slack
     queue_as :default
 
     def perform
+      unless MemberSource.enabled?('slack')
+        Rails.logger.info('Slack source is disabled — skipping sync.')
+        return
+      end
+
       ensure_configured!
       synced_count = UserSynchronizer.new.call
       Rails.logger.info("Slack user sync completed (#{synced_count} users).")

@@ -3,6 +3,11 @@ module Authentik
     queue_as :default
 
     def perform
+      unless MemberSource.enabled?('member_manager')
+        Rails.logger.info('Member Manager source is disabled — skipping sync to Authentik.')
+        return
+      end
+
       client = Authentik::Client.new
       results = { users_created: 0, users_synced: 0, users_skipped: 0, users_errored: 0, groups_synced: 0,
                   groups_errored: 0 }

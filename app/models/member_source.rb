@@ -7,6 +7,10 @@ class MemberSource < ApplicationRecord
   scope :enabled, -> { where(enabled: true) }
   scope :ordered, -> { order(:display_order, :name) }
 
+  def self.enabled?(key)
+    find_by(key: key)&.enabled? != false
+  end
+
   # Find or create source by key
   def self.for(key)
     find_or_create_by!(key: key) do |source|

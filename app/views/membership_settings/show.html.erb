@@ -49,6 +49,15 @@
             <strong><%= @membership_setting.admin_login_link_expiry_minutes %></strong> minutes
             <div class="form-text">How long admin login links remain valid (shorter for security).</div>
           </dd>
+
+          <dt class="col-sm-6 mt-3">Application Email Verification Expiry</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.application_verification_expiry_hours %></strong> hours
+            <% if @membership_setting.application_verification_expiry_hours >= 24 %>
+              (<%= @membership_setting.application_verification_expiry_hours / 24 %> <%= 'day'.pluralize(@membership_setting.application_verification_expiry_hours / 24) %>)
+            <% end %>
+            <div class="form-text">How long application email verification links remain valid.</div>
+          </dd>
         </dl>
       </div>
     </div>
@@ -76,9 +85,13 @@
           <strong>Member Login Link Expiry:</strong> Members can request a login link from the sign-in page.
           Links can only be used once and expire after this many hours.
         </p>
-        <p class="small text-muted mb-0">
+        <p class="small text-muted mb-2">
           <strong>Admin Login Link Expiry:</strong> Admin login links expire faster for security.
           Links can only be used once and expire after this many minutes.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Application Email Verification:</strong> When someone starts a membership application,
+          they must verify their email address. The verification link expires after this many hours.
         </p>
       </div>
     </div>

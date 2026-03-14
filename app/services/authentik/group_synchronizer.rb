@@ -6,6 +6,11 @@ module Authentik
     end
 
     def call
+      unless MemberSource.enabled?('authentik')
+        @logger.info('Authentik source is disabled — skipping sync.')
+        return 0
+      end
+
       members = @client.group_members
       now = Time.current
 

@@ -3,6 +3,7 @@ class MembershipApplicationsController < ApplicationController
 
   before_action :require_admin!, only: %i[index show approve reject mark_under_review]
   before_action :set_application_admin, only: %i[show approve reject mark_under_review]
+  before_action :require_verified_email!, only: %i[start save_page page submit_application]
   before_action :load_pages, only: %i[start page]
 
   # --- Public wizard actions ---
@@ -25,14 +26,14 @@ class MembershipApplicationsController < ApplicationController
   def page
     @application = find_in_progress_application
     unless @application
-      redirect_to apply_new_path, alert: 'Please enter your email to begin.'
+      redirect_to apply_start_path, alert: 'Please start your application to continue.'
       return
     end
 
     page_number = params[:page_number].to_i
     @current_page = @pages[page_number - 1]
     unless @current_page
-      redirect_to apply_new_path
+      redirect_to apply_start_path
       return
     end
 
@@ -43,7 +44,7 @@ class MembershipApplicationsController < ApplicationController
   def submit_application
     @application = find_in_progress_application
     unless @application&.draft?
-      redirect_to apply_new_path, alert: 'No application in progress.'
+      redirect_to apply_start_path, alert: 'No application in progress.'
       return
     end
 
@@ -116,11 +117,8 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def save_email_page
-    email = params[:email].to_s.strip.downcase
-    if email.blank? || !email.include?('@')
-      redirect_to apply_new_path, alert: 'Please enter a valid email address.'
-      return
-    end
+    verification = current_verification
+    email = verification.email
 
     app = MembershipApplication.find_by(email: email, status: 'draft')
     app ||= MembershipApplication.create!(email: email)
@@ -132,14 +130,14 @@ class MembershipApplicationsController < ApplicationController
   def save_question_page(page_number)
     @application = find_in_progress_application
     unless @application
-      redirect_to apply_new_path, alert: 'Please enter your email to begin.'
+      redirect_to apply_start_path, alert: 'Please start your application to continue.'
       return
     end
 
     pages = ApplicationFormPage.ordered.to_a
     current_page = pages[page_number - 1]
     unless current_page
-      redirect_to apply_new_path
+      redirect_to apply_start_path
       return
     end
 
@@ -178,6 +176,20 @@ class MembershipApplicationsController < ApplicationController
       end
     end
     missing
+  end
+
+  def require_verified_email!
+    verification = current_verification
+    return if verification&.verified?
+
+    redirect_to apply_new_path, alert: 'Please verify your email address before starting an application.'
+  end
+
+  def current_verification
+    token = session[:verified_application_token]
+    return nil unless token
+
+    ApplicationVerification.find_by(token: token)
   end
 
   def set_application_admin

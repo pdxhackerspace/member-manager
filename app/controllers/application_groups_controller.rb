@@ -101,6 +101,12 @@ class ApplicationGroupsController < AdminController
   end
 
   def sync_to_authentik
+    unless MemberSource.enabled?('member_manager')
+      redirect_to application_application_group_path(@application, @application_group),
+                  alert: 'Member Manager source is disabled.'
+      return
+    end
+
     sync_result = sync_group_to_authentik(@application_group)
 
     if sync_result[:status] == 'error'

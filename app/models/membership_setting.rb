@@ -4,6 +4,7 @@ class MembershipSetting < ApplicationRecord
   validates :invitation_expiry_hours, presence: true, numericality: { greater_than: 0 }
   validates :login_link_expiry_hours, presence: true, numericality: { greater_than: 0 }
   validates :admin_login_link_expiry_minutes, presence: true, numericality: { greater_than: 0 }
+  validates :application_verification_expiry_hours, presence: true, numericality: { greater_than: 0 }
 
   # Singleton pattern - only one row should exist
   def self.instance
@@ -12,7 +13,8 @@ class MembershipSetting < ApplicationRecord
       reactivation_grace_period_months: 3,
       invitation_expiry_hours: 72,
       login_link_expiry_hours: 180,
-      admin_login_link_expiry_minutes: 15
+      admin_login_link_expiry_minutes: 15,
+      application_verification_expiry_hours: 24
     )
   end
 
@@ -35,5 +37,9 @@ class MembershipSetting < ApplicationRecord
 
   def self.admin_login_link_expiry_minutes
     instance.admin_login_link_expiry_minutes
+  end
+
+  def self.application_verification_expiry_hours
+    instance.application_verification_expiry_hours
   end
 end

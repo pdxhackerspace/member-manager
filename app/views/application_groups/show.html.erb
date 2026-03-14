@@ -4,10 +4,14 @@
     <p class="text-muted mb-0">Application: <%= link_to @application.name, application_path(@application), class: "text-decoration-none" %></p>
   </div>
   <div class="d-flex gap-2">
-    <%= button_to "Sync to Authentik", sync_to_authentik_application_application_group_path(@application, @application_group),
-        method: :post,
-        class: "btn btn-outline-primary",
-        data: { turbo_confirm: "Sync this group to Authentik?" } %>
+    <% if MemberSource.enabled?('member_manager') %>
+      <%= button_to "Sync to Authentik", sync_to_authentik_application_application_group_path(@application, @application_group),
+          method: :post,
+          class: "btn btn-outline-primary",
+          data: { turbo_confirm: "Sync this group to Authentik?" } %>
+    <% else %>
+      <button class="btn btn-outline-secondary" disabled title="Member Manager source is disabled">Sync to Authentik</button>
+    <% end %>
     <%= link_to "Edit", edit_application_application_group_path(@application, @application_group), class: "btn btn-outline-secondary" %>
     <%= button_to "Delete", application_application_group_path(@application, @application_group),
         method: :delete,

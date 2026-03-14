@@ -14,12 +14,18 @@ Rails.application.routes.draw do
   get "/apply", to: "pages#apply"
   get "/help", to: "pages#help", as: :help
 
-  # New membership application wizard (not yet the default /apply)
-  get  "/apply/new",                to: "membership_applications#start", as: :apply_new
-  post "/apply/new",                to: "membership_applications#save_page"
+  # Application verification gate (must complete before starting application)
+  get  "/apply/new",                to: "application_verifications#gate", as: :apply_new
+  post "/apply/new",                to: "application_verifications#send_verification"
+  get  "/apply/new/verify/:token",  to: "application_verifications#verify_email", as: :apply_verify_email
+  get  "/apply/new/check_email",    to: "application_verifications#check_email", as: :apply_check_email
+
+  # New membership application wizard (requires verified email)
+  get  "/apply/new/start",             to: "membership_applications#start", as: :apply_start
+  post "/apply/new/start",             to: "membership_applications#save_page"
   get  "/apply/new/page/:page_number", to: "membership_applications#page", as: :apply_page
-  post "/apply/new/submit",         to: "membership_applications#submit_application", as: :apply_submit
-  get  "/apply/new/confirmation",   to: "membership_applications#confirmation", as: :apply_confirmation
+  post "/apply/new/submit",            to: "membership_applications#submit_application", as: :apply_submit
+  get  "/apply/new/confirmation",      to: "membership_applications#confirmation", as: :apply_confirmation
   post "/local_login", to: "sessions#create_local"
   post "/rfid_login", to: "sessions#create_rfid"
   get "/rfid_login/wait", to: "sessions#rfid_wait", as: :rfid_wait

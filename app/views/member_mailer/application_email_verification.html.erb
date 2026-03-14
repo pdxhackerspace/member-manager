@@ -1,0 +1,25 @@
+<h2>Verify Your Email Address</h2>
+
+<p>Hello,</p>
+
+<p>
+  You've requested to begin a membership application at <strong><%= @organization %></strong>.
+  To continue, please verify your email address by clicking the link below.
+</p>
+
+<p style="margin: 24px 0; text-align: center;">
+  <%= link_to "Verify Email & Begin Application", @verification_url, style: "display: inline-block; padding: 12px 24px; background-color: #0d6efd; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;" %>
+</p>
+
+<p>Or copy and paste this URL into your browser:</p>
+<p><%= @verification_url %></p>
+
+<p>
+  <strong>This link expires in <%= @expires_in %>.</strong>
+  If you did not request this, you can safely ignore this email.
+</p>
+
+<p>
+  Thank you,<br>
+  <%= @organization %>
+</p>

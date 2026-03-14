@@ -78,6 +78,20 @@
             <div class="form-text">How long admin login links remain valid. Shorter for security. Links can only be used once.</div>
           </div>
 
+          <div class="mb-4">
+            <%= f.label :application_verification_expiry_hours, "Application Email Verification Expiry (hours)", class: "form-label" %>
+            <div class="d-flex align-items-center gap-2">
+              <%= f.number_field :application_verification_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "application_verification_expiry_hours" %>
+              <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=12">12 hours</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=24">1 day</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=48">2 days</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=72">3 days</button>
+              </div>
+            </div>
+            <div class="form-text">How long the email verification link for membership applications remains valid.</div>
+          </div>
+
           <div class="d-flex gap-2">
             <%= f.submit "Save Settings", class: "btn btn-primary" %>
             <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary" %>
@@ -109,9 +123,13 @@
           <strong>Member Login Link Expiry:</strong> Members can request a login link from the sign-in page.
           Links can only be used once and expire after this many hours.
         </p>
-        <p class="small text-muted mb-0">
+        <p class="small text-muted mb-2">
           <strong>Admin Login Link Expiry:</strong> Admin login links expire faster for security.
           Links can only be used once and expire after this many minutes.
+        </p>
+        <p class="small text-muted mb-0">
+          <strong>Application Email Verification:</strong> When someone starts a membership application,
+          they must verify their email address. The verification link expires after this many hours.
         </p>
       </div>
     </div>

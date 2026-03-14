@@ -37,6 +37,26 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to sheet_entries_path
   end
 
+  # ─── Disabled Source Guards ──────────────────────────────────────
+
+  test 'sync redirects with alert when sheet source is disabled' do
+    member_sources(:sheet).update!(enabled: false)
+
+    assert_no_enqueued_jobs(only: GoogleSheets::SyncJob) do
+      post sync_sheet_entries_path
+    end
+    assert_redirected_to sheet_entries_path
+    assert_equal 'Google Sheet source is disabled.', flash[:alert]
+  end
+
+  test 'sync_to_users redirects with alert when sheet source is disabled' do
+    member_sources(:sheet).update!(enabled: false)
+
+    post sync_to_users_sheet_entries_path
+    assert_redirected_to sheet_entries_path
+    assert_equal 'Google Sheet source is disabled.', flash[:alert]
+  end
+
   private
 
   def log_in_local_user

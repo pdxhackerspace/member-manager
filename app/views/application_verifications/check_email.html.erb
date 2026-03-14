@@ -1,0 +1,26 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4 p-md-5 text-center">
+        <div class="display-4 text-primary mb-4">
+          <i class="bi bi-envelope-check"></i>
+        </div>
+        <h2 class="h4 mb-3">Check Your Email</h2>
+        <p class="mb-4">
+          We've sent a verification link to the email address you provided.
+          Please check your inbox and click the link to begin your membership application.
+        </p>
+        <div class="alert alert-info text-start">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Didn't receive it?</strong> Check your spam folder. The link expires in
+          <%= MembershipSetting.application_verification_expiry_hours %>
+          <%= 'hour'.pluralize(MembershipSetting.application_verification_expiry_hours) %>.
+          If it expires, you can <%= link_to 'start over', apply_new_path %>.
+        </div>
+        <div class="mt-4">
+          <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

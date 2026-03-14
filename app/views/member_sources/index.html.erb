@@ -68,7 +68,11 @@
                 <strong>Last Sync:</strong>
                 <%= source.last_sync_at ? time_ago_in_words(source.last_sync_at) + " ago" : "Never" %>
               </div>
-              <%= button_to "Refresh", refresh_stats_member_source_path(source), method: :post, class: "btn btn-sm btn-outline-primary" %>
+              <% if source.enabled? %>
+                <%= button_to "Refresh", refresh_stats_member_source_path(source), method: :post, class: "btn btn-sm btn-outline-primary" %>
+              <% else %>
+                <button class="btn btn-sm btn-outline-secondary" disabled title="Source is disabled">Refresh</button>
+              <% end %>
             </div>
           </div>
         </div>

@@ -4,9 +4,15 @@
     <p class="text-muted mb-0">Entries from the Google Sheet membership roster.</p>
   </div>
   <div class="d-flex gap-2">
-    <%= button_to "Sync now", sync_sheet_entries_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
-    <%= button_to "Sync to Members", sync_to_users_sheet_entries_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
-    <%= link_to "Test", test_sheet_entries_path, class: "btn btn-outline-secondary", data: { turbo: false } %>
+    <% if MemberSource.enabled?('sheet') %>
+      <%= button_to "Sync now", sync_sheet_entries_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+      <%= button_to "Sync to Members", sync_to_users_sheet_entries_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
+      <%= link_to "Test", test_sheet_entries_path, class: "btn btn-outline-secondary", data: { turbo: false } %>
+    <% else %>
+      <button class="btn btn-secondary" disabled title="Google Sheet source is disabled">Sync now</button>
+      <button class="btn btn-secondary" disabled title="Google Sheet source is disabled">Sync to Members</button>
+      <button class="btn btn-secondary" disabled title="Google Sheet source is disabled">Test</button>
+    <% end %>
   </div>
 </div>
 

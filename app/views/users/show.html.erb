@@ -126,13 +126,25 @@
 
       <% if @user.authentik_id.present? %>
         <span class="ms-4"></span>
-        <%= button_to sync_to_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
-            title: "Push local changes to Authentik", data: { turbo: false } do %>
-          <i class="bi bi-cloud-upload"></i> Push to Authentik
+        <% if MemberSource.enabled?('member_manager') %>
+          <%= button_to sync_to_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
+              title: "Push local changes to Authentik", data: { turbo: false } do %>
+            <i class="bi bi-cloud-upload"></i> Push to Authentik
+          <% end %>
+        <% else %>
+          <button class="btn btn-outline-secondary" disabled title="Member Manager source is disabled">
+            <i class="bi bi-cloud-upload"></i> Push to Authentik
+          </button>
         <% end %>
-        <%= button_to sync_from_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
-            title: "Pull changes from Authentik", data: { turbo: false } do %>
-          <i class="bi bi-cloud-download"></i> Pull from Authentik
+        <% if MemberSource.enabled?('authentik') %>
+          <%= button_to sync_from_authentik_user_path(@user), method: :post, class: "btn btn-outline-primary",
+              title: "Pull changes from Authentik", data: { turbo: false } do %>
+            <i class="bi bi-cloud-download"></i> Pull from Authentik
+          <% end %>
+        <% else %>
+          <button class="btn btn-outline-secondary" disabled title="Authentik source is disabled">
+            <i class="bi bi-cloud-download"></i> Pull from Authentik
+          </button>
         <% end %>
       <% end %>
     </div>

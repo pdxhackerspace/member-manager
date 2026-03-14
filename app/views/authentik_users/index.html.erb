@@ -4,7 +4,11 @@
     <p class="text-muted mb-0">Users from Authentik identity provider.</p>
   </div>
   <div class="d-flex gap-2">
-    <%= button_to "Sync from Authentik", sync_authentik_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+    <% if MemberSource.enabled?('authentik') %>
+      <%= button_to "Sync from Authentik", sync_authentik_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+    <% else %>
+      <button class="btn btn-secondary" disabled title="Authentik source is disabled">Sync from Authentik</button>
+    <% end %>
   </div>
 </div>
 

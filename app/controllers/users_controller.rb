@@ -273,11 +273,21 @@ class UsersController < AuthenticatedController
   end
 
   def sync
+    unless MemberSource.enabled?('authentik')
+      redirect_to users_path, alert: 'Authentik source is disabled.'
+      return
+    end
+
     Authentik::GroupSyncJob.perform_later
     redirect_to users_path, notice: 'Authentik group sync has been scheduled.'
   end
 
   def sync_all_to_authentik
+    unless MemberSource.enabled?('member_manager')
+      redirect_to users_path, alert: 'Member Manager source is disabled.'
+      return
+    end
+
     Authentik::FullSyncToAuthentikJob.perform_later
     redirect_to users_path,
                 notice: 'Full sync to Authentik has been scheduled. ' \
@@ -332,6 +342,11 @@ class UsersController < AuthenticatedController
   end
 
   def sync_to_authentik
+    unless MemberSource.enabled?('member_manager')
+      redirect_to user_path(@user), alert: 'Member Manager source is disabled.'
+      return
+    end
+
     if @user.authentik_id.blank?
       redirect_to user_path(@user), alert: 'Member does not have an Authentik ID.'
       return
@@ -351,6 +366,11 @@ class UsersController < AuthenticatedController
   end
 
   def sync_from_authentik
+    unless MemberSource.enabled?('authentik')
+      redirect_to user_path(@user), alert: 'Authentik source is disabled.'
+      return
+    end
+
     if @user.authentik_id.blank?
       redirect_to user_path(@user), alert: 'Member does not have an Authentik ID.'
       return

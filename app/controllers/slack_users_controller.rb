@@ -136,11 +136,21 @@ class SlackUsersController < AdminController
   end
 
   def sync
+    unless MemberSource.enabled?('slack')
+      redirect_to slack_users_path, alert: 'Slack source is disabled.'
+      return
+    end
+
     Slack::UserSyncJob.perform_later
     redirect_to slack_users_path, notice: 'Slack user sync started.'
   end
 
   def sync_to_users
+    unless MemberSource.enabled?('slack')
+      redirect_to slack_users_path, alert: 'Slack source is disabled.'
+      return
+    end
+
     linked_count = 0
     skipped_count = 0
 

@@ -8,22 +8,15 @@
           <%= sanitize(@intro_content) %>
         <% else %>
           <h2 class="h4 mb-3">Membership Application</h2>
-          <p>Please provide your email address to begin your application.</p>
+          <p>Your email has been verified. Click Continue to begin your application.</p>
         <% end %>
       </div>
     </div>
 
     <div class="card shadow-sm border-0">
       <div class="card-body p-4">
-        <%= form_with url: apply_new_path, method: :post, local: true do |f| %>
-          <div class="mb-3">
-            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-            <input type="email" name="email" id="email" class="form-control form-control-lg"
-                   placeholder="your.email@example.com" required
-                   value="<%= @application&.email %>"
-                   autocomplete="email">
-            <input type="hidden" name="page_number" value="0">
-          </div>
+        <%= form_with url: apply_start_path, method: :post, local: true do |f| %>
+          <input type="hidden" name="page_number" value="0">
 
           <% if @application %>
             <div class="alert alert-info mb-3">

@@ -26,8 +26,9 @@ class LoginLinksController < ApplicationController
                          login_url: login_link_authenticate_url(token: user.login_token))
     end
 
-    redirect_to login_path,
-                notice: 'If an account exists with that email or username, a login link has been sent.'
+    flash.now[:notice] = 'If an account matches, a login link has been sent. ' \
+                         'Links can only be used once and expire shortly.'
+    render 'sessions/new'
   end
 
   def authenticate

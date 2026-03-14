@@ -181,5 +181,15 @@ class TextFragmentsController < AdminController
         <p>If you believe you received this link in error, please contact an administrator.</p>
       HTML
     )
+
+    TextFragment.ensure_exists!(
+      key: 'manage_your_membership',
+      title: 'Manage Your Membership',
+      content: <<~HTML
+        <h5>Managing Your Membership</h5>
+        <p>Here you can find information about managing your membership, updating your payment method, or changing your membership plan.</p>
+        <p>If you need assistance, please contact an administrator.</p>
+      HTML
+    )
   end
 end

@@ -161,11 +161,9 @@ class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'code_of_conduct_pdf serves PDF when document exists' do
-    doc = Document.create!(title: 'Code of Conduct')
-    doc.file.attach(
-      io: StringIO.new('%PDF-1.4 test'),
-      filename: 'code-of-conduct.pdf',
-      content_type: 'application/pdf'
+    doc = Document.create!(
+      title: 'Code of Conduct',
+      file: fixture_file_upload('code-of-conduct.pdf', 'application/pdf')
     )
 
     get apply_code_of_conduct_pdf_path

@@ -14,13 +14,18 @@ class MembershipApplicationsController < ApplicationController
     @email = @verification&.email
 
     @application = find_in_progress_application
-    unless @application
-      existing = MembershipApplication.find_by(email: @email, status: 'draft') if @email
-      if existing
-        session[:application_token] = existing.token
-        @application = existing
+    if @application.nil? && @email
+      draft = MembershipApplication.find_by(email: @email, status: 'draft')
+      if draft
+        session[:application_token] = draft.token
+        @application = draft
       end
     end
+
+    @existing_application = MembershipApplication.where(email: @email)
+                                                  .where.not(status: 'draft')
+                                                  .newest_first
+                                                  .first if @email
   end
 
   def save_page

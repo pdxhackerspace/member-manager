@@ -170,7 +170,7 @@ class OnboardingController < AdminController
   private
 
   def set_user
-    @user = User.find_by(param: params[:id])
+    @user = User.find_by_param(params[:id])
   end
 
   def member_params

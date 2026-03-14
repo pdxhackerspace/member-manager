@@ -91,16 +91,16 @@ Rails.application.routes.draw do
   # Member onboarding wizard
   get  "/onboard",              to: "onboarding#member_info",      as: :onboard
   post "/onboard",              to: "onboarding#create_member",    as: :onboard_create
-  get  "/onboard/:id/payment",  to: "onboarding#payment",         as: :onboard_payment
-  post "/onboard/:id/payment",  to: "onboarding#save_payment",    as: :onboard_save_payment
-  get  "/onboard/:id/access",   to: "onboarding#access",          as: :onboard_access
-  post "/onboard/:id/rfid",     to: "onboarding#save_rfid",       as: :onboard_save_rfid
-  post "/onboard/:id/training", to: "onboarding#save_training",   as: :onboard_save_training
-  get  "/onboard/:id/mail",     to: "onboarding#mail",            as: :onboard_mail
-  post "/onboard/:id/mail/:mail_id/approve", to: "onboarding#approve_mail", as: :onboard_approve_mail
-  post "/onboard/:id/mail/:mail_id/reject",  to: "onboarding#reject_mail",  as: :onboard_reject_mail
-  post "/onboard/:id/mail/approve_all",      to: "onboarding#approve_all_mail", as: :onboard_approve_all_mail
-  post "/onboard/:id/mail/reject_all",       to: "onboarding#reject_all_mail",  as: :onboard_reject_all_mail
+  get  "/onboard/:id/payment",  to: "onboarding#payment",         as: :onboard_payment, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/payment",  to: "onboarding#save_payment",    as: :onboard_save_payment, constraints: { id: /[^\/]+/ }
+  get  "/onboard/:id/access",   to: "onboarding#access",          as: :onboard_access, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/rfid",     to: "onboarding#save_rfid",       as: :onboard_save_rfid, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/training", to: "onboarding#save_training",   as: :onboard_save_training, constraints: { id: /[^\/]+/ }
+  get  "/onboard/:id/mail",     to: "onboarding#mail",            as: :onboard_mail, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/mail/:mail_id/approve", to: "onboarding#approve_mail", as: :onboard_approve_mail, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/mail/:mail_id/reject",  to: "onboarding#reject_mail",  as: :onboard_reject_mail, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/mail/approve_all",      to: "onboarding#approve_all_mail", as: :onboard_approve_all_mail, constraints: { id: /[^\/]+/ }
+  post "/onboard/:id/mail/reject_all",       to: "onboarding#reject_all_mail",  as: :onboard_reject_all_mail, constraints: { id: /[^\/]+/ }
 
   resources :slack_users, only: [:index, :show] do
     collection do

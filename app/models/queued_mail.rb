@@ -151,6 +151,8 @@ class QueuedMail < ApplicationRecord
     when 'parking_permit_issued', 'parking_ticket_issued',
          'parking_permit_expired', 'parking_ticket_expired'
       [user, extra_args.slice(:location, :location_detail, :description, :expires_at, :notice_type)]
+    when 'login_link_sent'
+      [user, extra_args.slice(:login_url)]
     else
       [user]
     end

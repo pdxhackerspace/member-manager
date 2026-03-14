@@ -13,6 +13,13 @@ Rails.application.routes.draw do
   get "/login", to: "sessions#new"
   get "/apply", to: "pages#apply"
   get "/help", to: "pages#help", as: :help
+
+  # New membership application wizard (not yet the default /apply)
+  get  "/apply/new",                to: "membership_applications#start", as: :apply_new
+  post "/apply/new",                to: "membership_applications#save_page"
+  get  "/apply/new/page/:page_number", to: "membership_applications#page", as: :apply_page
+  post "/apply/new/submit",         to: "membership_applications#submit_application", as: :apply_submit
+  get  "/apply/new/confirmation",   to: "membership_applications#confirmation", as: :apply_confirmation
   post "/local_login", to: "sessions#create_local"
   post "/rfid_login", to: "sessions#create_rfid"
   get "/rfid_login/wait", to: "sessions#rfid_wait", as: :rfid_wait
@@ -24,6 +31,7 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "sessions#failure"
 
   # Login links
+  post "/login_link/request", to: "login_links#request_link", as: :request_login_link
   get  "/login_link/:token", to: "login_links#authenticate", as: :login_link_authenticate
   get  "/profile/login_link", to: "login_links#show", as: :login_link
   post "/profile/login_link/regenerate", to: "login_links#regenerate", as: :login_link_regenerate
@@ -346,6 +354,18 @@ Rails.application.routes.draw do
   end
 
   resources :rooms, path: 'settings/rooms'
+
+  resources :application_form_pages, path: 'settings/application_form' do
+    resources :application_form_questions, only: %i[new create edit update destroy]
+  end
+
+  resources :membership_applications, only: %i[index show] do
+    member do
+      post :approve
+      post :reject
+      post :mark_under_review
+    end
+  end
 
   resources :printers, path: 'settings/printers' do
     member do

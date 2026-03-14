@@ -178,10 +178,37 @@
           </div>
         <% end %>
 
-        <div>
+        <div class="mb-3">
           <small class="text-muted d-block">Membership Status</small>
           <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %> fs-6"><%= user.membership_status.humanize %></span>
         </div>
+
+        <% manage_membership_content = TextFragment.content_for('manage_your_membership') %>
+        <% if manage_membership_content.present? && current_user&.id == user.id %>
+          <div>
+            <button type="button" class="btn btn-outline-primary btn-sm w-100"
+                    data-bs-toggle="modal" data-bs-target="#manageMembershipModal">
+              <i class="bi bi-gear me-1"></i> Manage Your Membership
+            </button>
+          </div>
+
+          <div class="modal fade" id="manageMembershipModal" tabindex="-1" aria-labelledby="manageMembershipModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="manageMembershipModalLabel">Manage Your Membership</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <%= sanitize(manage_membership_content) %>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
       <% end %>
 
       <%# Documents available to this user %>

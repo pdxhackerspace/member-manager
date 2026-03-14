@@ -18,10 +18,16 @@
         <%= form_with url: apply_start_path, method: :post, local: true do |f| %>
           <input type="hidden" name="page_number" value="0">
 
+          <div class="mb-3">
+            <label class="form-label"><strong>Email Address</strong></label>
+            <input type="email" class="form-control form-control-lg" value="<%= @email %>" disabled>
+            <div class="form-text">This is the email you verified. It will be used for your application.</div>
+          </div>
+
           <% if @application %>
             <div class="alert alert-info mb-3">
               <i class="bi bi-info-circle me-1"></i>
-              You have an application in progress. Click Continue to resume.
+              You have an application in progress. Click Continue to resume where you left off.
             </div>
           <% end %>
 

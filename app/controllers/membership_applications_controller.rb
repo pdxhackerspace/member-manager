@@ -10,7 +10,17 @@ class MembershipApplicationsController < ApplicationController
 
   def start
     @intro_content = TextFragment.content_for('application_form_intro')
+    @verification = current_verification
+    @email = @verification&.email
+
     @application = find_in_progress_application
+    unless @application
+      existing = MembershipApplication.find_by(email: @email, status: 'draft') if @email
+      if existing
+        session[:application_token] = existing.token
+        @application = existing
+      end
+    end
   end
 
   def save_page

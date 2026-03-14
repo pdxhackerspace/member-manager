@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_15_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_15_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -372,7 +372,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_15_020000) do
     t.datetime "created_at", null: false
     t.boolean "highlight", default: false, null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["actor_user_id"], name: "index_journals_on_actor_user_id"
     t.index ["changed_at"], name: "index_journals_on_changed_at"
     t.index ["highlight"], name: "index_journals_on_highlight"

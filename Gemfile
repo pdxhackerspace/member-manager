@@ -60,6 +60,11 @@ gem 'rqrcode', '~> 2.2'
 
 gem 'bcrypt', '~> 3.1'
 
+# Error tracking
+gem 'sentry-rails', '~> 5.0'
+gem 'sentry-ruby', '~> 5.0'
+gem 'sentry-sidekiq', '~> 5.0'
+
 # SSH client for Ruby scripts
 gem 'net-ssh', '~> 7.0'
 

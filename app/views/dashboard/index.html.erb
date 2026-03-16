@@ -492,15 +492,32 @@
                                      when 'banned' then 'text-bg-dark'
                                      when 'training_added', 'training_removed' then 'text-bg-primary'
                                      when 'trainer_capability_added', 'trainer_capability_removed' then 'text-bg-info'
+                                     when 'application_submitted' then 'text-bg-info'
+                                     when 'application_approved' then 'text-bg-success'
+                                     when 'application_rejected' then 'text-bg-danger'
                                      else 'text-bg-secondary'
                                      end %>
                     <span class="badge <%= badge_class %> small"><%= j.action.humanize %></span>
                     <small class="text-muted"><%= time_ago_in_words(j.changed_at) %> ago</small>
                   </div>
                   <div class="fw-semibold">
-                    <%= link_to j.user.display_name, user_path(j.user), class: "text-decoration-none" %>
+                    <% if j.user.present? %>
+                      <%= link_to j.user.display_name, user_path(j.user), class: "text-decoration-none" %>
+                    <% elsif j.changes_json.dig('application', 'email').present? %>
+                      <%= j.changes_json.dig('application', 'email') %>
+                    <% else %>
+                      <span class="text-muted">N/A</span>
+                    <% end %>
                   </div>
-                  <% if j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
+                  <% if j.action.start_with?('application_') && j.changes_json['application'].present? %>
+                    <% app = j.changes_json['application'] %>
+                    <small class="text-muted d-block">
+                      Status: <%= app['status']&.titleize %>
+                      <% if app['id'].present? %>
+                        &middot; <%= link_to "View", membership_application_path(app['id']), class: "link-primary" %>
+                      <% end %>
+                    </small>
+                  <% elsif j.action == 'incident_report_involvement' && j.changes_json['incident_report'].present? %>
                     <% ir = j.changes_json['incident_report'] %>
                     <small class="text-muted d-block">
                       <%= ir['type'] %>: <%= truncate(ir['subject'], length: 40) %>

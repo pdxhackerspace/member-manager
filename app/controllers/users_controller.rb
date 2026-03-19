@@ -159,6 +159,19 @@ class UsersController < AuthenticatedController
       @parking_notices_list = parking_query.limit(50)
     end
 
+    # Messages for admin and self views
+    if @view_level == :admin || @view_level == :self
+      messages_query = @user.received_messages.includes(:sender).newest_first
+      @messages_count = messages_query.count
+      @unread_messages_count = @user.received_messages.unread.count
+      @pagy_messages, @messages = pagy(messages_query, limit: 20, page_param: :messages_page)
+
+      if @view_level == :self && @active_tab == :messages
+        @user.received_messages.unread.update_all(read_at: Time.current)
+        @unread_messages_count = 0
+      end
+    end
+
     # Load payment history for admin and self views (paginated)
     if @view_level == :admin || @view_level == :self
       @payment_event_filter = params[:event_type].presence

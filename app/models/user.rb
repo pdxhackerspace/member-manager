@@ -26,6 +26,8 @@ class User < ApplicationRecord
   has_many :parking_notices, dependent: :nullify
   has_many :invitations, dependent: :nullify
   has_many :sent_invitations, class_name: 'Invitation', foreign_key: 'invited_by_id', dependent: :nullify
+  has_many :sent_messages, class_name: 'Message', foreign_key: 'sender_id', dependent: :destroy
+  has_many :received_messages, class_name: 'Message', foreign_key: 'recipient_id', dependent: :destroy
   validates :authentik_id, uniqueness: true, allow_blank: true
   validates :username, uniqueness: true, allow_blank: true
   validates :email,

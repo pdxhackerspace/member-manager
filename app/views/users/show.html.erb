@@ -299,6 +299,18 @@
         <% end %>
       <% end %>
     </li>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
+          class: "nav-link #{'active' if @active_tab == :messages}",
+          role: "tab" do %>
+        <i class="bi bi-chat-dots me-1"></i> Messages
+        <% if @unread_messages_count.to_i > 0 %>
+          <span class="badge bg-danger ms-1"><%= @unread_messages_count %></span>
+        <% elsif @messages_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @messages_count %></span>
+        <% end %>
+      <% end %>
+    </li>
   </ul>
 
   <div class="tab-content">
@@ -316,6 +328,8 @@
       <%= render 'users/tab_journal', journals: @journals, pagy: @pagy_journals, user: @user %>
     <% elsif @active_tab == :mail %>
       <%= render 'users/tab_mail', queued_mails: @queued_mails, pagy: @pagy_mails, user: @user %>
+    <% elsif @active_tab == :messages %>
+      <%= render 'users/tab_messages', messages: @messages, pagy: @pagy_messages, user: @user, show_send: true %>
     <% end %>
   </div>
 
@@ -349,6 +363,18 @@
         <% end %>
       </li>
     <% end %>
+    <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
+          class: "nav-link #{'active' if @active_tab == :messages}",
+          role: "tab" do %>
+        <i class="bi bi-chat-dots me-1"></i> Messages
+        <% if @unread_messages_count.to_i > 0 %>
+          <span class="badge bg-danger ms-1"><%= @unread_messages_count %></span>
+        <% elsif @messages_count.to_i > 0 %>
+          <span class="badge bg-secondary ms-1"><%= @messages_count %></span>
+        <% end %>
+      <% end %>
+    </li>
   </ul>
 
   <div class="tab-content">
@@ -358,6 +384,8 @@
       <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>
     <% elsif @active_tab == :parking %>
       <%= render 'users/tab_parking', parking_notices: @parking_notices_list, show_actions: false %>
+    <% elsif @active_tab == :messages %>
+      <%= render 'users/tab_messages', messages: @messages, pagy: @pagy_messages, user: @user, show_send: false %>
     <% end %>
   </div>
 

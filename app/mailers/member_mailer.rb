@@ -222,6 +222,18 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def message_received(message)
+    @message = message
+    @sender = message.sender
+    @recipient = message.recipient
+    @organization = organization_name
+
+    mail(
+      to: @recipient.email,
+      subject: "#{@organization}: Message from #{@sender.display_name} - #{message.subject}"
+    )
+  end
+
   # Build template variables for a user, merging in action-specific extras.
   # Public class method so QueuedMail can call it for regeneration.
   def self.build_template_variables(user, extra_args = {})

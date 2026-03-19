@@ -1,0 +1,25 @@
+<h2>New Message</h2>
+
+<p>Hello <%= @recipient.display_name %>,</p>
+
+<p>You have received a message from <strong><%= @sender.display_name %></strong> at <%= @organization %>.</p>
+
+<hr>
+
+<p><strong>Subject:</strong> <%= @message.subject %></p>
+
+<div style="margin: 16px 0; padding: 16px; background-color: #f8f9fa; border-left: 4px solid #0d6efd; border-radius: 4px;">
+  <%= simple_format(@message.body) %>
+</div>
+
+<hr>
+
+<p>
+  You can view this message and your other messages by signing in to your profile at
+  <%= link_to @organization, ENV.fetch('APP_BASE_URL', 'http://localhost:3000') %>.
+</p>
+
+<p>
+  Thank you,<br>
+  <%= @organization %>
+</p>

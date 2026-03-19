@@ -1,0 +1,16 @@
+New Message
+
+Hello <%= @recipient.display_name %>,
+
+You have received a message from <%= @sender.display_name %> at <%= @organization %>.
+
+Subject: <%= @message.subject %>
+
+<%= @message.body %>
+
+---
+
+You can view this message and your other messages by signing in to your profile at <%= ENV.fetch('APP_BASE_URL', 'http://localhost:3000') %>.
+
+Thank you,
+<%= @organization %>

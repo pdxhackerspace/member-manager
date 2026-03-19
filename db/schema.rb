@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_15_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_15_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -501,6 +501,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_15_030000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "messages", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "read_at"
+    t.bigint "recipient_id", null: false
+    t.bigint "sender_id", null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recipient_id", "created_at"], name: "index_messages_on_recipient_id_and_created_at"
+    t.index ["recipient_id"], name: "index_messages_on_recipient_id"
+    t.index ["sender_id", "created_at"], name: "index_messages_on_sender_id_and_created_at"
+    t.index ["sender_id"], name: "index_messages_on_sender_id"
+  end
+
   create_table "parking_notices", force: :cascade do |t|
     t.datetime "cleared_at"
     t.bigint "cleared_by_id"
@@ -928,6 +942,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_15_030000) do
   add_foreign_key "mail_log_entries", "users", column: "actor_id"
   add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
   add_foreign_key "membership_plans", "users"
+  add_foreign_key "messages", "users", column: "recipient_id"
+  add_foreign_key "messages", "users", column: "sender_id"
   add_foreign_key "parking_notices", "users"
   add_foreign_key "parking_notices", "users", column: "cleared_by_id"
   add_foreign_key "parking_notices", "users", column: "issued_by_id"

@@ -1,49 +1,47 @@
 <div class="py-4">
-  <div class="row align-items-start">
-    <!-- Main Content Column -->
+  <!-- Member Search (full width) -->
+  <div class="card dashboard-panel mb-4">
+    <div class="card-body py-3">
+      <div class="position-relative">
+        <input type="text" id="dashboard_member_search" class="form-control form-control-lg"
+               placeholder="Find a member by name, email or username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               data-search-url="<%= api_users_search_path %>">
+        <div id="dashboard_search_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1"
+             style="max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
+        </div>
+        <div id="dashboard_no_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1 p-3 text-center text-muted"
+             style="z-index: 1000; display: none;">
+          No members found matching your search.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats (full width, unboxed) -->
+  <div class="mb-4">
+    <div class="d-flex flex-wrap justify-content-center gap-4 text-center py-2">
+      <div>
+        <span class="text-muted">Members:</span>
+        <%= link_to "#{@active_user_count} active", users_path(filter: 'active'), class: "fw-bold text-decoration-none" %>
+        /
+        <%= link_to "#{@user_count} total", users_path, class: "fw-bold text-decoration-none" %>
+      </div>
+      <div class="border-start ps-4">
+        <span class="text-muted">Slack:</span>
+        <%= link_to @slack_user_count, slack_users_path, class: "fw-bold text-decoration-none" %>
+      </div>
+      <div class="border-start ps-4">
+        <span class="text-muted">Sheet:</span>
+        <%= link_to @sheet_entry_count, sheet_entries_path, class: "fw-bold text-decoration-none" %>
+      </div>
+    </div>
+  </div>
+
+  <div class="row align-items-start g-4">
+    <!-- Main column: actions + attention items -->
     <div class="col-lg-8">
-      <!-- Member Search -->
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-          <div class="position-relative">
-            <input type="text" id="dashboard_member_search" class="form-control form-control-lg" 
-                   placeholder="Find a member by name, email or username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                   data-search-url="<%= api_users_search_path %>">
-            <div id="dashboard_search_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1" 
-                 style="max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
-            </div>
-            <div id="dashboard_no_results" class="position-absolute w-100 bg-body border rounded shadow-sm mt-1 p-3 text-center text-muted" 
-                 style="z-index: 1000; display: none;">
-              No members found matching your search.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Stats Row -->
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-          <div class="d-flex flex-wrap justify-content-center gap-4 text-center">
-            <div>
-              <span class="text-muted">Members:</span>
-              <%= link_to "#{@active_user_count} active", users_path(filter: 'active'), class: "fw-bold text-decoration-none" %>
-              /
-              <%= link_to "#{@user_count} total", users_path, class: "fw-bold text-decoration-none" %>
-            </div>
-            <div class="border-start ps-4">
-              <span class="text-muted">Slack:</span>
-              <%= link_to @slack_user_count, slack_users_path, class: "fw-bold text-decoration-none" %>
-            </div>
-            <div class="border-start ps-4">
-              <span class="text-muted">Sheet:</span>
-              <%= link_to @sheet_entry_count, sheet_entries_path, class: "fw-bold text-decoration-none" %>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Quick Actions -->
-      <div class="card shadow-sm border-0 mb-4">
+      <div class="card dashboard-panel mb-4">
         <div class="card-body">
           <div class="d-flex flex-wrap justify-content-center gap-3 mb-3">
             <%= link_to onboard_path, class: "btn btn-primary btn-lg" do %>
@@ -86,7 +84,7 @@
       <% item_number = 0 %>
 
       <!-- Urgent -->
-      <div class="card shadow-sm border-0 mb-4">
+      <div class="card dashboard-panel mb-4">
         <div class="card-header bg-danger bg-opacity-10">
           <h5 class="mb-0"><i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Urgent</h5>
         </div>
@@ -123,7 +121,7 @@
       </div>
 
       <!-- Important -->
-      <div class="card shadow-sm border-0 mb-4">
+      <div class="card dashboard-panel mb-4">
         <div class="card-header bg-info bg-opacity-10">
           <h5 class="mb-0"><i class="bi bi-info-circle-fill text-info me-2"></i>Important</h5>
         </div>
@@ -313,7 +311,7 @@
       </div>
 
       <!-- Housekeeping -->
-      <div class="card shadow-sm border-0 mb-4">
+      <div class="card dashboard-panel mb-4">
         <div class="card-header bg-warning bg-opacity-10">
           <h5 class="mb-0"><i class="bi bi-clipboard-check text-warning me-2"></i>Housekeeping</h5>
         </div>
@@ -467,12 +465,11 @@
           </ul>
         </div>
       </div>
-
     </div>
 
     <!-- Highlights Column -->
     <div class="col-lg-4">
-      <div class="card shadow-sm border-0 h-100">
+      <div class="card dashboard-panel">
         <div class="card-header bg-warning bg-opacity-25 d-flex justify-content-between align-items-center">
           <h5 class="mb-0">
             <i class="bi bi-star-fill text-warning me-2"></i>Recent Highlights

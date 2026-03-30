@@ -1,5 +1,5 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0">Help</h1>
+  <h1 class="h3 mb-0">Help — <%= @help_title %></h1>
 </div>
 
 <div class="card shadow-sm border-0">
@@ -7,7 +7,15 @@
     <% if @help_content.present? %>
       <%= sanitize(@help_content, tags: %w[h1 h2 h3 h4 h5 h6 p br strong b em i u s ul ol li a div span hr table thead tbody tr th td dl dt dd code pre blockquote img], attributes: %w[href target class style src alt width height]) %>
     <% else %>
-      <p class="text-muted mb-0">No help content has been configured yet. An admin can add content by editing the "Navbar Help" text fragment in <%= link_to "Settings > Text Fragments", text_fragments_path %>.</p>
+      <p class="text-muted mb-0">
+        No content has been configured for this page yet.
+        <% if current_user_admin? %>
+          An admin can add it under <%= link_to 'Settings > Text Fragments', text_fragments_path %>
+          (key <code><%= @help_fragment_key %></code>).
+        <% else %>
+          Please ask an administrator if you need this information.
+        <% end %>
+      </p>
     <% end %>
   </div>
 </div>

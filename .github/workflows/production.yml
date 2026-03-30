@@ -1,0 +1,82 @@
+name: Production - Build and Push Image
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-${{ github.ref }}
+  cancel-in-progress: false
+
+# Updated per deployment protocol
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Updated per deployment protocol
+      - name: Version guard and read VERSION
+        run: |
+          PREV=$(git show HEAD~1:VERSION 2>/dev/null || echo "0.0.0")
+          CURR=$(cat VERSION | tr -d '[:space:]')
+          if [ "$PREV" = "$CURR" ]; then
+            echo "ERROR: VERSION file was not bumped. Update VERSION before merging to main."
+            exit 1
+          fi
+          echo "APP_VERSION=$CURR" >> "$GITHUB_ENV"
+          MAJOR="${CURR%%.*}"
+          echo "MAJOR=$MAJOR" >> "$GITHUB_ENV"
+
+      # Updated per deployment protocol
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Updated per deployment protocol
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          file: Dockerfile
+          platforms: linux/amd64
+          provenance: false
+          build-args: |
+            APP_VERSION=${{ env.APP_VERSION }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.APP_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.MAJOR }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Updated per deployment protocol
+      - name: Create and push git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --tags origin "refs/tags/v${APP_VERSION}" | grep -q .; then
+            echo "Tag v${APP_VERSION} already exists on origin, skipping."
+          else
+            git tag "v${APP_VERSION}"
+            git push origin "v${APP_VERSION}"
+          fi

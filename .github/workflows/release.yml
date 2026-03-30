@@ -1,9 +1,8 @@
 name: Release - Build and Push Image
 
+# Docker images for releases are built by production.yml on push to main (VERSION bump).
+# Manual image builds only; avoids duplicate builds when production.yml pushes v* tags.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       tag:

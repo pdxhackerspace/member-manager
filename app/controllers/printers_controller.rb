@@ -11,6 +11,10 @@ class PrintersController < AdminController
     @cups_printers = CupsService.available_printers
   end
 
+  def edit
+    @cups_printers = CupsService.available_printers
+  end
+
   def create
     @printer = Printer.new(printer_params)
     if @printer.save
@@ -19,10 +23,6 @@ class PrintersController < AdminController
       @cups_printers = CupsService.available_printers
       render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    @cups_printers = CupsService.available_printers
   end
 
   def update
@@ -53,6 +53,6 @@ class PrintersController < AdminController
   end
 
   def printer_params
-    params.require(:printer).permit(:name, :cups_printer_name, :description, :default_printer, :position)
+    params.expect(printer: %i[name cups_printer_name description default_printer position])
   end
 end

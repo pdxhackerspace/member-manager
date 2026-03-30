@@ -161,7 +161,7 @@ class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'code_of_conduct_pdf serves PDF when document exists' do
-    doc = Document.create!(
+    Document.create!(
       title: 'Code of Conduct',
       file: fixture_file_upload('code-of-conduct.pdf', 'application/pdf')
     )

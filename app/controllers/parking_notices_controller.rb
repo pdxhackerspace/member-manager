@@ -20,11 +20,19 @@ class ParkingNoticesController < AdminController
     @pagy, @parking_notices = pagy(@parking_notices, limit: 25)
   end
 
+  def show
+    @printers = Printer.ordered
+  end
+
   def new
     @parking_notice = ParkingNotice.new(
       notice_type: params[:type].presence || 'permit',
       expires_at: 7.days.from_now
     )
+    load_form_data
+  end
+
+  def edit
     load_form_data
   end
 
@@ -45,10 +53,6 @@ class ParkingNoticesController < AdminController
       load_form_data
       render :new, status: :unprocessable_content
     end
-  end
-
-  def edit
-    load_form_data
   end
 
   def update
@@ -78,10 +82,6 @@ class ParkingNoticesController < AdminController
               filename: filename,
               type: 'application/pdf',
               disposition: 'attachment'
-  end
-
-  def show
-    @printers = Printer.ordered
   end
 
   def print_notice
@@ -130,9 +130,9 @@ class ParkingNoticesController < AdminController
   end
 
   def parking_notice_params
-    params.require(:parking_notice).permit(
-      :notice_type, :user_id, :description, :location,
-      :location_detail, :expires_at, :notes, photos: []
+    params.expect(
+      parking_notice: [:notice_type, :user_id, :description, :location,
+                       :location_detail, :expires_at, :notes, { photos: [] }]
     )
   end
 end

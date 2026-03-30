@@ -51,12 +51,6 @@ class IncidentReportPdf
 
   def metadata_section
     status_text = @incident_report.status_display
-    case @incident_report.status
-    when 'draft' then '666666'
-    when 'in_progress' then 'CC8800'
-    when 'resolved' then '228822'
-    else '000000'
-    end
 
     data = [
       ['Date:', @incident_report.incident_date.strftime('%B %d, %Y')],

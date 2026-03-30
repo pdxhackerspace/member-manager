@@ -149,7 +149,7 @@ class ParkingNoticeTest < ActiveSupport::TestCase
 
   test 'for_user scope filters by user' do
     user_notices = ParkingNotice.for_user(@user)
-    assert user_notices.all? { |n| n.user_id == @user.id }
+    assert(user_notices.all? { |n| n.user_id == @user.id })
   end
 
   test 'record_journal_entry! creates journal when user present' do

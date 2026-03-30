@@ -16,36 +16,14 @@ class ApplicationVerificationsController < ApplicationController
   end
 
   def send_verification
-    unless params[:confirmed_open_house] == '1'
-      redirect_to apply_new_path, alert: 'You must confirm that you have attended an open house.'
-      return
-    end
+    return unless open_house_confirmation_ok?
+    return unless code_of_conduct_confirmation_ok?
 
-    unless params[:confirmed_code_of_conduct] == '1'
-      redirect_to apply_new_path, alert: 'You must confirm that you have read and agree with the Code of Conduct.'
-      return
-    end
+    email = normalized_verification_email
+    return if email.nil?
 
-    email = params[:email].to_s.strip.downcase
-    if email.blank? || !email.match?(URI::MailTo::EMAIL_REGEXP)
-      redirect_to apply_new_path, alert: 'Please enter a valid email address.'
-      return
-    end
-
-    verification = ApplicationVerification.create!(
-      email: email,
-      confirmed_open_house: true,
-      confirmed_code_of_conduct: true
-    )
-
-    verification_url = apply_verify_email_url(token: verification.token)
-    expiry_hours = MembershipSetting.application_verification_expiry_hours
-
-    MemberMailer.application_email_verification(
-      email,
-      verification_url: verification_url,
-      expires_in: "#{expiry_hours} #{'hour'.pluralize(expiry_hours)}"
-    ).deliver_later
+    verification = create_verification!(email)
+    deliver_verification_mailer(email, verification)
 
     redirect_to apply_check_email_path
   end
@@ -70,4 +48,48 @@ class ApplicationVerificationsController < ApplicationController
   end
 
   def check_email; end
+
+  private
+
+  def open_house_confirmation_ok?
+    return true if params[:confirmed_open_house] == '1'
+
+    redirect_to apply_new_path, alert: 'You must confirm that you have attended an open house.'
+    false
+  end
+
+  def code_of_conduct_confirmation_ok?
+    return true if params[:confirmed_code_of_conduct] == '1'
+
+    redirect_to apply_new_path, alert: 'You must confirm that you have read and agree with the Code of Conduct.'
+    false
+  end
+
+  def normalized_verification_email
+    email = params[:email].to_s.strip.downcase
+    if email.blank? || !email.match?(URI::MailTo::EMAIL_REGEXP)
+      redirect_to apply_new_path, alert: 'Please enter a valid email address.'
+      return
+    end
+    email
+  end
+
+  def create_verification!(email)
+    ApplicationVerification.create!(
+      email: email,
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true
+    )
+  end
+
+  def deliver_verification_mailer(email, verification)
+    verification_url = apply_verify_email_url(token: verification.token)
+    expiry_hours = MembershipSetting.application_verification_expiry_hours
+
+    MemberMailer.application_email_verification(
+      email,
+      verification_url: verification_url,
+      expires_in: "#{expiry_hours} #{'hour'.pluralize(expiry_hours)}"
+    ).deliver_later
+  end
 end

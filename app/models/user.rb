@@ -542,7 +542,8 @@ class User < ApplicationRecord
     return if payer_id.blank?
 
     PaypalPayment.where(payer_id: payer_id.to_s, user_id: id).find_each do |pp|
-      pe = PaymentEvent.find_or_create_by!(source: 'paypal', external_id: pp.paypal_id, event_type: 'payment') do |event|
+      pe = PaymentEvent.find_or_create_by!(source: 'paypal', external_id: pp.paypal_id,
+                                           event_type: 'payment') do |event|
         event.user = self
         event.amount = pp.amount
         event.currency = pp.currency || 'USD'

@@ -9,7 +9,7 @@ class AccessControllerProbeJob < ApplicationJob
     return if script_path.blank?
 
     stdout, stderr, status = Open3.capture3(script_path, 'actions')
-    output = [stdout, stderr].map(&:to_s).join("\n")
+    output = [stdout, stderr].join("\n")
 
     return unless status.success?
 

@@ -18,7 +18,7 @@ class ApplicationFormQuestion < ApplicationRecord
   end
 
   def options=(list)
-    self.options_json = Array(list).reject(&:blank?).to_json
+    self.options_json = Array(list).compact_blank.to_json
   end
 
   def radio?

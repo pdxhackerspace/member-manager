@@ -20,6 +20,6 @@ class Printer < ApplicationRecord
   def ensure_single_default
     return unless default_printer? && default_printer_changed?
 
-    Printer.where.not(id: id).update_all(default_printer: false) # rubocop:disable Rails/SkipsModelValidations
+    Printer.where.not(id: id).update_all(default_printer: false)
   end
 end

@@ -9,6 +9,8 @@ class ApplicationFormPagesController < AdminController
     @page = ApplicationFormPage.new(position: (ApplicationFormPage.maximum(:position) || 0) + 1)
   end
 
+  def edit; end
+
   def create
     @page = ApplicationFormPage.new(page_params)
     if @page.save
@@ -17,8 +19,6 @@ class ApplicationFormPagesController < AdminController
       render :new, status: :unprocessable_content
     end
   end
-
-  def edit; end
 
   def update
     if @page.update(page_params)
@@ -40,6 +40,6 @@ class ApplicationFormPagesController < AdminController
   end
 
   def page_params
-    params.require(:application_form_page).permit(:title, :description, :position)
+    params.expect(application_form_page: %i[title description position])
   end
 end

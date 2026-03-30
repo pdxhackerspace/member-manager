@@ -57,7 +57,7 @@ class MessageTest < ActiveSupport::TestCase
   end
 
   test 'newest_first scope orders by created_at desc' do
-    old = Message.create!(sender: @sender, recipient: @recipient, subject: 'Old', body: 'Old message')
+    Message.create!(sender: @sender, recipient: @recipient, subject: 'Old', body: 'Old message')
     new_msg = Message.create!(sender: @sender, recipient: @recipient, subject: 'New', body: 'New message')
 
     results = Message.newest_first

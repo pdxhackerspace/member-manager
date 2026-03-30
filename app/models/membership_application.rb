@@ -73,7 +73,6 @@ class MembershipApplication < ApplicationRecord
 
   def status_badge_color
     case status
-    when 'draft' then 'secondary'
     when 'submitted' then 'primary'
     when 'under_review' then 'warning'
     when 'approved' then 'success'

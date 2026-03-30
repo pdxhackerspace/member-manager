@@ -64,8 +64,7 @@ class ParkingNotice < ApplicationRecord
     case status
     when 'active' then 'primary'
     when 'expired' then 'danger'
-    when 'cleared' then 'secondary'
-    else 'secondary'
+    else 'secondary' # cleared and unknown statuses
     end
   end
 
@@ -89,7 +88,7 @@ class ParkingNotice < ApplicationRecord
   end
 
   def record_journal_entry!(action_name, actor: nil)
-    return unless user.present?
+    return if user.blank?
 
     Journal.create!(
       user: user,

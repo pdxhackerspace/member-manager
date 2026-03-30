@@ -1,5 +1,6 @@
 # Mailer for member-related notifications
 # Uses database templates when available, falls back to view templates
+# rubocop:disable Metrics/ClassLength -- many small mailer actions; extraction would fragment templates
 class MemberMailer < ApplicationMailer
   # Sent when a new member application is submitted
   def application_received(user)
@@ -237,8 +238,14 @@ class MemberMailer < ApplicationMailer
   # Build template variables for a user, merging in action-specific extras.
   # Public class method so QueuedMail can call it for regeneration.
   def self.build_template_variables(user, extra_args = {})
+    vars = base_template_variables(user)
+    merge_template_extras!(vars, extra_args)
+    vars
+  end
+
+  def self.base_template_variables(user)
     org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
-    vars = {
+    {
       member_name: user.display_name,
       member_email: user.email || 'Not provided',
       member_username: user.username || 'Not set',
@@ -246,29 +253,30 @@ class MemberMailer < ApplicationMailer
       date: Date.current.strftime('%B %d, %Y'),
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
     }
+  end
 
-    vars[:days_overdue] = if extra_args[:days_overdue]
-                            " by #{extra_args[:days_overdue]} days"
-                          else
-                            ''
-                          end
-
+  def self.merge_template_extras!(vars, extra_args)
+    vars[:days_overdue] = extra_args[:days_overdue] ? " by #{extra_args[:days_overdue]} days" : ''
     vars[:reason] = if extra_args[:reason].present?
                       "<p><strong>Reason:</strong> #{extra_args[:reason]}</p>"
                     else
                       ''
                     end
-
     vars[:training_topic] = extra_args[:training_topic] if extra_args[:training_topic].present?
 
-    # Parking notice variables
+    merge_parking_notice_template_keys!(vars, extra_args)
+  end
+
+  def self.merge_parking_notice_template_keys!(vars, extra_args)
     vars[:location] = extra_args[:location].to_s if extra_args.key?(:location)
     vars[:location_detail] = extra_args[:location_detail].to_s if extra_args.key?(:location_detail)
     vars[:description] = extra_args[:description].to_s if extra_args.key?(:description)
     vars[:expires_at] = extra_args[:expires_at].to_s if extra_args.key?(:expires_at)
     vars[:notice_type] = extra_args[:notice_type].to_s if extra_args.key?(:notice_type)
+  end
 
-    vars
+  class << self
+    private :base_template_variables, :merge_template_extras!, :merge_parking_notice_template_keys!
   end
 
   private
@@ -325,3 +333,4 @@ class MemberMailer < ApplicationMailer
     end
   end
 end
+# rubocop:enable Metrics/ClassLength

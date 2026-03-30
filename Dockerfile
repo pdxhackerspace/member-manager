@@ -64,8 +64,8 @@ RUN --mount=type=cache,target=/rails/tmp/cache \
 
 # Final stage for app image
 FROM base
-ARG APP_VERSION
-ENV APP_VERSION=${APP_VERSION}
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 
 # Install packages needed for deployment
 # Use cache mount for apt packages to speed up rebuilds

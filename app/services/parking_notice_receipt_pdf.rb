@@ -27,9 +27,7 @@ class ParkingNoticeReceiptPdf
 
   attr_reader :document
 
-  def render
-    document.render
-  end
+  delegate :render, to: :document
 
   private
 
@@ -73,14 +71,12 @@ class ParkingNoticeReceiptPdf
     field('Expires', @notice.expires_at.strftime('%b %d, %Y %l:%M %p'))
     field('Issued by', @notice.issued_by&.display_name || '—')
 
-    if @notice.user.present?
-      field('Member', @notice.user.display_name)
-    end
+    field('Member', @notice.user.display_name) if @notice.user.present?
 
-    if @notice.cleared?
-      field('Cleared by', @notice.cleared_by&.display_name || '—')
-      field('Cleared on', @notice.cleared_at&.strftime('%b %d, %Y %l:%M %p') || '—')
-    end
+    return unless @notice.cleared?
+
+    field('Cleared by', @notice.cleared_by&.display_name || '—')
+    field('Cleared on', @notice.cleared_at&.strftime('%b %d, %Y %l:%M %p') || '—')
   end
 
   def description_block

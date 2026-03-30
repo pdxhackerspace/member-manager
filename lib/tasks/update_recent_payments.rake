@@ -7,15 +7,15 @@ namespace :users do
     User.where.not(last_payment_date: nil)
         .where(last_payment_date: cutoff_date..)
         .find_each do |user|
-          updates = {}
-          updates[:active] = true unless user.active?
-          updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
+      updates = {}
+      updates[:active] = true unless user.active?
+      updates[:membership_status] = 'basic' if user.membership_status == 'unknown'
 
-          if updates.any?
-            user.update!(updates)
-            updated_count += 1
-            puts "Updated #{user.display_name}: #{updates.inspect}"
-          end
+      if updates.any?
+        user.update!(updates)
+        updated_count += 1
+        puts "Updated #{user.display_name}: #{updates.inspect}"
+      end
     end
 
     puts "\nTotal users updated: #{updated_count}"

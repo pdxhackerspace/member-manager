@@ -389,6 +389,10 @@ Rails.application.routes.draw do
   
   require 'sidekiq/web'
   mount Sidekiq::Web => '/goh7zeeNiezoozaingothu4'
+
+  # Staging only: view emails captured instead of being sent (letter_opener_web).
+  # Restrict /letter_opener at the reverse proxy or add auth if exposed.
+  mount LetterOpenerWeb::Engine, at: '/letter_opener' if Rails.env.staging?
   
   resources :applications do
     resources :application_groups, except: [:index] do

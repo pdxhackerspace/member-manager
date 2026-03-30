@@ -89,6 +89,11 @@ group :development, :test do
   gem 'debug', platforms: %i[mri mswin mswin64 mingw x64_mingw]
 end
 
+# Staging only: browse captured mail at /letter_opener (not loaded in production).
+group :staging do
+  gem 'letter_opener_web', '~> 3.0'
+end
+
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem 'web-console'

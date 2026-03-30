@@ -1,6 +1,9 @@
 class TextFragment < ApplicationRecord
   validates :key, presence: true, uniqueness: true
   validates :title, presence: true
+  validate :source_url_must_be_http_url, if: -> { source_url.present? }
+
+  scope :with_source_url, -> { where("COALESCE(btrim(source_url), '') <> ''") }
 
   # Find a fragment by key, or create a placeholder if it doesn't exist
   def self.find_by_key(key)
@@ -22,4 +25,15 @@ class TextFragment < ApplicationRecord
 
   # Order by title for display
   scope :ordered, -> { order(:title) }
+
+  private
+
+  def source_url_must_be_http_url
+    uri = URI.parse(source_url.strip)
+    unless uri.is_a?(URI::HTTP) && uri.host.present? && %w[http https].include?(uri.scheme)
+      errors.add(:source_url, 'must be a valid http or https URL')
+    end
+  rescue URI::InvalidURIError
+    errors.add(:source_url, 'is not a valid URL')
+  end
 end

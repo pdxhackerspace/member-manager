@@ -1,8 +1,9 @@
 class TextFragmentsController < AdminController
-  before_action :set_text_fragment, only: %i[show edit update]
+  before_action :set_text_fragment, only: %i[show edit update sync_from_url]
 
   def index
     @text_fragments = TextFragment.ordered
+    @source_url_sync_count = TextFragment.with_source_url.count
   end
 
   def show; end
@@ -23,14 +24,47 @@ class TextFragmentsController < AdminController
     redirect_to text_fragments_path, notice: 'Text fragments seeded successfully.'
   end
 
+  def sync_from_url
+    TextFragments::SyncFromUrl.call(@text_fragment)
+    redirect_back_or_fragment notice: 'Content synced from URL.'
+  rescue TextFragments::SyncFromUrl::Error => e
+    redirect_back_or_fragment alert: e.message
+  end
+
+  def sync_all_from_urls
+    fragments = TextFragment.with_source_url.order(:id)
+    if fragments.empty?
+      redirect_to text_fragments_path, notice: 'No text fragments have a source URL configured.'
+      return
+    end
+
+    errors = []
+    fragments.each do |fragment|
+      TextFragments::SyncFromUrl.call(fragment)
+    rescue TextFragments::SyncFromUrl::Error => e
+      errors << "#{fragment.title}: #{e.message}"
+    end
+
+    if errors.empty?
+      redirect_to text_fragments_path, notice: "Synced #{fragments.size} text fragment(s) from their URLs."
+    else
+      redirect_to text_fragments_path,
+                  alert: "Some syncs failed — #{errors.join(' · ')}"
+    end
+  end
+
   private
+
+  def redirect_back_or_fragment(**flash_hash)
+    redirect_back(fallback_location: edit_text_fragment_path(@text_fragment), **flash_hash)
+  end
 
   def set_text_fragment
     @text_fragment = TextFragment.find(params[:id])
   end
 
   def text_fragment_params
-    params.expect(text_fragment: %i[title content])
+    params.expect(text_fragment: %i[title content source_url])
   end
 
   def seed_fragments
@@ -84,6 +118,52 @@ class TextFragmentsController < AdminController
 
         <hr>
         <p class="text-muted">This help text can be edited in <strong>Settings &gt; Text Fragments &gt; Navbar Help</strong>.</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
+      key: 'help_general',
+      title: 'Help (General)',
+      content: <<~HTML
+        <h4>Member Manager Help</h4>
+        <p>Welcome to Member Manager. This page provides an overview of the system and how to use it.</p>
+
+        <h5>Members</h5>
+        <p>View and manage all members, their profiles, membership status, and payment history. Use the search bar to find members quickly.</p>
+
+        <h5>Payments</h5>
+        <p>PayPal, Recharge, and Ko-Fi payments are synced automatically. You can also manually import payments and link them to members.</p>
+
+        <h5>Access</h5>
+        <p>Manage access controllers, RFID readers, and view access logs. Access controllers sync RFID keys to door controllers via SSH scripts.</p>
+
+        <h5>Training</h5>
+        <p>Track which members are trained on equipment and who can train others. Training topics are configured in Settings.</p>
+
+        <h5>Settings</h5>
+        <p>Configure membership plans, email templates, text fragments, applications, webhooks, and integrations with Authentik, Slack, and Google Sheets.</p>
+
+        <hr>
+        <p class="text-muted">Admins can edit this page under <strong>Settings &gt; Text Fragments &gt; Help (General)</strong>, or set a <strong>Source URL</strong> to pull content from the web (GitHub file links are converted to raw file content automatically).</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
+      key: 'help_faq',
+      title: 'Help (FAQ)',
+      content: <<~HTML
+        <h4>Frequently asked questions</h4>
+        <p>Add questions and answers here, or point the <strong>Source URL</strong> at a document (for example a Markdown or HTML file on GitHub) and use <strong>Sync from URL</strong> to import it.</p>
+      HTML
+    )
+
+    TextFragment.ensure_exists!(
+      key: 'help_admin_faq',
+      title: 'Help (Admin FAQ)',
+      content: <<~HTML
+        <h4>Admin FAQ</h4>
+        <p>This page is only linked in the Help menu for administrators. Use it for internal how-tos, runbooks, or policy reminders.</p>
+        <p class="text-muted">Edit the <code>help_admin_faq</code> text fragment or sync from a <strong>Source URL</strong>.</p>
       HTML
     )
 

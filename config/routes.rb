@@ -13,6 +13,8 @@ Rails.application.routes.draw do
   get "/login", to: "sessions#new"
   get "/apply", to: "pages#apply"
   get "/help", to: "pages#help", as: :help
+  get "/help/faq", to: "pages#help_faq", as: :help_faq
+  get "/help/admin_faq", to: "pages#help_admin_faq", as: :help_admin_faq
 
   # Application verification gate (must complete before starting application)
   get  "/apply/new",                    to: "application_verifications#gate", as: :apply_new
@@ -286,8 +288,12 @@ Rails.application.routes.draw do
   end
 
   resources :text_fragments, only: [:index, :show, :edit, :update] do
+    member do
+      post :sync_from_url
+    end
     collection do
       post :seed
+      post :sync_all_from_urls
     end
   end
 

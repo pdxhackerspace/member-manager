@@ -3,7 +3,10 @@
     <h1 class="h3 mb-1">Edit Text Fragment</h1>
     <p class="text-muted mb-0">Key: <code><%= @text_fragment.key %></code></p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex flex-wrap gap-2">
+    <% if @text_fragment.source_url.to_s.strip.present? %>
+      <%= button_to "Sync from URL", sync_from_url_text_fragment_path(@text_fragment), method: :post, class: "btn btn-outline-secondary", data: { turbo: false } %>
+    <% end %>
     <%= link_to "View", text_fragment_path(@text_fragment), class: "btn btn-outline-info" %>
     <%= link_to "Back to Text Fragments", text_fragments_path, class: "btn btn-outline-secondary" %>
   </div>
@@ -27,13 +30,22 @@
         <%= form.text_field :title, class: "form-control" %>
       </div>
 
+      <div class="mb-3">
+        <%= form.label :source_url, "Source URL (optional)", class: "form-label fw-semibold" %>
+        <%= form.url_field :source_url, class: "form-control", placeholder: "https://…" %>
+        <p class="form-text mb-0">
+          When set, you can replace the content below with the downloaded document using <strong>Sync from URL</strong>.
+          Paste a normal GitHub file link (<code>/blob/</code>); it is fetched as raw file text, not the HTML wrapper page.
+        </p>
+      </div>
+
       <div class="mb-4" data-controller="rich-editor" data-rich-editor-variables-value="[]">
         <%= form.label :content, "Content", class: "form-label fw-semibold" %>
         <p class="text-muted small mb-2">Use the visual editor below or click the code button <code>&lt;/&gt;</code> to edit raw HTML.</p>
         <%= form.text_area :content, class: "form-control", rows: 15, data: { rich_editor_target: "editor" } %>
       </div>
 
-      <div class="d-flex gap-2">
+      <div class="d-flex flex-wrap gap-2">
         <%= form.submit "Save Changes", class: "btn btn-primary" %>
         <%= link_to "Cancel", text_fragments_path, class: "btn btn-outline-secondary" %>
       </div>

@@ -22,10 +22,12 @@ class MembershipApplicationsController < ApplicationController
       end
     end
 
+    return unless @email
+
     @existing_application = MembershipApplication.where(email: @email)
-                                                  .where.not(status: 'draft')
-                                                  .newest_first
-                                                  .first if @email
+                                                 .where.not(status: 'draft')
+                                                 .newest_first
+                                                 .first
   end
 
   def save_page
@@ -66,7 +68,7 @@ class MembershipApplicationsController < ApplicationController
     missing = check_required_fields
     if missing.any?
       redirect_to apply_page_path(page_number: missing.first[:page_number]),
-                  alert: "Please complete required fields before submitting."
+                  alert: 'Please complete required fields before submitting.'
       return
     end
 
@@ -131,6 +133,31 @@ class MembershipApplicationsController < ApplicationController
     MembershipApplication.find_by(token: token, status: 'draft')
   end
 
+  def persist_answers_for_questions!(current_page, answers, answers_other)
+    current_page.questions.each do |question|
+      value = answers[question.id.to_s].to_s.strip
+      if value == 'Other'
+        other_value = answers_other[question.id.to_s].to_s.strip
+        value = other_value.presence || 'Other'
+      end
+      answer = @application.application_answers.find_or_initialize_by(
+        application_form_question: question
+      )
+      answer.value = value
+      answer.save!
+    end
+  end
+
+  def redirect_after_saving_page(page_number, page_count)
+    next_page = page_number + 1
+    if next_page > page_count
+      redirect_to apply_page_path(page_number: page_number),
+                  notice: 'Answers saved. Review and submit when ready.'
+    else
+      redirect_to apply_page_path(page_number: next_page)
+    end
+  end
+
   def save_email_page
     verification = current_verification
     email = verification.email
@@ -156,38 +183,17 @@ class MembershipApplicationsController < ApplicationController
       return
     end
 
-    answers = params[:answers] || {}
-    answers_other = params[:answers_other] || {}
-    current_page.questions.each do |question|
-      value = answers[question.id.to_s].to_s.strip
-      if value == 'Other'
-        other_value = answers_other[question.id.to_s].to_s.strip
-        value = other_value.presence || 'Other'
-      end
-      answer = @application.application_answers.find_or_initialize_by(
-        application_form_question: question
-      )
-      answer.value = value
-      answer.save!
-    end
+    persist_answers_for_questions!(current_page, params[:answers] || {}, params[:answers_other] || {})
 
-    next_page = page_number + 1
-    if next_page > pages.size
-      redirect_to apply_page_path(page_number: page_number),
-                  notice: 'Answers saved. Review and submit when ready.'
-    else
-      redirect_to apply_page_path(page_number: next_page)
-    end
+    redirect_after_saving_page(page_number, pages.size)
   end
 
   def check_required_fields
     missing = []
     ApplicationFormPage.ordered.each_with_index do |page, idx|
-      page.questions.where(required: true).each do |q|
+      page.questions.where(required: true).find_each do |q|
         answer = @application.answer_for(q)
-        if answer.nil? || answer.value.blank?
-          missing << { page_number: idx + 1, question: q }
-        end
+        missing << { page_number: idx + 1, question: q } if answer.nil? || answer.value.blank?
       end
     end
     missing

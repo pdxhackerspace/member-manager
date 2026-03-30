@@ -86,7 +86,7 @@ module Authentik
       desired_members = application_group.syncable_members
       desired_user_pks = desired_members.pluck(:authentik_id)
                                         .filter_map do |id|
-                                          id.to_i if id.present? && id.to_s.match?(/\A\d+\z/) && id.to_i.positive?
+        id.to_i if id.present? && id.to_s.match?(/\A\d+\z/) && id.to_i.positive?
       end
 
       to_add = desired_user_pks - current_user_pks

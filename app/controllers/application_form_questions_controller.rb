@@ -8,6 +8,8 @@ class ApplicationFormQuestionsController < AdminController
     )
   end
 
+  def edit; end
+
   def create
     @question = @page.questions.build(question_params)
     if @question.save
@@ -16,8 +18,6 @@ class ApplicationFormQuestionsController < AdminController
       render :new, status: :unprocessable_content
     end
   end
-
-  def edit; end
 
   def update
     if @question.update(question_params)
@@ -43,14 +43,14 @@ class ApplicationFormQuestionsController < AdminController
   end
 
   def question_params
-    permitted = params.require(:application_form_question).permit(
-      :label, :field_type, :required, :position, :help_text, :options_text
+    permitted = params.expect(
+      application_form_question: %i[label field_type required position help_text options_text]
     )
     if permitted[:options_text].present?
       permitted[:options_json] = permitted.delete(:options_text)
                                           .split("\n")
                                           .map(&:strip)
-                                          .reject(&:blank?)
+                                          .compact_blank
                                           .to_json
     else
       permitted.delete(:options_text)

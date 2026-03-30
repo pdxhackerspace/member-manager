@@ -82,7 +82,7 @@ class MessagesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_local_admin
 
     post messages_path, params: {
-      recipient_id: 999999,
+      recipient_id: 999_999,
       subject: 'Test',
       body: 'Test'
     }

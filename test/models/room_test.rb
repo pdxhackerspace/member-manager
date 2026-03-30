@@ -21,7 +21,7 @@ class RoomTest < ActiveSupport::TestCase
 
   test 'ordered scope sorts by position then name' do
     rooms = Room.ordered.pluck(:name)
-    assert_equal rooms, rooms.sort_by { |n| [Room.find_by(name: n).position, n] }
+    assert_equal(rooms, rooms.sort_by { |n| [Room.find_by(name: n).position, n] })
   end
 
   test 'to_s returns name' do

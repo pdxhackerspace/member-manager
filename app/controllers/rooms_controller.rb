@@ -9,6 +9,8 @@ class RoomsController < AdminController
     @room = Room.new
   end
 
+  def edit; end
+
   def create
     @room = Room.new(room_params)
     if @room.save
@@ -17,8 +19,6 @@ class RoomsController < AdminController
       render :new, status: :unprocessable_content
     end
   end
-
-  def edit; end
 
   def update
     if @room.update(room_params)
@@ -40,6 +40,6 @@ class RoomsController < AdminController
   end
 
   def room_params
-    params.require(:room).permit(:name, :position)
+    params.expect(room: %i[name position])
   end
 end

@@ -13,7 +13,7 @@ threads min_threads_count, max_threads_count
 
 rails_env = ENV.fetch("RAILS_ENV") { "development" }
 
-if rails_env == "production"
+if %w[production staging].include?(rails_env)
   # If you are running more than 1 thread per process, the workers count
   # should be equal to the number of processors (CPU cores) in production.
   #

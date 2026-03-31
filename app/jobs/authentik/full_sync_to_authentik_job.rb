@@ -48,13 +48,15 @@ module Authentik
 
       if results[:critical_authentik_errors].any?
         MemberSource.for('authentik').record_failed_sync!(results[:critical_authentik_errors].join('; '))
-      else
-        MemberSource.for('authentik').record_sync! if MemberSource.enabled?('authentik')
+      elsif MemberSource.enabled?('authentik')
+        MemberSource.for('authentik').record_sync!
       end
 
       results
     rescue StandardError => e
-      MemberSource.for('authentik').record_failed_sync!("#{e.class}: #{e.message}") if MemberSource.enabled?('member_manager')
+      if MemberSource.enabled?('member_manager')
+        MemberSource.for('authentik').record_failed_sync!("#{e.class}: #{e.message}")
+      end
       raise
     end
 

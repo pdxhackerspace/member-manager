@@ -13,6 +13,7 @@ module Authentik
       Rails.logger.info("Authentik group sync completed (#{synced_count} members).")
     rescue StandardError => e
       Rails.logger.error("Authentik group sync failed: #{e.class} #{e.message}")
+      MemberSource.for('authentik').record_failed_sync!("#{e.class}: #{e.message}") if MemberSource.enabled?('authentik')
       raise
     end
 

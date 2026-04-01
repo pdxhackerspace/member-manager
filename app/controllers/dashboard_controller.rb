@@ -49,8 +49,12 @@ class DashboardController < AdminController
                                                          .where(sync_status: %w[degraded failing])
                                                          .order(:name)
 
-    # Urgent: Authentik pull/push sync failures
+    # Urgent: Authentik API not configured (login and/or member sync enabled)
     @authentik_member_source = MemberSource.find_by(key: 'authentik')
+    @authentik_api_urgent = !AuthentikConfig.api_ready? &&
+                            (AuthentikConfig.enabled_for_login? || @authentik_member_source&.enabled?)
+
+    # Urgent: Authentik pull/push sync failures
     @authentik_sync_issue = @authentik_member_source if @authentik_member_source&.enabled? &&
                                                         @authentik_member_source.sync_status.in?(%w[degraded failing])
 

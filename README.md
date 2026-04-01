@@ -32,7 +32,7 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | OAuth credentials from Authentik |
 | `AUTHENTIK_REDIRECT_URI` | Callback URL registered in Authentik (default `http://localhost:3000/auth/authentik/callback`) |
 | `AUTHENTIK_API_BASE_URL` | Base URL for Authentik's API (defaults to the issuer) |
-| `AUTHENTIK_TOKEN` | Service account API token sent as `Authorization: Bearer` (required at boot in non-test environments) |
+| `AUTHENTIK_TOKEN` | Service account API token sent as `Authorization: Bearer` (optional at boot; the admin dashboard shows Urgent if Authentik login or member sync is enabled but the token or API base URL is missing) |
 | `AUTHENTIK_GROUP_ID` | UUID/slug of the Authentik group to sync |
 | `AUTHENTIK_GROUP_PAGE_SIZE` | Optional page size override when fetching group members (default 200) |
 | `SLACK_API_TOKEN` | Slack Bot/User OAuth token with at least `users:read` scope |

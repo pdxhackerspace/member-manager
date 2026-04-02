@@ -5,7 +5,7 @@ Rails.application.config.x.authentik = ActiveSupport::InheritableOptions.new(
   redirect_uri: ENV.fetch('AUTHENTIK_REDIRECT_URI', nil),
   group_id: ENV.fetch('AUTHENTIK_GROUP_ID', nil),
   api_base_url: ENV['AUTHENTIK_API_BASE_URL'] || ENV.fetch('AUTHENTIK_ISSUER', nil),
-  api_token: ENV.fetch('AUTHENTIK_TOKEN', '').strip.presence,
+  api_token: ENV.fetch('AUTHENTIK_API_TOKEN', '').strip.presence,
   group_page_size: ENV.fetch('AUTHENTIK_GROUP_PAGE_SIZE', 200).to_i,
   webhook_secret: ENV.fetch('AUTHENTIK_WEBHOOK_SECRET', nil)
 )
@@ -28,11 +28,11 @@ end
 # API token may be unset during local bootstrap; Authentik REST features stay disabled until configured.
 # The admin dashboard surfaces this in the Urgent section.
 unless Rails.env.test? || ENV['SECRET_KEY_BASE_DUMMY'].present?
-  token = ENV.fetch('AUTHENTIK_TOKEN', '').strip
+  token = ENV.fetch('AUTHENTIK_API_TOKEN', '').strip
   if token.blank?
-    msg = 'MemberManager: AUTHENTIK_TOKEN is missing or empty. OIDC login may still work; set a ' \
-          'service account API token for group sync, provisioning, and webhooks.'
-    Rails.logger.warn(msg)
+    msg = 'MemberManager: AUTHENTIK_API_TOKEN is missing or empty. Set it to your Authentik service ' \
+          'account API token. The app will send it as Authorization: Bearer. Refusing to start.'
+    Rails.logger.error(msg)
     warn(msg)
   end
 end

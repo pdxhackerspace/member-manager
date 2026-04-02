@@ -145,11 +145,11 @@
         <h6>API Token</h6>
         <% if AuthentikConfig.settings.api_token.present? %>
           <div class="alert alert-success py-2 small mb-3">
-            <strong>Bearer token configured</strong> &mdash; Authentik API requests use <code>AUTHENTIK_TOKEN</code> (<code>Authorization: Bearer</code>).
+            <strong>Bearer token configured</strong> &mdash; Authentik API requests use <code>AUTHENTIK_API_TOKEN</code> (<code>Authorization: Bearer</code>).
           </div>
         <% else %>
           <div class="alert alert-danger py-2 small mb-3">
-            <strong>No API token configured.</strong> Set <code>AUTHENTIK_TOKEN</code> to a valid service account API token.
+            <strong>No API token configured.</strong> Set <code>AUTHENTIK_API_TOKEN</code> to a valid service account API token.
           </div>
         <% end %>
 
@@ -164,7 +164,7 @@
             <% end %>
           </li>
           <li>
-            <code>AUTHENTIK_TOKEN</code>
+            <code>AUTHENTIK_API_TOKEN</code>
             <% if AuthentikConfig.settings.api_token.present? %>
               <span class="badge text-bg-success">Set</span>
             <% else %>

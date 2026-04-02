@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_02_041203) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -466,10 +466,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
     t.datetime "submitted_at"
     t.string "token", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["email"], name: "index_membership_applications_on_email"
     t.index ["reviewed_by_id"], name: "index_membership_applications_on_reviewed_by_id"
     t.index ["status"], name: "index_membership_applications_on_status"
     t.index ["token"], name: "index_membership_applications_on_token", unique: true
+    t.index ["user_id"], name: "index_membership_applications_on_user_id"
   end
 
   create_table "membership_plans", force: :cascade do |t|
@@ -866,6 +868,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
     t.text "bio"
     t.datetime "created_at", null: false
     t.boolean "do_not_greet", default: false, null: false
+    t.datetime "dues_due_at"
     t.string "dues_status", default: "unknown"
     t.string "email"
     t.string "extra_emails", default: [], array: true
@@ -945,6 +948,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_31_000000) do
   add_foreign_key "kofi_payments", "users"
   add_foreign_key "mail_log_entries", "queued_mails"
   add_foreign_key "mail_log_entries", "users", column: "actor_id"
+  add_foreign_key "membership_applications", "users"
   add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
   add_foreign_key "membership_plans", "users"
   add_foreign_key "messages", "users", column: "recipient_id"

@@ -18,10 +18,15 @@ module AuthentikConfig
   def self.enabled_for_login?
     settings.client_id.present? && settings.client_secret.present? && settings.issuer.present?
   end
+
+  # Bearer REST API calls require token + base URL (see +Authentik::Client#validate_api_config!+).
+  def self.api_ready?
+    settings.api_token.present? && settings.api_base_url.present?
+  end
 end
 
-# Service account API token is mandatory at runtime. Skip during tests and when precompiling
-# assets in Docker (+SECRET_KEY_BASE_DUMMY+).
+# API token may be unset during local bootstrap; Authentik REST features stay disabled until configured.
+# The admin dashboard surfaces this in the Urgent section.
 unless Rails.env.test? || ENV['SECRET_KEY_BASE_DUMMY'].present?
   token = ENV.fetch('AUTHENTIK_API_TOKEN', '').strip
   if token.blank?
@@ -29,7 +34,5 @@ unless Rails.env.test? || ENV['SECRET_KEY_BASE_DUMMY'].present?
           'account API token. The app will send it as Authorization: Bearer. Refusing to start.'
     Rails.logger.error(msg)
     warn(msg)
-    # Boot must not continue without API credentials; abort is intentional (avoid infinite Sidekiq/API failures).
-    abort(msg) # rubocop:disable Rails/Exit -- fail fast when Authentik API token is unset
   end
 end

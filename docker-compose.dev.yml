@@ -1,3 +1,8 @@
+# Local development: Rails + Sidekiq + Postgres + Redis (all-in-one for humans).
+# Usage: docker compose -f docker-compose.dev.yml up --build
+#        docker compose -f docker-compose.dev.yml --profile tools run --rm migrate
+name: membermanager-dev
+
 x-web-common: &web-common
   build:
     context: .
@@ -23,27 +28,27 @@ x-db-env-dev: &db-env-dev
 
 services:
   db:
-    image: postgres:16
+    image: postgres:18-alpine
+    container_name: membermanager-dev-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: member_manager_development
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - dev_postgres_data:/var/lib/postgresql/data
+#    ports:
+#      - "5432:5432"
 
   redis:
     image: redis:7-alpine
+    container_name: membermanager-dev-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
-#    sysctls:
-#      - vm.overcommit_memory=1
-    ports:
-      - "6379:6379"
+#    ports:
+#      - "6379:6379"
     volumes:
-      - redis_data:/data
+      - dev_redis_data:/data
 
   web:
     <<: *web-common
@@ -65,17 +70,16 @@ services:
       - db
       - redis
 
-  # Run database migrations against the development database.
-  # Usage: docker compose run --rm migrate
   migrate:
     <<: *web-common
     command: bin/rails db:migrate
-    profiles: ["tools"]
+    profiles: [tools]
     environment:
       <<: *db-env-dev
     depends_on:
       - db
 
+<<<<<<< HEAD:docker-compose.yml
   # Run the full test suite.
   # Creates and loads the test database schema before running tests.
   # Usage: docker compose run --rm test
@@ -98,6 +102,8 @@ services:
       - db
       - redis
 
+=======
+>>>>>>> fafe18db9c2d6346d22c6083b1ddc25d5cb9b1bb:docker-compose.dev.yml
 volumes:
-  postgres_data:
-  redis_data:
+  dev_postgres_data:
+  dev_redis_data:

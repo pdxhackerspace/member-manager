@@ -1,11 +1,16 @@
 name: Staging - Build and Push Image
 
+# Build when a PR is merged into staging — not on push to staging (avoids coupling
+# to unrelated pushes while a staging→main release PR is open) and not when validating
+# a PR whose base is main. Optional manual rebuild via workflow_dispatch.
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [staging]
+  workflow_dispatch:
 
 concurrency:
-  group: staging-${{ github.ref }}
+  group: staging-${{ github.event.pull_request.merge_commit_sha || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -14,6 +19,8 @@ permissions:
 
 jobs:
   build-and-push:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+
     runs-on: ubuntu-latest
 
     env:
@@ -23,13 +30,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.merge_commit_sha || 'staging' }}
 
       - name: Read VERSION and set image tags
         id: meta
         run: |
           APP_VERSION=$(cat VERSION | tr -d '[:space:]')
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
-          SHORT_SHA="${GITHUB_SHA:0:7}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR

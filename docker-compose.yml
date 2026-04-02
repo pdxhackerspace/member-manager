@@ -19,7 +19,7 @@ x-db-env-dev: &db-env-dev
   DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
   REDIS_URL: redis://redis:6379/0
   # Bearer token for Authentik API (service account). Required at boot unless running tests.
-  AUTHENTIK_TOKEN: ${AUTHENTIK_TOKEN:-}
+  AUTHENTIK_API_TOKEN: ${AUTHENTIK_API_TOKEN:-}
 
 services:
   db:
@@ -93,7 +93,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_test
       REDIS_URL: redis://redis:6379/0
       SKIP_CSS_BUILD: "1"
-      AUTHENTIK_TOKEN: test-placeholder-token
+      AUTHENTIK_API_TOKEN: test-placeholder-token
     depends_on:
       - db
       - redis

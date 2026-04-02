@@ -1,5 +1,5 @@
 module Authentik
-  # Reads the static Authentik API Bearer token from +AUTHENTIK_TOKEN+ (see +AuthentikConfig+).
+  # Reads the static Authentik API Bearer token from +AUTHENTIK_API_TOKEN+ (see +AuthentikConfig+).
   # OAuth2 client-credentials / refresh flows are not used for API access.
   module TokenManager
     class << self

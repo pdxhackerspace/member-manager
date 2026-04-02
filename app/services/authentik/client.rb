@@ -329,7 +329,7 @@ module Authentik
 
       if [401, 403].include?(response.status)
         Rails.logger.error(
-          'Authentik API auth failed — check AUTHENTIK_TOKEN is valid and has not expired'
+          'Authentik API auth failed — check AUTHENTIK_API_TOKEN is valid and has not expired'
         )
       end
 

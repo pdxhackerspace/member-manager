@@ -29,6 +29,6 @@ module Ollama
       Result.new(ok: false, error: e.message.presence || e.class.name)
     end
 
-    Result = Struct.new(:ok, :error, keyword_init: true)
+    Result = Struct.new(:ok, :error)
   end
 end

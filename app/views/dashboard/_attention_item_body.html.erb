@@ -168,6 +168,20 @@ when :ac_issues %>
       <% end %>
     </div>
   <% end %>
+<% when :emergency_active_overrides %>
+  <% if @emergency_active_override_count.zero? %>
+    <div>
+      <i class="bi bi-check-circle-fill text-success me-1"></i>
+      No members with emergency active override
+    </div>
+  <% else %>
+    <div>
+      <i class="bi bi-exclamation-circle-fill text-info me-1"></i>
+      <%= link_to users_path(emergency_active_override: '1'), class: "text-decoration-none fw-semibold" do %>
+        <strong><%= @emergency_active_override_count %></strong> <%= 'member'.pluralize(@emergency_active_override_count) %> with emergency active override
+      <% end %>
+    </div>
+  <% end %>
 <% when :parking_active %>
   <% if @active_parking_count == 0 %>
     <div>

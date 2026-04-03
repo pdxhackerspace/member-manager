@@ -57,6 +57,8 @@ Rails.application.routes.draw do
     member do
       post :activate
       post :deactivate
+      post :enable_emergency_active_override
+      post :clear_emergency_active_override
       post :ban
       post :mark_deceased
       post :mark_sponsored

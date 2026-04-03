@@ -6,7 +6,7 @@ class AccessControllerBackupJob < ApplicationJob
   queue_as :default
 
   def perform
-    AccessController.enabled.ordered.includes(:access_controller_type).find_each do |controller|
+    AccessController.enabled.ordered.includes(:access_controller_type).each do |controller|
       type = controller.access_controller_type
       next unless type&.enabled?
       next unless Array(type.actions).map(&:to_s).include?('backup')

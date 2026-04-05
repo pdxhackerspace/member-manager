@@ -5,13 +5,17 @@ class MembershipApplicationsController < ApplicationController
 
   ADMIN_ACTIONS = %i[
     index show import approve reject mark_under_review link_user unlink_user vote_ai_feedback
+    save_tour_feedback vote_acceptance
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
     show approve reject mark_under_review link_user unlink_user vote_ai_feedback
+    save_tour_feedback vote_acceptance
   ].freeze
 
   before_action :require_admin!, only: ADMIN_ACTIONS
   before_action :set_application_admin, only: APPLICATION_MEMBER_ACTIONS
+  before_action :require_executive_director_for_final_decision!, only: %i[approve reject]
+  before_action :require_pending_application_for_acceptance_vote!, only: :vote_acceptance
   before_action :require_verified_email!, only: %i[start save_page page submit_application]
   before_action :load_pages, only: %i[start page]
 
@@ -135,6 +139,10 @@ class MembershipApplicationsController < ApplicationController
     @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
     vote = @application.ai_feedback_votes.detect { |v| v.user_id == current_user.id }
     @current_ai_feedback_vote = vote || @application.ai_feedback_votes.build(user: current_user)
+    tf = @application.tour_feedbacks.detect { |f| f.user_id == current_user.id }
+    @current_tour_feedback = tf || @application.tour_feedbacks.build(user: current_user)
+    av = @application.acceptance_votes.detect { |v| v.user_id == current_user.id }
+    @current_acceptance_vote = av || @application.acceptance_votes.build(user: current_user)
   end
 
   def link_user
@@ -148,6 +156,36 @@ class MembershipApplicationsController < ApplicationController
     @application.update!(user: nil)
     redirect_to membership_application_path(@application),
                 notice: 'Member link removed from this application.'
+  end
+
+  def save_tour_feedback
+    if @application.draft?
+      redirect_to membership_application_path(@application),
+                  alert: 'Tour feedback is available after the application is submitted.'
+      return
+    end
+
+    feedback = @application.tour_feedbacks.find_or_initialize_by(user: current_user)
+    feedback.assign_attributes(tour_feedback_params)
+    if feedback.save
+      redirect_to membership_application_path(@application),
+                  notice: 'Tour feedback saved.'
+    else
+      redirect_to membership_application_path(@application),
+                  alert: feedback.errors.full_messages.to_sentence
+    end
+  end
+
+  def vote_acceptance
+    vote = @application.acceptance_votes.find_or_initialize_by(user: current_user)
+    vote.assign_attributes(acceptance_vote_params)
+    if vote.save
+      redirect_to membership_application_path(@application),
+                  notice: 'Your acceptance vote was saved.'
+    else
+      redirect_to membership_application_path(@application),
+                  alert: vote.errors.full_messages.to_sentence
+    end
   end
 
   def approve
@@ -189,6 +227,28 @@ class MembershipApplicationsController < ApplicationController
   end
 
   private
+
+  def require_executive_director_for_final_decision!
+    return if true_user&.can_finalize_membership_application?
+
+    redirect_to membership_application_path(@application),
+                alert: 'Only members trained as Executive Director may approve or reject applications.'
+  end
+
+  def require_pending_application_for_acceptance_vote!
+    return if @application.acceptance_vote_open?
+
+    redirect_to membership_application_path(@application),
+                alert: 'Acceptance votes can only be cast while the application is pending.'
+  end
+
+  def tour_feedback_params
+    params.expect(tour_feedback: %i[attitude impressions engagement fit_feeling])
+  end
+
+  def acceptance_vote_params
+    params.expect(acceptance_vote: [:decision])
+  end
 
   def ai_feedback_vote_params
     params.expect(ai_feedback_vote: %i[stance reason])
@@ -287,7 +347,9 @@ class MembershipApplicationsController < ApplicationController
 
   def set_application_admin
     rel = MembershipApplication
-    rel = rel.includes(ai_feedback_votes: :user) if action_name == 'show'
+    if action_name == 'show'
+      rel = rel.includes(ai_feedback_votes: :user, tour_feedbacks: :user, acceptance_votes: :user)
+    end
     @application = rel.find(params[:id])
   end
 end

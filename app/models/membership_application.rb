@@ -2,7 +2,7 @@ class MembershipApplication < ApplicationRecord
   STATUSES = %w[draft submitted under_review approved rejected].freeze
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
-  EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'
+  EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
 
   # Form question labels whose answers are masked (with reveal control) for viewers without the training above.
   FORM_ANSWER_LABELS_CONTACT_SENSITIVE = [
@@ -133,9 +133,8 @@ class MembershipApplication < ApplicationRecord
   def applicant_display_name(name_question_id: nil)
     qid = name_question_id
     if qid.nil?
-      qid = ApplicationFormQuestion.joins(:application_form_page)
-        .where(application_form_pages: { position: 1 }, label: 'Name')
-        .pick(:id)
+      name_q_scope = ApplicationFormQuestion.joins(:application_form_page)
+      qid = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
     end
     if qid
       ans = application_answers.detect { |a| a.application_form_question_id == qid }

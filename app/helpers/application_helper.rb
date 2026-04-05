@@ -110,11 +110,12 @@ module ApplicationHelper
   end
 
   # Wrap block output when contact PII should be masked (blur + reveal toggle on ancestor).
-  def membership_application_masked_contact_capture(&block)
-    html = capture(&block)
+  def membership_application_masked_contact_capture(&)
+    html = capture(&)
     if membership_application_mask_contact_pii?
-      content_tag(:span, html, class: 'd-inline-block w-100',
-                              data: { sensitive_reveal_target: 'blurred' })
+      content_tag(:span, html,
+                  class: 'd-inline-block w-100',
+                  data: { sensitive_reveal_target: 'blurred' })
     else
       html
     end

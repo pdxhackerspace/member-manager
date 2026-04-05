@@ -56,9 +56,13 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   test 'index search filters by query param' do
     q_page = ApplicationFormPage.create!(title: 'Idx Search Page', position: 9989)
     qq = q_page.questions.create!(label: 'Note', field_type: 'text', required: false, position: 1)
-    hit = MembershipApplication.create!(email: 'idx-search-hit@example.com', status: 'submitted', submitted_at: Time.current)
+    hit = MembershipApplication.create!(
+      email: 'idx-search-hit@example.com', status: 'submitted', submitted_at: Time.current
+    )
     hit.application_answers.create!(application_form_question: qq, value: 'idx-unique-needle')
-    miss = MembershipApplication.create!(email: 'idx-search-miss@example.com', status: 'submitted', submitted_at: Time.current)
+    miss = MembershipApplication.create!(
+      email: 'idx-search-miss@example.com', status: 'submitted', submitted_at: Time.current
+    )
 
     get membership_applications_path(q: 'idx-unique-needle')
 
@@ -85,7 +89,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     get membership_application_path(app)
 
     assert_response :success
-    refute_match(/data-controller="sensitive-reveal"/, response.body)
+    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
   end
 
   test 'show does not mask when viewer has Executive Director training' do
@@ -97,7 +101,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     get membership_application_path(app)
 
     assert_response :success
-    refute_match(/data-controller="sensitive-reveal"/, response.body)
+    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
   end
 
   test 'show includes AI feedback section for non-draft applications' do

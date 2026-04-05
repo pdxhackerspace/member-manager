@@ -102,8 +102,8 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def index
-    @applications = MembershipApplication.where.not(status: 'draft').newest_first
-      .includes(:user, :reviewed_by, :application_answers)
+    base_scope = MembershipApplication.where.not(status: 'draft').newest_first
+    @applications = base_scope.includes(:user, :reviewed_by, :application_answers)
     @applications = @applications.where(status: params[:status]) if params[:status].present?
     @applications = @applications.admin_search(params[:q])
 
@@ -117,9 +117,8 @@ class MembershipApplicationsController < ApplicationController
 
     @pagy, @applications = pagy(@applications, limit: 25)
 
-    @applicant_name_question_id = ApplicationFormQuestion.joins(:application_form_page)
-      .where(application_form_pages: { position: 1 }, label: 'Name')
-      .pick(:id)
+    name_q_scope = ApplicationFormQuestion.joins(:application_form_page)
+    @applicant_name_question_id = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
 
     @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
   end

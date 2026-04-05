@@ -1,5 +1,13 @@
 name: Production - Build and Push Image
 
+# Runs on every push to main except the follow-up commit created by this workflow
+# (automated VERSION bump). Only builds and pushes a Docker image when the push is
+# a merged pull request whose head branch is release/*.
+#
+# Empty merges from release/major, release/minor, or release/patch bump VERSION
+# automatically before the image build. Other release/* merges require a VERSION bump
+# in the merged branch. Merges from staging, hotfix/*, etc. skip the Docker job.
+
 on:
   push:
     branches: [main]
@@ -14,6 +22,10 @@ permissions:
 
 jobs:
   build-and-push:
+    if: >-
+      ${{ github.event.head_commit == null ||
+      !contains(github.event.head_commit.message, '[automated version bump]') }}
+
     runs-on: ubuntu-latest
 
     env:
@@ -26,19 +38,104 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Version guard and read VERSION
+      - name: Resolve release merge and VERSION
+        id: release
         run: |
-          PREV=$(git show HEAD~1:VERSION 2>/dev/null || echo "0.0.0")
-          CURR=$(cat VERSION | tr -d '[:space:]')
-          if [ "$PREV" = "$CURR" ]; then
-            echo "ERROR: VERSION file was not bumped. Update VERSION before merging to main."
+          set -euo pipefail
+          MSG_FIRST=$(printf '%s\n' "${{ github.event.head_commit.message }}" | head -1)
+
+          # Extract head branch name from GitHub merge commit subject (same-repo or fork).
+          MERGE_BRANCH=""
+          REST=""
+          if [[ "$MSG_FIRST" =~ ^Merge\ pull\ request\ #[0-9]+\ from\ (.+)$ ]]; then
+            REST="${BASH_REMATCH[1]}"
+          fi
+          if [[ -n "$REST" ]] && [[ "$REST" =~ ^([^/:]+)[:/](.+)$ ]]; then
+            MERGE_BRANCH="${BASH_REMATCH[2]}"
+          fi
+
+          if [[ -z "$MERGE_BRANCH" ]] || [[ "$MERGE_BRANCH" != release/* ]]; then
+            echo "Not a merge from a release/* branch — skipping Docker build."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PARENT_COUNT=$(git rev-list --parents -n 1 HEAD | wc -w | tr -d ' ')
+          PARENT_COUNT=$((PARENT_COUNT - 1))
+          if [ "$PARENT_COUNT" -lt 2 ]; then
+            echo "::error::Expected a merge commit for release merges; refusing to build."
             exit 1
           fi
+
+          if git diff --quiet HEAD^1 HEAD; then
+            echo "empty_merge=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "empty_merge=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "merge_branch=$MERGE_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Skip remaining steps
+        if: steps.release.outputs.skip == 'true'
+        run: echo "Production image build skipped."
+
+      - name: Bump VERSION for empty release/major|minor|patch merges
+        if: steps.release.outputs.skip != 'true' && steps.release.outputs.empty_merge == 'true'
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.release.outputs.merge_branch }}"
+          PREV=$(git show HEAD^1:VERSION | tr -d '[:space:]')
+
+          case "$BRANCH" in
+            release/major|release/minor|release/patch) ;;
+            *)
+              echo "::error::Empty merge from \`$BRANCH\` has no auto-bump rule. Use release/major, release/minor, release/patch, or include a VERSION change."
+              exit 1
+              ;;
+          esac
+
+          IFS=. read -r MAJ MIN PAT <<< "$PREV"
+          if ! [[ "$MAJ" =~ ^[0-9]+$ && "$MIN" =~ ^[0-9]+$ && "$PAT" =~ ^[0-9]+$ ]]; then
+            echo "::error::VERSION must be semver MAJOR.MINOR.PATCH; got: $PREV"
+            exit 1
+          fi
+
+          case "$BRANCH" in
+            release/major) NEW="$((MAJ + 1)).0.0" ;;
+            release/minor) NEW="$MAJ.$((MIN + 1)).0" ;;
+            release/patch) NEW="$MAJ.$MIN.$((PAT + 1))" ;;
+          esac
+
+          printf '%s\n' "$NEW" > VERSION
+          echo "Bumped VERSION from $PREV to $NEW ($BRANCH empty merge)."
+          echo "APP_VERSION=$NEW" >> "$GITHUB_ENV"
+
+      - name: Validate VERSION (non-empty merge or after bump)
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          PREV=$(git show HEAD^1:VERSION | tr -d '[:space:]')
+          CURR=$(cat VERSION | tr -d '[:space:]')
+
+          if [ "${{ steps.release.outputs.empty_merge }}" = "true" ]; then
+            if [ "$PREV" = "$CURR" ]; then
+              echo "::error::VERSION was not bumped after empty release merge."
+              exit 1
+            fi
+          else
+            if [ "$PREV" = "$CURR" ]; then
+              echo "::error::VERSION file was not bumped. Update VERSION on your release branch before merging to main."
+              exit 1
+            fi
+          fi
+
           echo "APP_VERSION=$CURR" >> "$GITHUB_ENV"
           MAJOR="${CURR%%.*}"
           echo "MAJOR=$MAJOR" >> "$GITHUB_ENV"
 
       - name: Log in to GHCR
+        if: steps.release.outputs.skip != 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -46,9 +143,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
+        if: steps.release.outputs.skip != 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push
+        if: steps.release.outputs.skip != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -65,8 +164,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Create and push git tag
+      - name: Commit automated VERSION bump (if any)
+        if: steps.release.outputs.skip != 'true' && steps.release.outputs.empty_merge == 'true'
         run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore(release): bump VERSION to ${APP_VERSION} [automated version bump]"
+          git push origin HEAD:main
+
+      - name: Create and push git tag
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git ls-remote --tags origin "refs/tags/v${APP_VERSION}" | grep -q .; then

@@ -506,9 +506,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_05_120000) do
     t.text "reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["membership_application_id", "user_id"], name: "idx_ma_ai_feedback_votes_on_app_and_user", unique: true
-    t.index ["membership_application_id"], name: "index_membership_application_ai_feedback_votes_on_membership_application_id"
-    t.index ["user_id"], name: "index_membership_application_ai_feedback_votes_on_user_id"
+    t.index ["membership_application_id", "user_id"], name: "idx_ma_ai_fb_votes_app_user", unique: true
   end
 
   create_table "membership_plans", force: :cascade do |t|

@@ -1,5 +1,5 @@
-# Same stack as docker-compose.lint.yml but builds the lint-stage image first.
-# Use when validating Dockerfile / Gemfile changes or creating member_manager_lint:latest from scratch.
+# Same stack as docker-compose.lint.yml but builds the RuboCop-only image first.
+# Use when updating RuboCop tooling or creating member_manager_rubocop:latest from scratch.
 # Usage: docker compose -f docker-compose.lint.build.yml build rubocop
 #        docker compose -f docker-compose.lint.build.yml run --rm rubocop
 #        docker compose -f docker-compose.lint.build.yml run --rm rubocop app/models
@@ -10,10 +10,12 @@ include:
 
 services:
   rubocop:
+    image: member_manager_rubocop:latest
     build:
       context: .
-      dockerfile: Dockerfile
-      target: lint
+      dockerfile: Dockerfile.rubocop
       pull: true
       args:
         RUBY_VERSION: "3.3.11"
+        RUBOCOP_VERSION: "1.86.0"
+        RUBOCOP_RAILS_VERSION: "2.34.3"

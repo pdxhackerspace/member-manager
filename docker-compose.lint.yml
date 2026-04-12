@@ -1,45 +1,16 @@
-# RuboCop only, with a dedicated Postgres container (name-isolated; optional future tooling).
-# Quick path: uses existing member_manager_lint:latest (bind-mounts repo at /rails).
-# Build or refresh the lint image when the Dockerfile or Gemfile changes:
+# RuboCop only (no Rails app boot, no database required).
+# Quick path: uses prebuilt member_manager_rubocop:latest (bind-mounts repo at /workspace).
+# Build or refresh the lint image when RuboCop tooling changes:
 #   docker compose -f docker-compose.lint.build.yml build rubocop
-# Postgres is published on host port 5434 so it can run alongside dev/test stacks.
 # Usage: docker compose -f docker-compose.lint.yml run --rm rubocop
 #        docker compose -f docker-compose.lint.yml run --rm rubocop app/models
-# If you see GemNotFound against Gemfile.lock, refresh gems then RuboCop (same file):
-#   docker compose -f docker-compose.lint.yml run --rm --entrypoint sh rubocop -c "bundle install && bundle exec rubocop"
 name: membermanager-lint
 
 services:
-  db:
-    image: postgres:16
-    container_name: membermanager-lint-postgres
-    environment:
-      POSTGRES_DB: member_manager_lint
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - lint_postgres_data:/var/lib/postgresql/data
-#    ports:
-#      - "5434:5432"
-
   rubocop:
-    image: member_manager_lint:latest
-    env_file:
-      - .env
+    image: member_manager_rubocop:latest
     volumes:
-      - .:/rails
+      - .:/workspace
       - ./tmp/access:/tmp/access
-    working_dir: /rails
-    environment:
-      RAILS_ENV: development
-      DB_HOST: db
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_PORT: 5432
-      DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_lint
-    depends_on:
-      - db
-    entrypoint: ["bundle", "exec", "rubocop"]
-
-volumes:
-  lint_postgres_data:
+    working_dir: /workspace
+    entrypoint: ["rubocop"]

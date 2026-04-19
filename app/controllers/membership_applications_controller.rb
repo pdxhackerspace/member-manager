@@ -41,7 +41,7 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def index
-    base_scope = MembershipApplication.where.not(status: 'draft').newest_first
+    base_scope = MembershipApplication.where.not(status: 'draft')
     @applications = base_scope.includes(:user, :reviewed_by, :application_answers, :acceptance_votes)
     @current_status = params[:status].presence || 'submitted'
     @applications = case @current_status
@@ -53,6 +53,8 @@ class MembershipApplicationsController < ApplicationController
                       @applications.where(status: @current_status)
                     end
     @applications = @applications.admin_search(params[:q])
+    # Ensure stable newest-first order after search/includes (PostgreSQL + AR can otherwise return arbitrary order).
+    @applications = @applications.newest_first
 
     @status_counts = {
       all: MembershipApplication.where.not(status: 'draft').count,

@@ -84,6 +84,32 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_equal member, qm.recipient
   end
 
+  test 'newest_first orders by submitted time (fallback created_at), then id desc' do
+    travel_to Time.zone.local(2026, 4, 15, 12, 0, 0) do
+      older = MembershipApplication.create!(
+        email: 'order-old@example.com', status: 'submitted',
+        submitted_at: 5.days.ago, created_at: 5.days.ago
+      )
+      newer = MembershipApplication.create!(
+        email: 'order-new@example.com', status: 'submitted',
+        submitted_at: 1.day.ago, created_at: 2.days.ago
+      )
+      ids = MembershipApplication.where(id: [older.id, newer.id]).newest_first.pluck(:id)
+      assert_equal [newer.id, older.id], ids
+
+      t = Time.current
+      first = MembershipApplication.create!(
+        email: 'tie-a@example.com', status: 'submitted', submitted_at: t, created_at: t
+      )
+      second = MembershipApplication.create!(
+        email: 'tie-b@example.com', status: 'submitted', submitted_at: t, created_at: t
+      )
+      assert_operator second.id, :>, first.id
+      tie_ids = MembershipApplication.where(id: [first.id, second.id]).newest_first.pluck(:id)
+      assert_equal [second.id, first.id], tie_ids
+    end
+  end
+
   test 'admin_search matches email, answer text, and linked member fields' do
     page = ApplicationFormPage.create!(title: 'Search Page', position: 9988)
     q_bio = page.questions.create!(label: 'Bio', field_type: 'textarea', required: false, position: 1)

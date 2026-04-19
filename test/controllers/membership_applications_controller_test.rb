@@ -111,9 +111,15 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', membership_application_path(closed_app), count: 0
   end
 
-  test 'index unlinked tab lists only unlinked non-rejected applications' do
+  test 'index unlinked tab lists only approved applications without a linked member' do
     linked_member = users(:member_with_local_account)
     keep = MembershipApplication.create!(
+      email: 'unlinked-approved@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+    filtered_open = MembershipApplication.create!(
       email: 'unlinked-open@example.com',
       status: 'submitted',
       submitted_at: Time.current
@@ -125,9 +131,10 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       reviewed_at: Time.current
     )
     filtered_linked = MembershipApplication.create!(
-      email: 'linked-open@example.com',
-      status: 'submitted',
+      email: 'linked-approved@example.com',
+      status: 'approved',
       submitted_at: Time.current,
+      reviewed_at: Time.current,
       user: linked_member
     )
 
@@ -136,11 +143,12 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select 'a.nav-link.active', text: /Unlinked/
     assert_select 'a[href=?]', membership_application_path(keep)
+    assert_select 'a[href=?]', membership_application_path(filtered_open), count: 0
     assert_select 'a[href=?]', membership_application_path(filtered_rejected), count: 0
     assert_select 'a[href=?]', membership_application_path(filtered_linked), count: 0
   end
 
-  test 'index unlinked count excludes rejected applications' do
+  test 'index unlinked count includes only approved without a linked member' do
     MembershipApplication.create!(
       email: 'badge-open-unlinked@example.com',
       status: 'submitted',
@@ -162,7 +170,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     get membership_applications_path(status: 'all')
 
     assert_response :success
-    expected_count = MembershipApplication.where.not(status: %w[draft rejected]).where(user_id: nil).count
+    expected_count = MembershipApplication.where(status: 'approved').where(user_id: nil).count
     assert_select "a[href='#{membership_applications_path(status: 'unlinked')}'] span.badge",
                   text: expected_count.to_s
   end

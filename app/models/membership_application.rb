@@ -44,7 +44,15 @@ class MembershipApplication < ApplicationRecord
   scope :rejected, -> { where(status: 'rejected') }
   # Applications awaiting a final decision (Open or Under Review).
   scope :pending, -> { where(status: %w[submitted under_review]) }
-  scope :newest_first, -> { order(created_at: :desc) }
+  # Newest by when the application was submitted (or created if not yet submitted); tie-break on id for stable ordering.
+  scope :newest_first, lambda {
+    reorder(
+      Arel.sql(
+        'COALESCE(membership_applications.submitted_at, membership_applications.created_at) DESC NULLS LAST'
+      ),
+      Arel.sql('membership_applications.id DESC')
+    )
+  }
   scope :admin_search, lambda { |query|
     raw = query.to_s.strip
     if raw.blank?

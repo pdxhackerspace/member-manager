@@ -211,6 +211,23 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
            'expected Training Materials to appear before Trained Members'
   end
 
+  test 'show displays edit button for admin' do
+    sign_in_as_admin
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_match edit_training_topic_path(@laser_topic), response.body
+    assert_match(/>\s*Edit\s*</, response.body)
+  end
+
+  test 'show does not display edit button for non-admin' do
+    sign_in_as_member
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_no_match(/#{Regexp.escape(edit_training_topic_path(@laser_topic))}/, response.body)
+  end
+
   test 'show returns friendly error for unknown topic' do
     sign_in_as_admin
     get training_catalog_topic_path(id: 999_999_999)

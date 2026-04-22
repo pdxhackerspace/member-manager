@@ -256,6 +256,27 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_match training_catalog_path, response.body
   end
 
+  test 'navbar shows dashboard shortcut icon for non-admin member' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+
+    get training_catalog_path
+
+    assert_response :success
+    assert_match(/aria-label="Dashboard"/, response.body)
+    assert_match(/bi bi-speedometer2/, response.body)
+    assert_match user_path(member, tab: :dashboard), response.body
+  end
+
+  test 'navbar shows home icon for admin rather than dashboard shortcut' do
+    sign_in_as_admin
+    get root_path
+
+    assert_response :success
+    assert_match(/aria-label="Home"/, response.body)
+    assert_no_match(/aria-label="Dashboard"/, response.body)
+  end
+
   private
 
   def sign_in_as_admin

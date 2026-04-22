@@ -164,8 +164,8 @@ class DashboardController < AdminController
 
     @emergency_active_override_count = User.non_service_accounts.where(emergency_active_override: true).count
 
-    # Urgent: Current user's unread messages (own inbox)
-    @admin_unread_messages_count = @home_user.received_messages.unread.count
+    # Urgent: Current user's unread messages (own inbox, excluding trashed)
+    @admin_unread_messages_count = Message.folder(@home_user, :unread).count
 
     @dashboard_attention_items = build_dashboard_attention_items
   end

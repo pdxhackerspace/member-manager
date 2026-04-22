@@ -89,7 +89,7 @@ class MemberDashboardBuilder
   end
 
   def messages_item
-    unread_count = user.received_messages.unread.count
+    unread_count = Message.folder(user, :unread).count
     return messages_unread_item(unread_count) if unread_count.positive?
 
     ok_item(:unread_messages, 'Unread messages', 'You have no unread messages.')
@@ -102,8 +102,8 @@ class MemberDashboardBuilder
       title: 'Unread messages',
       detail: "You have #{unread_count} unread message#{'s' unless unread_count == 1}.",
       action: {
-        label: 'Open Messages tab',
-        path: tab_path(:messages)
+        label: 'Open Messages',
+        path: Rails.application.routes.url_helpers.messages_path(folder: :unread)
       }
     )
   end

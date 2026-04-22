@@ -178,17 +178,15 @@ class UsersController < AuthenticatedController
       @parking_notices_list = parking_query.limit(50)
     end
 
-    # Messages for admin and self views
+    # Messages for admin and self views (not deleted by the recipient)
     if @view_level == :admin || @view_level == :self
-      messages_query = @user.received_messages.includes(:sender).newest_first
+      messages_query = @user.received_messages
+                            .not_deleted_by_recipient
+                            .includes(:sender)
+                            .newest_first
       @messages_count = messages_query.count
-      @unread_messages_count = @user.received_messages.unread.count
+      @unread_messages_count = @user.received_messages.not_deleted_by_recipient.unread.count
       @pagy_messages, @messages = pagy(messages_query, limit: 20, page_key: 'messages_page')
-
-      if @view_level == :self && @active_tab == :messages
-        @user.received_messages.unread.update_all(read_at: Time.current)
-        @unread_messages_count = 0
-      end
     end
 
     if @view_level == :self
@@ -615,7 +613,7 @@ class UsersController < AuthenticatedController
   end
 
   def append_member_dashboard_messages_item
-    unread_count = @user.received_messages.unread.count
+    unread_count = Message.folder(@user, :unread).count
     if unread_count.positive?
       add_member_dashboard_item(
         ok: false,
@@ -623,8 +621,8 @@ class UsersController < AuthenticatedController
         tier: :urgent,
         title: 'Unread messages',
         detail: "You have #{unread_count} unread message#{'s' unless unread_count == 1}.",
-        action_label: 'Open Messages tab',
-        action_path: user_path(@user, tab: :messages, view_as: params[:view_as])
+        action_label: 'Open Messages',
+        action_path: messages_path(folder: :unread)
       )
       return
     end

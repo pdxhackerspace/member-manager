@@ -35,9 +35,9 @@ module Ollama
       end
     end
 
-    def with_raw_server(response_body)
+    def with_raw_server(response_body, &block)
       with_server(response_body, requests: []) do |base_url|
-        yield base_url
+        block.call(base_url)
       end
     end
 

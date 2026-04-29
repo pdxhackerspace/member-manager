@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Ollama
-  # POST /api/chat — non-streaming; optional JSON format for structured replies.
+  # POST /v1/chat/completions — OpenAI-compatible, non-streaming chat completion.
   class ChatCompletion
     TIMEOUT = 120
 
@@ -59,7 +59,7 @@ module Ollama
         ],
         stream: false
       }
-      body[:format] = 'json' if @format_json
+      body[:response_format] = { type: 'json_object' } if @format_json
       body
     end
 
@@ -72,7 +72,7 @@ module Ollama
     end
 
     def post_chat
-      faraday_connection.post('/api/chat') do |req|
+      faraday_connection.post('/v1/chat/completions') do |req|
         req.headers['Content-Type'] = 'application/json'
         req.headers['Accept'] = 'application/json'
         req.headers['Authorization'] = "Bearer #{@api_key}" if @api_key.present?
@@ -87,7 +87,7 @@ module Ollama
 
     def success_from_response(response)
       parsed = JSON.parse(response.body)
-      content = parsed.dig('message', 'content')
+      content = parsed.dig('choices', 0, 'message', 'content')
       return failure(nil, 'Empty assistant message') if content.blank?
 
       success(content.to_s)

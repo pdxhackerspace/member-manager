@@ -19,7 +19,7 @@ module Ollama
         f.options.open_timeout = TIMEOUT
         f.adapter Faraday.default_adapter
       end
-      response = connection.get('/api/tags') do |req|
+      response = connection.get('/v1/models') do |req|
         req.headers['Authorization'] = "Bearer #{@api_key}" if @api_key.present?
       end
       return Result.new(ok: false, error: "HTTP #{response.status}") unless response.success?

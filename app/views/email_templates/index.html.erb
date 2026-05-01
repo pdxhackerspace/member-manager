@@ -40,6 +40,7 @@
           <tr>
             <th>Template</th>
             <th>Subject</th>
+            <th>Delivery</th>
             <th>Status</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -60,6 +61,16 @@
                 <span class="text-truncate d-inline-block" style="max-width: 300px;">
                   <%= template.subject %>
                 </span>
+              </td>
+              <td>
+                <% if template.send_immediately? %>
+                  <span class="badge text-bg-warning-subtle">Send immediately</span>
+                <% else %>
+                  <span class="text-muted small">Queued</span>
+                <% end %>
+                <% if template.block_send_immediately? %>
+                  <span class="badge text-bg-secondary-subtle">Immediate send blocked</span>
+                <% end %>
               </td>
               <td>
                 <% if template.enabled? %>

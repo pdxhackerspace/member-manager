@@ -3,6 +3,7 @@ class QueuedMail < ApplicationRecord
 
   # Stand-in for +MemberMailer.build_template_variables+ when the applicant has no User yet
   ApplicantMailRecipient = Data.define(:display_name, :email, :username)
+  ImmediateDelivery = Data.define(:to, :subject, :email_template)
 
   belongs_to :email_template, optional: true
   belongs_to :recipient, class_name: 'User', optional: true
@@ -42,35 +43,19 @@ class QueuedMail < ApplicationRecord
     template = EmailTemplate.find_enabled(action.to_s)
     variables = enqueue_render_variables(action, user, extra_args, template)
 
+    return deliver_immediately(template, dest, variables) if template&.send_immediately?
+
     record = if template
-               rendered = template.render(variables)
-               create!(
-                 to: dest,
-                 subject: rendered[:subject],
-                 body_html: rendered[:body_html],
-                 body_text: rendered[:body_text] || '',
-                 reason: reason || action.to_s.humanize,
-                 email_template: template,
-                 recipient: user,
-                 mailer_action: action.to_s,
-                 mailer_args: extra_args
+               create_queued_mail_from_template(
+                 template,
+                 variables,
+                 queued_mail_attrs(dest, reason || action.to_s.humanize, user, action.to_s, extra_args)
                )
              else
                message = MemberMailer.public_send(action, *build_mailer_args(action, user, to, extra_args))
-               msg = message.message
-
-               html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
-               text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
-
-               create!(
-                 to: dest,
-                 subject: msg.subject,
-                 body_html: html_body || '',
-                 body_text: text_body || '',
-                 reason: reason || action.to_s.humanize,
-                 recipient: user,
-                 mailer_action: action.to_s,
-                 mailer_args: extra_args
+               create_queued_mail_from_message(
+                 message,
+                 queued_mail_attrs(dest, reason || action.to_s.humanize, user, action.to_s, extra_args)
                )
              end
 
@@ -91,34 +76,19 @@ class QueuedMail < ApplicationRecord
 
     variables = MemberMailer.build_template_variables(template_recipient, extra_args)
 
+    return deliver_immediately(template, dest, variables) if template&.send_immediately?
+
     record = if template
-               rendered = template.render(variables)
-               create!(
-                 to: dest,
-                 subject: rendered[:subject],
-                 body_html: rendered[:body_html],
-                 body_text: rendered[:body_text] || '',
-                 reason: 'Application rejected',
-                 email_template: template,
-                 recipient: recipient_user,
-                 mailer_action: action,
-                 mailer_args: extra_args
+               create_queued_mail_from_template(
+                 template,
+                 variables,
+                 queued_mail_attrs(dest, 'Application rejected', recipient_user, action, extra_args)
                )
              else
                message = MemberMailer.application_rejected(template_recipient, **extra_args)
-               msg = message.message
-               html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
-               text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
-
-               create!(
-                 to: dest,
-                 subject: msg.subject,
-                 body_html: html_body || '',
-                 body_text: text_body || '',
-                 reason: 'Application rejected',
-                 recipient: recipient_user,
-                 mailer_action: action,
-                 mailer_args: extra_args
+               create_queued_mail_from_message(
+                 message,
+                 queued_mail_attrs(dest, 'Application rejected', recipient_user, action, extra_args)
                )
              end
 
@@ -141,6 +111,52 @@ class QueuedMail < ApplicationRecord
       display_name: name,
       email: application.email,
       username: 'Not set'
+    )
+  end
+
+  def self.deliver_immediately(template, dest, variables)
+    rendered = template.render(variables)
+    EmailTemplateMailer.send_rendered(
+      to: dest,
+      subject: rendered[:subject],
+      body_html: rendered[:body_html],
+      body_text: rendered[:body_text] || ''
+    ).deliver_now
+
+    ImmediateDelivery.new(to: dest, subject: rendered[:subject], email_template: template)
+  end
+
+  def self.queued_mail_attrs(dest, reason, recipient, action, args)
+    {
+      to: dest,
+      reason: reason,
+      recipient: recipient,
+      mailer_action: action,
+      mailer_args: args
+    }
+  end
+
+  def self.create_queued_mail_from_template(template, variables, attrs)
+    rendered = template.render(variables)
+    create!(
+      **attrs,
+      subject: rendered[:subject],
+      body_html: rendered[:body_html],
+      body_text: rendered[:body_text] || '',
+      email_template: template
+    )
+  end
+
+  def self.create_queued_mail_from_message(message, attrs)
+    msg = message.message
+    html_body = msg.multipart? ? msg.html_part&.body&.decoded : msg.body.decoded
+    text_body = msg.multipart? ? msg.text_part&.body&.decoded : ''
+
+    create!(
+      **attrs,
+      subject: msg.subject,
+      body_html: html_body || '',
+      body_text: text_body || ''
     )
   end
 

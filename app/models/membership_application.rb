@@ -121,8 +121,8 @@ class MembershipApplication < ApplicationRecord
     Journal.record_application_event!(application: self, action: 'application_approved', actor: admin)
   end
 
-  # Marks the application rejected, journals, and queues the applicant rejection email (pending mail queue).
-  # Returns the new +QueuedMail+ or +nil+ if no message was queued (e.g. no destination email).
+  # Marks the application rejected, journals, and queues or immediately sends the applicant rejection email.
+  # Returns the new +QueuedMail+, +QueuedMail::ImmediateDelivery+, or +nil+ if no message was sent.
   def reject!(admin, notes: nil)
     queued_mail = nil
     MembershipApplication.transaction do

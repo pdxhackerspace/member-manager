@@ -117,6 +117,30 @@
             <div class="form-text">Disabled templates will not be sent.</div>
           </div>
 
+          <div class="mb-4 border rounded bg-body-tertiary p-3">
+            <h2 class="h6 mb-3">Delivery behavior</h2>
+            <div class="form-check">
+              <%= f.check_box :send_immediately,
+                              class: "form-check-input",
+                              disabled: @email_template.block_send_immediately? %>
+              <%= f.label :send_immediately, "Send immediately", class: "form-check-label" %>
+            </div>
+            <div class="form-text mb-3">
+              Sends this template immediately instead of placing it in the review queue.
+              <% if @email_template.block_send_immediately? %>
+                This is locked off by the safeguard below.
+              <% end %>
+            </div>
+
+            <div class="form-check">
+              <%= f.check_box :block_send_immediately, class: "form-check-input" %>
+              <%= f.label :block_send_immediately, "Block send immediately", class: "form-check-label" %>
+            </div>
+            <div class="form-text">
+              Forces send immediately off so this template cannot accidentally bypass review.
+            </div>
+          </div>
+
           <div class="d-flex gap-2">
             <%= f.submit "Save Template", class: "btn btn-primary" %>
             <%= link_to "Cancel", email_templates_path, class: "btn btn-outline-secondary" %>

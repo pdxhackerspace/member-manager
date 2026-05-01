@@ -59,6 +59,43 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'label[for=?]', 'email_template_sync_body_text', text: 'Keep in sync with HTML'
   end
 
+  test 'edit shows immediate send controls' do
+    get edit_email_template_path(@template)
+
+    assert_response :success
+    assert_select 'input[name=?]', 'email_template[send_immediately]'
+    assert_select 'input[name=?]', 'email_template[block_send_immediately]'
+  end
+
+  test 'index shows immediate send flags' do
+    @template.update!(send_immediately: true)
+
+    get email_templates_path
+
+    assert_response :success
+    assert_select 'span', text: 'Send immediately'
+  end
+
+  test 'update cannot enable send immediately while blocked' do
+    patch email_template_path(@template), params: {
+      email_template: {
+        name: @template.name,
+        description: @template.description,
+        subject: 'Updated Subject',
+        body_html: '<p>Replacement HTML</p>',
+        body_text: 'Replacement text',
+        enabled: '1',
+        send_immediately: '1',
+        block_send_immediately: '1'
+      }
+    }
+
+    assert_redirected_to email_templates_path
+    @template.reload
+    assert @template.block_send_immediately?
+    assert_not @template.send_immediately?
+  end
+
   test 'show wraps html body in high contrast preview container' do
     get email_template_path(@template)
 

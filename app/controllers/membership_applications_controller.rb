@@ -145,10 +145,14 @@ class MembershipApplicationsController < ApplicationController
       return
     end
 
-    if result.queued_mail
-      redirect_to edit_queued_mail_path(result.queued_mail),
+    delivery = result.queued_mail
+    if delivery.is_a?(QueuedMail)
+      redirect_to edit_queued_mail_path(delivery),
                   notice: 'Application approved. Review and edit the queued welcome email, ' \
                           'then approve it in the mail queue to send.'
+    elsif delivery.is_a?(QueuedMail::ImmediateDelivery)
+      redirect_to membership_application_path(@application),
+                  notice: "Application approved. The welcome email was sent immediately to #{delivery.to}."
     else
       redirect_to membership_application_path(@application),
                   notice: 'Application approved. No welcome email was queued (recipient has no email address).'
@@ -159,10 +163,13 @@ class MembershipApplicationsController < ApplicationController
     notes = params[:admin_notes]
     qm = @application.reject!(current_user, notes: notes)
 
-    if qm
+    if qm.is_a?(QueuedMail)
       redirect_to edit_queued_mail_path(qm),
                   notice: 'Application rejected. Review and edit the queued message, ' \
                           'then approve it in the mail queue to send.'
+    elsif qm.is_a?(QueuedMail::ImmediateDelivery)
+      redirect_to membership_application_path(@application),
+                  notice: "Application rejected. The rejection email was sent immediately to #{qm.to}."
     else
       redirect_to membership_application_path(@application),
                   notice: 'Application rejected. No email was queued (recipient has no email address).'

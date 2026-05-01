@@ -109,7 +109,9 @@ class EmailTemplatesController < AdminController
   end
 
   def email_template_params
-    params.expect(email_template: %i[name description subject body_html body_text enabled])
+    params.expect(email_template: %i[
+                    name description subject body_html body_text enabled send_immediately block_send_immediately
+                  ])
   end
 
   def email_template_update_params

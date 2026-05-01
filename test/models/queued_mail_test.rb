@@ -111,6 +111,38 @@ class QueuedMailTest < ActiveSupport::TestCase
     assert_nil @pending.sent_at
   end
 
+  test 'enqueue sends immediate template without creating queued mail' do
+    ActionMailer::Base.deliveries.clear
+    EmailTemplate.where(key: 'application_received').delete_all
+    EmailTemplate.create!(
+      key: 'application_received',
+      name: 'Application Received Immediate',
+      subject: 'Immediate hello {{member_name}}',
+      body_html: '<p>Hello {{member_name}}</p>',
+      body_text: 'Hello {{member_name}}',
+      enabled: true,
+      send_immediately: true
+    )
+
+    result = nil
+    assert_no_enqueued_jobs only: QueuedMailDeliveryJob do
+      assert_no_difference 'QueuedMail.count' do
+        assert_difference 'MailLogEntry.count', 1 do
+          assert_difference 'ActionMailer::Base.deliveries.size', 1 do
+            result = QueuedMail.enqueue(:application_received, users(:one), reason: 'Application received')
+          end
+        end
+      end
+    end
+
+    assert_instance_of QueuedMail::ImmediateDelivery, result
+    assert_equal users(:one).email, result.to
+    entry = MailLogEntry.order(:created_at).last
+    assert_nil entry.queued_mail_id
+    assert_equal result.to, entry.delivery_to
+    assert_equal result.subject, entry.delivery_subject
+  end
+
   # ─── Reject ──────────────────────────────────────────────────────
 
   test 'reject! sets status without sending mail' do

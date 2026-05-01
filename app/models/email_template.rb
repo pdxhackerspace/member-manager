@@ -494,6 +494,8 @@ class EmailTemplate < ApplicationRecord
   validates :body_html, presence: true
   validates :body_text, presence: true
 
+  before_validation :clear_send_immediately_if_blocked
+
   scope :enabled, -> { where(enabled: true) }
   scope :disabled, -> { where(enabled: false) }
   scope :needs_review, -> { where(needs_review: true) }
@@ -551,6 +553,10 @@ class EmailTemplate < ApplicationRecord
   end
 
   private
+
+  def clear_send_immediately_if_blocked
+    self.send_immediately = false if block_send_immediately?
+  end
 
   def substitute_variables(text, variables)
     result = text.dup

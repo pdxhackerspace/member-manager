@@ -44,6 +44,18 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_no_match deactivated.display_name, response.body
   end
 
+  test 'apply_status_filter returns the requested status scope' do
+    recent = SlackUser.create!(slack_id: 'URECENTHELPER', last_active_at: 1.month.ago)
+    inactive = SlackUser.create!(slack_id: 'UINACTIVEHELPER', last_active_at: nil)
+    deactivated = SlackUser.create!(slack_id: 'UDEACTIVATEDHELPER', deleted: true, last_active_at: 1.month.ago)
+    scope = SlackUser.where(id: [recent.id, inactive.id, deactivated.id])
+
+    assert_equal [recent.id], status_filter_ids(scope, 'active')
+    assert_equal [inactive.id], status_filter_ids(scope, 'inactive')
+    assert_equal [deactivated.id], status_filter_ids(scope, 'deactivated')
+    assert_equal [recent.id, inactive.id, deactivated.id].sort, status_filter_ids(scope, 'unknown').sort
+  end
+
   # ─── Link User ─────────────────────────────────────────────────────
 
   test 'link_user links slack user to a member' do
@@ -167,5 +179,11 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: { email: account.email, password: 'localpassword123' }
     }
+  end
+
+  def status_filter_ids(scope, status)
+    controller = SlackUsersController.new
+    controller.params = ActionController::Parameters.new(status: status)
+    controller.send(:apply_status_filter, scope).pluck(:id)
   end
 end

@@ -9,11 +9,13 @@ require 'rqrcode'
 #   PDF width must match the physical roll so CUPS does not shrink the job to a wider virtual page.
 class ParkingNoticeReceiptPdf
   THERMAL_MARGIN         = 10
+  THERMAL_MARGIN_TOP     = THERMAL_MARGIN / 2
   THERMAL_INITIAL_HEIGHT = 2000
 
-  FULL_PAGE_SIZE   = 'LETTER'.freeze
-  FULL_PAGE_MARGIN = 48
-  FULL_PAGE_QR     = 220
+  FULL_PAGE_SIZE       = 'LETTER'.freeze
+  FULL_PAGE_MARGIN     = 48
+  FULL_PAGE_MARGIN_TOP = FULL_PAGE_MARGIN / 2
+  FULL_PAGE_QR         = 220
 
   VALID_LAYOUTS = %i[full_page thermal].freeze
 
@@ -60,12 +62,12 @@ class ParkingNoticeReceiptPdf
     if thermal?
       {
         page_size: [@thermal_width_pt, THERMAL_INITIAL_HEIGHT],
-        margin: [THERMAL_MARGIN, THERMAL_MARGIN, THERMAL_MARGIN, THERMAL_MARGIN]
+        margin: [THERMAL_MARGIN_TOP, THERMAL_MARGIN, THERMAL_MARGIN, THERMAL_MARGIN]
       }
     else
       {
         page_size: FULL_PAGE_SIZE,
-        margin: [FULL_PAGE_MARGIN, FULL_PAGE_MARGIN, FULL_PAGE_MARGIN, FULL_PAGE_MARGIN]
+        margin: [FULL_PAGE_MARGIN_TOP, FULL_PAGE_MARGIN, FULL_PAGE_MARGIN, FULL_PAGE_MARGIN]
       }
     end
   end
@@ -92,13 +94,13 @@ class ParkingNoticeReceiptPdf
                  {
                    org: (8 * s).round, title: (18 * s).round, subhead: (10 * s).round,
                    section: (8 * s).round, body: (9 * s).round,
-                   footer: (7 * s).round, field: (8 * s).round, qr_caption: (7 * s).round,
+                   field: (8 * s).round,
                    header_gap: 4, block_gap: 2, sep_pad: 4
                  }
                else
                  {
                    org: 16, title: 48, subhead: 24, section: 14, body: 17,
-                   footer: 12, field: 17, qr_caption: 14,
+                   field: 17,
                    header_gap: 14, block_gap: 6, sep_pad: 12
                  }
                end
@@ -113,10 +115,7 @@ class ParkingNoticeReceiptPdf
     location_block
     separator
     photos_block if @notice.photos.attached?
-    separator
     qr_block
-    separator
-    footer_block
   end
 
   def header_block
@@ -210,22 +209,13 @@ class ParkingNoticeReceiptPdf
     size = qr_pixel_size
     t = theme
 
-    document.move_down t[:block_gap]
+    document.move_down t[:sep_pad]
+    document.stroke_horizontal_rule
+    document.move_down thermal? ? 6 : 10
+
     x_offset = (document.bounds.width - size) / 2.0
     draw_qr_code(url, x_offset, document.cursor, size)
-    document.move_down size + (thermal? ? 4 : 12)
-
-    document.font_size(t[:qr_caption]) do
-      document.text 'Scan to view details', align: :center, color: '444444'
-    end
-    document.move_down thermal? ? 4 : 12
-  end
-
-  def footer_block
-    document.font_size(theme[:footer]) do
-      document.text "Printed #{Time.current.strftime('%b %d, %Y %l:%M %p')}", align: :center, color: '888888'
-    end
-    document.move_down thermal? ? 6 : 14
+    document.move_down size + (thermal? ? 2 : 8)
   end
 
   def separator

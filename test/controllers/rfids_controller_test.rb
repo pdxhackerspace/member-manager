@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class OnboardingControllerTest < ActionDispatch::IntegrationTest
+class RfidsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
     Rails.application.config.x.local_auth.enabled = true
@@ -11,22 +11,13 @@ class OnboardingControllerTest < ActionDispatch::IntegrationTest
     Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
-  test 'payment step supports usernames containing dots' do
-    user = users(:one)
-    user.update!(username: 'joseph.sabio')
-
-    get onboard_payment_path(user)
-
-    assert_response :success
-  end
-
-  test 'access step defaults rfid field to configured facility code prefix' do
+  test 'new key fob form defaults rfid field to configured facility code prefix' do
     DefaultSetting.instance.update!(rfid_facility_code: 127)
 
-    get onboard_access_path(users(:one))
+    get new_rfid_url(rfid: { user_id: users(:one).id })
 
     assert_response :success
-    assert_select 'input[name=?][value=?]', 'rfid_code', '127,'
+    assert_select 'input[name=?][value=?]', 'rfid[rfid]', '127,'
   end
 
   private

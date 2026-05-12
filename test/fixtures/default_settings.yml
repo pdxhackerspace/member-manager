@@ -10,3 +10,4 @@ one:
   all_members_group: all-members
   trained_on_prefix: trained-on
   can_train_prefix: can-train
+  rfid_facility_code:

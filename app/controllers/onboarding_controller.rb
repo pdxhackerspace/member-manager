@@ -87,6 +87,7 @@ class OnboardingController < AdminController
   # Step 3: Building Access
   def access
     @rfids = @user.rfids
+    @rfid_code_default = DefaultSetting.instance.rfid_facility_prefix
     @building_access_topic = TrainingTopic.find_by('LOWER(name) LIKE ?', '%building access%')
     @has_building_access_training = @building_access_topic &&
                                     Training.exists?(trainee: @user, training_topic: @building_access_topic)

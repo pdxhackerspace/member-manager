@@ -53,7 +53,7 @@
       <div>
         <%= f.label :rfid, "RFID Code", class: "form-label" %> <span class="text-danger">*</span>
         <%= f.text_field :rfid, class: "form-control", required: true, placeholder: "Enter the key fob RFID code" %>
-        <div class="form-text">The unique identifier from the key fob.</div>
+        <div class="form-text">The unique identifier from the key fob. The configured facility code is prefilled when set.</div>
       </div>
 
       <% if @existing_rfid.present? %>

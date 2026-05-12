@@ -132,8 +132,7 @@ Rails/DynamicFindBy:
   AllowedMethods:
     - find_by_param
 
-# params.expect doesn't support dynamic permit arrays; keep
-# require/permit for controllers that build permit lists at runtime.
+# rubocop-rails 2.35 expands this cop to scalar route/query params.
+# Keep the current params style until a deliberate Rails 8 expect migration.
 Rails/StrongParametersExpect:
-  Exclude:
-    - 'app/controllers/users_controller.rb'
+  Enabled: false

@@ -109,7 +109,7 @@ group :development do
 
   # Code style checker
   gem 'rubocop', '~> 1.86', require: false
-  gem 'rubocop-rails', '~> 2.24', require: false
+  gem 'rubocop-rails', '~> 2.35', require: false
 
   # Preview emails in browser instead of sending
   gem 'letter_opener', '~> 1.10'

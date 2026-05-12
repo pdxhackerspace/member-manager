@@ -274,7 +274,7 @@ GEM
       json
       uri
       yaml
-    parallel (2.0.1)
+    parallel (2.1.0)
     parser (3.3.11.1)
       ast (~> 2.4.1)
       racc
@@ -386,7 +386,7 @@ GEM
     rubocop-ast (1.49.1)
       parser (>= 3.3.7.2)
       prism (~> 1.7)
-    rubocop-rails (2.34.3)
+    rubocop-rails (2.35.0)
       activesupport (>= 4.2.0)
       lint_roller (~> 1.1)
       rack (>= 1.1)
@@ -524,7 +524,7 @@ DEPENDENCIES
   redis (>= 4.0.1)
   rqrcode (~> 3.2)
   rubocop (~> 1.86)
-  rubocop-rails (~> 2.24)
+  rubocop-rails (~> 2.35)
   selenium-webdriver
   sentry-rails (~> 5.0)
   sentry-ruby (~> 5.0)

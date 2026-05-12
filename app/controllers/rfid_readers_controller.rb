@@ -7,6 +7,7 @@ class RfidReadersController < AdminController
 
   def index
     @rfid_readers = RfidReader.order(:name)
+    @default_setting = DefaultSetting.instance
   end
 
   def show; end
@@ -40,6 +41,18 @@ class RfidReadersController < AdminController
     redirect_to rfid_readers_path, notice: 'RFID reader deleted successfully.'
   end
 
+  def update_facility_code
+    @default_setting = DefaultSetting.instance
+
+    if @default_setting.update(rfid_facility_code_params)
+      redirect_to rfid_readers_path, notice: 'RFID facility code updated successfully.'
+    else
+      @rfid_readers = RfidReader.order(:name)
+      flash.now[:alert] = 'Unable to update RFID facility code.'
+      render :index, status: :unprocessable_content
+    end
+  end
+
   def regenerate_key
     @rfid_reader.generate_key!
 
@@ -57,5 +70,9 @@ class RfidReadersController < AdminController
 
   def rfid_reader_params
     params.expect(rfid_reader: %i[name note])
+  end
+
+  def rfid_facility_code_params
+    params.expect(default_setting: %i[rfid_facility_code])
   end
 end

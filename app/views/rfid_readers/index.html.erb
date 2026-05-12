@@ -5,6 +5,32 @@
 
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
+    <h2 class="h5 mb-2">RFID Facility Code</h2>
+    <p class="text-muted mb-3">
+      Set the default facility code for keyfobs. New key fob entries start with this code followed by a comma.
+    </p>
+
+    <%= form_with model: @default_setting, url: update_facility_code_rfid_readers_path, method: :patch, local: true, class: "row g-3 align-items-end" do |f| %>
+      <div class="col-md-4">
+        <%= f.label :rfid_facility_code, "Facility code", class: "form-label" %>
+        <%= f.number_field :rfid_facility_code,
+            class: "form-control #{'is-invalid' if @default_setting.errors.key?(:rfid_facility_code)}",
+            min: 0, step: 1, placeholder: "127" %>
+        <% if @default_setting.errors.key?(:rfid_facility_code) %>
+          <div class="invalid-feedback">
+            <%= @default_setting.errors[:rfid_facility_code].first %>
+          </div>
+        <% end %>
+      </div>
+      <div class="col-md-auto">
+        <%= f.submit "Save facility code", class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
     <h2 class="h5 mb-3">Add New RFID Reader</h2>
     <% if @rfid_reader&.errors&.any? %>
       <div class="alert alert-danger">

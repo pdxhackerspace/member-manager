@@ -9,6 +9,13 @@ class DefaultSetting < ApplicationRecord
   validates :trained_on_prefix, presence: true
   validates :can_train_prefix, presence: true
   validates :sync_inactive_members, inclusion: { in: [true, false] }
+  validates :rfid_facility_code, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+
+  def rfid_facility_prefix
+    return '' if rfid_facility_code.blank?
+
+    "#{rfid_facility_code},"
+  end
 
   # Singleton pattern - only one record should exist
   def self.instance

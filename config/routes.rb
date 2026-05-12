@@ -261,6 +261,10 @@ Rails.application.routes.draw do
     end
   end
   resources :rfid_readers, except: [:show] do
+    collection do
+      patch :update_facility_code
+    end
+
     member do
       post :regenerate_key
     end

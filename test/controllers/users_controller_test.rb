@@ -54,6 +54,88 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select '.override-banner', count: 0
   end
 
+  test 'admin profile header shows username without email address' do
+    @user.update!(username: 'privacyuser', email: 'privacy-header@example.com')
+
+    get user_path(@user, tab: :profile)
+
+    assert_response :success
+    assert_select '.member-admin-identity-line', text: '@privacyuser'
+    assert_select '.member-admin-identity-line', text: /privacy-header@example\.com/, count: 0
+  end
+
+  test 'admin profile masks contact details with reveal control' do
+    @user.update!(
+      email: 'masked-primary@example.com',
+      extra_emails: ['masked-extra@example.com'],
+      mailing_address: "123 Hidden Lane\nPortland, OR",
+      phone_number: '555-987-6543'
+    )
+
+    get user_path(@user, tab: :profile)
+
+    assert_response :success
+    assert_select '[data-controller=?]', 'sensitive-reveal'
+    assert_select '[data-action=?]', 'click->sensitive-reveal#toggle', text: /Show contact details/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /masked-primary@example\.com/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /masked-extra@example\.com/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /123 Hidden Lane/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /555-987-6543/
+  end
+
+  test 'admin can edit mailing address and phone number' do
+    patch user_path(@user), params: {
+      user: {
+        mailing_address: "456 Admin Road\nPortland, OR",
+        phone_number: '555-222-3333'
+      }
+    }
+
+    assert_redirected_to user_path(@user)
+    @user.reload
+    assert_equal "456 Admin Road\nPortland, OR", @user.mailing_address
+    assert_equal '555-222-3333', @user.phone_number
+  end
+
+  test 'member-facing profile does not show admin contact details' do
+    member = users(:member_with_local_account)
+    member.update!(
+      mailing_address: "789 Member Secret\nPortland, OR",
+      phone_number: '555-111-2222'
+    )
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    get user_path(member, tab: :profile)
+
+    assert_response :success
+    assert_no_match(/789 Member Secret/, response.body)
+    assert_no_match(/555-111-2222/, response.body)
+    assert_select '.profile-field-label', text: /Mailing address/, count: 0
+    assert_select '.profile-field-label', text: /Phone number/, count: 0
+  end
+
+  test 'members cannot update admin-only contact details' do
+    member = users(:member_with_local_account)
+    member.update!(mailing_address: nil, phone_number: nil)
+
+    delete logout_path
+    sign_in_as_regular_member
+
+    patch user_path(member), params: {
+      user: {
+        mailing_address: 'Should not save',
+        phone_number: '555-000-0000'
+      }
+    }
+
+    assert_redirected_to user_path(member)
+    member.reload
+    assert_nil member.mailing_address
+    assert_nil member.phone_number
+  end
+
   test 'admin profile shows active override banner only when override is active' do
     @user.update_columns(emergency_active_override: true, active: true, dues_status: 'lapsed')
 

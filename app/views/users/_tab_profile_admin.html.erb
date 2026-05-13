@@ -3,6 +3,15 @@
 <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
 <% documents = Document.ordered %>
 
+<div data-controller="sensitive-reveal">
+<div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
+  <p class="mb-0 small">Member email, mailing address, and phone fields are blurred until you show them.</p>
+  <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0"
+          data-action="click->sensitive-reveal#toggle">
+    <span data-sensitive-reveal-target="label">Show contact details</span>
+  </button>
+</div>
+
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="mb-4">
@@ -35,16 +44,46 @@
 
         <div class="profile-field-row">
           <span class="profile-field-label">Email</span>
-          <span class="profile-field-value"><%= user.email.present? ? mail_to(user.email) : content_tag(:span, "Not provided", class: "empty") %></span>
+          <span class="profile-field-value">
+            <% if user.email.present? %>
+              <span data-sensitive-reveal-target="blurred"><%= mail_to(user.email) %></span>
+            <% else %>
+              <span class="empty">Not provided</span>
+            <% end %>
+          </span>
         </div>
 
         <div class="profile-field-row">
           <span class="profile-field-label">Extra emails</span>
           <span class="profile-field-value">
             <% if user.extra_emails.present? && user.extra_emails.any? %>
-              <%= safe_join(user.extra_emails.map { |email| mail_to(email) }, tag.br) %>
+              <span data-sensitive-reveal-target="blurred">
+                <%= safe_join(user.extra_emails.map { |email| mail_to(email) }, tag.br) %>
+              </span>
             <% else %>
               <span class="empty">None</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Mailing address</span>
+          <span class="profile-field-value">
+            <% if user.mailing_address.present? %>
+              <span data-sensitive-reveal-target="blurred"><%= simple_format(user.mailing_address, class: "mb-0") %></span>
+            <% else %>
+              <span class="empty">Not provided</span>
+            <% end %>
+          </span>
+        </div>
+
+        <div class="profile-field-row">
+          <span class="profile-field-label">Phone number</span>
+          <span class="profile-field-value">
+            <% if user.phone_number.present? %>
+              <span data-sensitive-reveal-target="blurred"><%= user.phone_number %></span>
+            <% else %>
+              <span class="empty">Not provided</span>
             <% end %>
           </span>
         </div>
@@ -292,4 +331,5 @@
 
     <%= render 'users/member_training_card', user: user, show_request_link: false %>
   </div>
+</div>
 </div>

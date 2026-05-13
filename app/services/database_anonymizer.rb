@@ -304,6 +304,8 @@ module DatabaseAnonymizer
             username = #{quote(uname)},
             slack_handle = #{quote("mem_#{id}")},
             slack_id = #{quote("U#{DatabaseAnonymizer.fake_token_hex('slack_uid', id, 8)}")},
+            mailing_address = #{redacted_text},
+            phone_number = #{quote("555-01#{id.to_s.rjust(4, '0')[-4, 4]}")},
             notes = #{redacted_text},
             bio = #{redacted_text},
             avatar = NULL,

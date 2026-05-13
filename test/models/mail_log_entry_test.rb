@@ -50,6 +50,40 @@ class MailLogEntryTest < ActiveSupport::TestCase
     assert_equal queued_mail.body_text, entry.message_body_text
   end
 
+  test 'log! stores queued message snapshot for lifecycle events' do
+    queued_mail = queued_mails(:pending_mail)
+    original_html = queued_mail.body_html
+    original_text = queued_mail.body_text
+
+    entry = MailLogEntry.log!(queued_mail, 'created', details: 'Queued message')
+
+    queued_mail.update!(
+      subject: 'Edited later',
+      body_html: '<p>Edited later</p>',
+      body_text: 'Edited later'
+    )
+
+    assert_equal queued_mail.to, entry.delivery_to
+    assert_equal 'Test Org: Application Received', entry.delivery_subject
+    assert_equal 'QueuedMailMailer', entry.delivery_mailer
+    assert_equal queued_mail.mailer_action, entry.delivery_action
+    assert_equal original_html, entry.reload.message_body_html
+    assert_equal original_text, entry.message_body_text
+  end
+
+  test 'log_once! stores queued message snapshot for failed delivery' do
+    queued_mail = queued_mails(:pending_mail)
+    queued_mail.update!(status: 'approved')
+
+    MailLogEntry.log_once!(queued_mail, 'send_failed', details: 'Net::SMTPFatalError: down')
+    entry = queued_mail.mail_log_entries.where(event: 'send_failed').last
+
+    assert_equal queued_mail.to, entry.delivery_to
+    assert_equal queued_mail.subject, entry.delivery_subject
+    assert_equal queued_mail.body_html, entry.message_body_html
+    assert_equal queued_mail.body_text, entry.message_body_text
+  end
+
   test 'log_direct_delivery! requires to and subject' do
     assert_raises(ActiveRecord::RecordInvalid) do
       MailLogEntry.log_direct_delivery!(

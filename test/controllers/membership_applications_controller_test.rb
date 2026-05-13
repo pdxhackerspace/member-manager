@@ -303,12 +303,16 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
     page1 = ApplicationFormPage.create!(title: 'First page', position: 1)
     q_name = page1.questions.create!(label: 'Name', field_type: 'text', required: false, position: 1)
+    q_address = page1.questions.create!(label: 'Mailing Address', field_type: 'text', required: false, position: 2)
+    q_phone = page1.questions.create!(label: 'Phone number', field_type: 'text', required: false, position: 3)
     app = MembershipApplication.create!(
       email: 'approve-ok@example.com',
       status: 'submitted',
       submitted_at: Time.current
     )
     app.application_answers.create!(application_form_question: q_name, value: 'Pat Applicant')
+    app.application_answers.create!(application_form_question: q_address, value: "123 Privacy Way\nPortland, OR")
+    app.application_answers.create!(application_form_question: q_phone, value: '555-123-4567')
     qm = nil
     assert_difference 'User.count', 1 do
       assert_difference 'QueuedMail.count', 1 do
@@ -321,6 +325,8 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'approved', app.status
     assert_equal 'Pat Applicant', app.user.full_name
     assert_equal 'approve-ok@example.com', app.user.email
+    assert_equal "123 Privacy Way\nPortland, OR", app.user.mailing_address
+    assert_equal '555-123-4567', app.user.phone_number
     assert_equal 'application_approved', qm.mailer_action
     assert_equal app.user, qm.recipient
   end

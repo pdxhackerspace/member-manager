@@ -28,6 +28,16 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match @payment.recharge_id, response.body
   end
 
+  test 'show masks customer email and raw data with reveal control' do
+    get recharge_payment_path(@payment)
+
+    assert_response :success
+    assert_select '[data-controller=?]', 'sensitive-reveal'
+    assert_select '[data-action=?]', 'click->sensitive-reveal#toggle', text: /Show contact details/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /user1@example\.com/
+    assert_select 'pre[data-sensitive-reveal-target=?]', 'blurred', text: /RC-100/
+  end
+
   test 'enqueues sync job' do
     assert_enqueued_with(job: Recharge::PaymentSyncJob) do
       post sync_recharge_payments_path

@@ -28,6 +28,16 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match @payment.paypal_id, response.body
   end
 
+  test 'show masks payer email and raw data with reveal control' do
+    get paypal_payment_path(@payment)
+
+    assert_response :success
+    assert_select '[data-controller=?]', 'sensitive-reveal'
+    assert_select '[data-action=?]', 'click->sensitive-reveal#toggle', text: /Show contact details/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /donor@example\.com/
+    assert_select 'pre[data-sensitive-reveal-target=?]', 'blurred', text: /transaction_info/
+  end
+
   test 'enqueues sync job' do
     assert_enqueued_with(job: Paypal::PaymentSyncJob) do
       post sync_paypal_payments_path

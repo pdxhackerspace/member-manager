@@ -54,9 +54,19 @@
   </div>
 </div>
 
+<div data-controller="sensitive-reveal">
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <h1 class="h4 mb-3"><%= @slack_user.display_name %></h1>
+    <div class="d-flex flex-column flex-sm-row align-items-sm-start justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h4 mb-1"><%= @slack_user.display_name %></h1>
+        <p class="mb-0 small text-secondary">Email and raw Slack attributes are blurred until you show them.</p>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0"
+              data-action="click->sensitive-reveal#toggle">
+        <span data-sensitive-reveal-target="label">Show contact details</span>
+      </button>
+    </div>
     <div class="row">
       <div class="col-md-8">
         <dl class="row mb-0">
@@ -69,7 +79,7 @@
           <dt class="col-sm-3 text-secondary">Email</dt>
           <dd class="col-sm-9">
             <% if @slack_user.email.present? %>
-              <%= mail_to @slack_user.email %>
+              <span data-sensitive-reveal-target="blurred"><%= mail_to @slack_user.email %></span>
             <% else %>
               <span class="text-muted fst-italic">Not provided</span>
             <% end %>
@@ -153,8 +163,9 @@
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <h2 class="h6 mb-3">Attributes</h2>
-    <pre class="bg-body-secondary rounded p-3 mb-0"><code class="text-body"><%= JSON.pretty_generate(@slack_user.raw_attributes) %></code></pre>
+    <pre class="bg-body-secondary rounded p-3 mb-0" data-sensitive-reveal-target="blurred"><code class="text-body"><%= JSON.pretty_generate(@slack_user.raw_attributes) %></code></pre>
   </div>
+</div>
 </div>
 
 <% if @slack_user.user.nil? %>

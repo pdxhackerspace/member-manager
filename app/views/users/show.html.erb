@@ -99,14 +99,8 @@
           <% end %>
         </div>
 
-        <div class="text-12 text-secondary">
-          <% if @user.pronouns.present? || @user.bio.present? %>
-            <span><%= truncate([@user.pronouns, strip_tags(@user.bio)].compact_blank.join(" - "), length: 40) %></span> ·
-          <% end %>
+        <div class="text-12 text-secondary member-admin-identity-line">
           <span>@<%= @user.username %></span>
-          <% if @user.email.present? %>
-            · <span><%= @user.email %></span>
-          <% end %>
         </div>
 
         <div class="text-12 text-tertiary mt-1"><%= member_admin_tenure(@user) %></div>

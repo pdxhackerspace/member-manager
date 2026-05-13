@@ -141,6 +141,20 @@ class QueuedMailTest < ActiveSupport::TestCase
     assert_nil entry.queued_mail_id
     assert_equal result.to, entry.delivery_to
     assert_equal result.subject, entry.delivery_subject
+    assert_includes entry.message_body_html, "Hello #{users(:one).display_name}"
+    assert_includes entry.message_body_text, "Hello #{users(:one).display_name}"
+  end
+
+  test 'record_delivery_failure logs failed queued message body snapshot' do
+    @pending.update!(status: 'approved')
+
+    @pending.record_delivery_failure!(RuntimeError.new('smtp down'))
+
+    entry = @pending.mail_log_entries.where(event: 'send_failed').last
+    assert_equal @pending.to, entry.delivery_to
+    assert_equal @pending.subject, entry.delivery_subject
+    assert_equal @pending.body_html, entry.message_body_html
+    assert_equal @pending.body_text, entry.message_body_text
   end
 
   # ─── Reject ──────────────────────────────────────────────────────

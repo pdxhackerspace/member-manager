@@ -12,7 +12,7 @@ class MailLogEntry < ApplicationRecord
 
   def self.log!(queued_mail, event, actor: nil, details: nil)
     create!(
-      queued_mail: queued_mail,
+      **queued_mail_snapshot_attrs(queued_mail),
       event: event,
       actor: actor,
       details: details
@@ -41,17 +41,26 @@ class MailLogEntry < ApplicationRecord
 
   def self.log_queued_delivery!(queued_mail)
     create!(
-      queued_mail: queued_mail,
+      **queued_mail_snapshot_attrs(queued_mail),
       event: 'sent',
-      details: "Delivered to #{queued_mail.to}",
+      details: "Delivered to #{queued_mail.to}"
+    )
+  end
+
+  def self.queued_mail_snapshot_attrs(queued_mail)
+    return {} unless queued_mail
+
+    {
+      queued_mail: queued_mail,
       delivery_to: queued_mail.to,
       delivery_subject: queued_mail.subject,
       delivery_mailer: 'QueuedMailMailer',
       delivery_action: queued_mail.mailer_action,
       delivery_body_html: queued_mail.body_html,
       delivery_body_text: queued_mail.body_text
-    )
+    }
   end
+  private_class_method :queued_mail_snapshot_attrs
 
   def self.log_once!(queued_mail, event, actor: nil, details: nil)
     last_entry = queued_mail.mail_log_entries

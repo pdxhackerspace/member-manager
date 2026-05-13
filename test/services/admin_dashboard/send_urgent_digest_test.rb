@@ -12,6 +12,7 @@ module AdminDashboard
       AccessController.delete_all
       PaymentProcessor.delete_all
       Printer.delete_all
+      stub_healthy_mailer
       EmailTemplate.where(key: 'admin_dashboard_urgent_digest').delete_all
       EmailTemplate.create!(
         key: 'admin_dashboard_urgent_digest',
@@ -21,6 +22,10 @@ module AdminDashboard
         body_text: "{{urgent_item_count}}\n{{urgent_items_text}}\n{{dashboard_url}}",
         enabled: true
       )
+    end
+
+    teardown do
+      restore_mailer_health_check
     end
 
     test 'emails executive directors when global urgent dashboard items exist' do
@@ -102,6 +107,22 @@ module AdminDashboard
 
     def disable_authentik_urgency
       MemberSource.find_by(key: 'authentik')&.update!(enabled: false, sync_status: 'healthy')
+    end
+
+    def stub_healthy_mailer
+      @original_mailer_health_check = MailerHealthCheck.method(:call)
+      healthy = MailerHealthCheck::Result.new(
+        'healthy',
+        'Connected and authenticated to smtp.example.test:587',
+        Time.current
+      )
+      MailerHealthCheck.define_singleton_method(:call) { |**_kwargs| healthy }
+    end
+
+    def restore_mailer_health_check
+      return unless @original_mailer_health_check
+
+      MailerHealthCheck.define_singleton_method(:call, @original_mailer_health_check)
     end
 
     def train_staff(user, topic_name)

@@ -74,6 +74,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
       nil,
       false,
       nil,
+      MailerHealthCheck::Result.new('healthy', 'Connected and authenticated to smtp.example.test:587', Time.current),
       [],
       false,
       [],
@@ -93,7 +94,71 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/2 offline, 3 sync failed, 4 backup failed/, response.body)
   end
 
+  test 'admin dashboard shows mailer health in no action list when healthy' do
+    snapshot = urgent_snapshot(
+      mailer_health: MailerHealthCheck::Result.new(
+        'healthy',
+        'Connected and authenticated to smtp.example.test:587',
+        Time.current
+      )
+    )
+
+    with_urgent_snapshot(snapshot) { get root_path }
+
+    assert_response :success
+    assert_match(/Outgoing mail is healthy/, response.body)
+    assert_match(/Connected and authenticated to smtp.example.test:587/, response.body)
+  end
+
+  test 'admin dashboard marks mailer health urgent when unhealthy' do
+    snapshot = urgent_snapshot(
+      items: [
+        AdminDashboard::UrgentItems::Item.new(
+          :mailer_health,
+          'Outgoing mail is unhealthy',
+          'SMTP authentication failed',
+          mail_log_path
+        )
+      ],
+      mailer_health: MailerHealthCheck::Result.new('unhealthy', 'SMTP authentication failed', Time.current)
+    )
+
+    with_urgent_snapshot(snapshot) { get root_path }
+
+    assert_response :success
+    assert_match(/Outgoing mail is unhealthy/, response.body)
+    assert_match(/SMTP authentication failed/, response.body)
+  end
+
   private
+
+  def urgent_snapshot(items: [], mailer_health: nil)
+    AdminDashboard::UrgentItems::Snapshot.new(
+      items,
+      0,
+      0,
+      0,
+      0,
+      0,
+      [],
+      nil,
+      false,
+      nil,
+      mailer_health || MailerHealthCheck::Result.new('healthy', 'Connected', Time.current),
+      [],
+      false,
+      [],
+      []
+    )
+  end
+
+  def with_urgent_snapshot(snapshot)
+    original_snapshot = AdminDashboard::UrgentItems.method(:snapshot)
+    AdminDashboard::UrgentItems.define_singleton_method(:snapshot) { |**_kwargs| snapshot }
+    yield
+  ensure
+    AdminDashboard::UrgentItems.define_singleton_method(:snapshot, original_snapshot)
+  end
 
   def sign_in_as_admin
     account = local_accounts(:active_admin)

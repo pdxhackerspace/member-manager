@@ -192,7 +192,7 @@ class QueuedMail < ApplicationRecord
     increment!(:send_attempts)
     QueuedMailMailer.deliver_queued(self).deliver_now
     update!(sent_at: Time.current, last_error: nil, last_error_at: nil)
-    MailLogEntry.log!(self, 'sent', details: "Delivered to #{to}")
+    MailLogEntry.log_queued_delivery!(self)
   rescue StandardError => e
     record_delivery_failure!(e)
     raise

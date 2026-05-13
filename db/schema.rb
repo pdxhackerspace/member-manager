@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_164500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -459,6 +459,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.bigint "actor_id"
     t.datetime "created_at", null: false
     t.string "delivery_action"
+    t.text "delivery_body_html"
+    t.text "delivery_body_text"
     t.string "delivery_mailer"
     t.string "delivery_subject"
     t.string "delivery_to"

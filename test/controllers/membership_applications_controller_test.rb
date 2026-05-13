@@ -478,6 +478,54 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_nil app.reload.user_id
   end
 
+  test 'index initiated tab lists verification requests and links matching received applications' do
+    verification = ApplicationVerification.create!(
+      email: 'initiated-match@example.com',
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true
+    )
+    received = MembershipApplication.create!(
+      email: 'initiated-match@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    mail_log = MailLogEntry.log_direct_delivery!(
+      to: verification.email,
+      subject: 'Verify your email',
+      mailer_class: 'MemberMailer',
+      mailer_action: 'application_email_verification',
+      body_html: '<p>Verify</p>'
+    )
+
+    get membership_applications_path(status: 'initiated')
+
+    assert_response :success
+    assert_select 'a.nav-link.active', text: /Initiated/
+    assert_match verification.email, response.body
+    assert_select 'a[href=?]', membership_application_path(received)
+    assert_select 'a[href=?]', mail_log_entry_path(mail_log)
+  end
+
+  test 'extend initiated application by one day' do
+    verification = ApplicationVerification.create!(email: 'extend-day@example.com')
+    original_expiry = verification.expires_at
+
+    post extend_initiated_membership_applications_path(verification, duration: 'day')
+
+    assert_redirected_to membership_applications_path(status: 'initiated')
+    assert_in_delta original_expiry + 1.day, verification.reload.expires_at, 1.second
+  end
+
+  test 'extend initiated application by one week' do
+    verification = ApplicationVerification.create!(email: 'extend-week@example.com')
+    original_expiry = verification.expires_at
+
+    post extend_initiated_membership_applications_path(verification, duration: 'week')
+
+    assert_redirected_to membership_applications_path(status: 'initiated')
+    assert_in_delta original_expiry + 1.week, verification.reload.expires_at, 1.second
+  end
+
   private
 
   def membership_application_with_sensitive_answers

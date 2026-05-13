@@ -48,16 +48,19 @@
               <td>
                 <% if qm %>
                   <div class="fw-semibold">
-                    <%= link_to truncate(qm.subject, length: 50), queued_mail_path(qm), class: "text-decoration-none" %>
+                    <%= link_to truncate(qm.subject, length: 50), mail_log_entry_path(entry), class: "text-decoration-none" %>
                   </div>
                   <div class="text-muted small">
                     To: <%= qm.to %>
                     <% if qm.recipient %>
                       (<%= link_to qm.recipient.display_name, user_path(qm.recipient), class: "text-decoration-none" %>)
                     <% end %>
+                    <span class="d-block"><%= link_to "Queued message", queued_mail_path(qm), class: "text-decoration-none" %></span>
                   </div>
                 <% else %>
-                  <div class="fw-semibold"><%= truncate(entry.delivery_subject, length: 50) %></div>
+                  <div class="fw-semibold">
+                    <%= link_to truncate(entry.delivery_subject, length: 50), mail_log_entry_path(entry), class: "text-decoration-none" %>
+                  </div>
                   <div class="text-muted small">
                     To: <%= entry.delivery_to %>
                     <% if entry.delivery_mailer.present? %>

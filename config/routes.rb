@@ -313,6 +313,7 @@ Rails.application.routes.draw do
   end
 
   get "/settings/mail_log", to: "mail_log#index", as: :mail_log
+  get "/settings/mail_log/:id", to: "mail_log#show", as: :mail_log_entry
 
   resources :queued_mails, only: [:index, :show, :edit, :update] do
     member do
@@ -421,6 +422,8 @@ Rails.application.routes.draw do
   resources :membership_applications, only: %i[index show] do
     collection do
       post :import
+      post 'initiated/:id/extend/:duration', to: 'membership_applications#extend_initiated_application',
+                                             as: :extend_initiated
     end
     member do
       post :approve

@@ -19,7 +19,7 @@ module MembershipApplicationWizard
 
       @application = find_in_progress_application
       if @application.nil? && @email
-        draft = MembershipApplication.find_by(email: @email, status: 'draft')
+        draft = MembershipApplication.by_email(@email).find_by(status: 'draft')
         if draft
           session[:application_token] = draft.token
           @application = draft
@@ -28,7 +28,7 @@ module MembershipApplicationWizard
 
       return unless @email
 
-      @existing_application = MembershipApplication.where(email: @email)
+      @existing_application = MembershipApplication.by_email(@email)
                                                    .where.not(status: 'draft')
                                                    .newest_first
                                                    .first

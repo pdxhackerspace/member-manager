@@ -3,6 +3,12 @@
 # SPDX-License-Identifier: CC0-1.0
 
 class AuthentikUser < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email
+  encrypts_sensitive_json :raw_attributes
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   belongs_to :user, optional: true
 
   validates :authentik_id, presence: true, uniqueness: true

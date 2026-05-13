@@ -166,7 +166,7 @@ class SessionsController < ApplicationController
     # If not found and we have an email, try to find by email
     if user.nil? && email.present?
       normalized_email = email.to_s.strip.downcase
-      user = User.find_by('LOWER(email) = ?', normalized_email) if normalized_email.present?
+      user = User.lookup_by_email(normalized_email) if normalized_email.present?
     end
 
     # If still not found, initialize a new user
@@ -213,7 +213,7 @@ class SessionsController < ApplicationController
   def sync_local_account(account)
     local_authentik_id = "local:#{account.id}"
     user = User.find_by(authentik_id: local_authentik_id)
-    user = User.find_by('LOWER(email) = ?', account.email.to_s.strip.downcase) if user.nil? && account.email.present?
+    user = User.lookup_by_email(account.email) if user.nil? && account.email.present?
     user ||= User.new
 
     user.assign_attributes(
@@ -246,7 +246,7 @@ class SessionsController < ApplicationController
     normalized_email = email.to_s.strip.downcase
     return if normalized_email.blank?
 
-    LocalAccount.find_by('LOWER(email) = ?', normalized_email)
+    LocalAccount.by_email(normalized_email).first
   end
 
   def build_full_name(info, extra)

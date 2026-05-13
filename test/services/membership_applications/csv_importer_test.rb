@@ -27,7 +27,7 @@ module MembershipApplications
         end
       end
 
-      app = MembershipApplication.find_by!(email: 'importer-test@example.com')
+      app = MembershipApplication.by_email('importer-test@example.com').first!
       assert_equal 'approved', app.status
       name_ans = app.application_answers
                     .joins(:application_form_question)
@@ -49,7 +49,7 @@ module MembershipApplications
 
       result = CsvImporter.new.call(StringIO.new(csv))
       assert_equal 1, result[:imported]
-      app = MembershipApplication.find_by!(email: 'extras@example.com')
+      app = MembershipApplication.by_email('extras@example.com').first!
       assert_includes app.admin_notes, 'Estimated co-working hours per week? (@ ^H)'
       assert_includes app.admin_notes, '10'
     end
@@ -61,7 +61,7 @@ module MembershipApplications
       CSV
 
       CsvImporter.new(imported_by: users(:one)).call(StringIO.new(csv))
-      app = MembershipApplication.find_by!(email: 'rejected@example.com')
+      app = MembershipApplication.by_email('rejected@example.com').first!
       assert_equal 'rejected', app.status
     end
 
@@ -84,7 +84,7 @@ module MembershipApplications
       CSV
 
       CsvImporter.new.call(StringIO.new(csv))
-      app = MembershipApplication.find_by!(email: 'us-date@example.com')
+      app = MembershipApplication.by_email('us-date@example.com').first!
       assert_equal Time.zone.local(2023, 5, 4, 16, 13, 19), app.submitted_at
     end
 
@@ -95,7 +95,7 @@ module MembershipApplications
       CSV
 
       CsvImporter.new.call(StringIO.new(csv))
-      app = MembershipApplication.find_by!(email: 'md-order@example.com')
+      app = MembershipApplication.by_email('md-order@example.com').first!
       assert_equal Time.zone.local(2026, 3, 8, 14, 50, 55), app.submitted_at
     end
 
@@ -182,7 +182,7 @@ module MembershipApplications
       CSV
 
       CsvImporter.new.call(StringIO.new(csv))
-      app = MembershipApplication.find_by!(email: 'n-prefix@example.com')
+      app = MembershipApplication.by_email('n-prefix@example.com').first!
       assert_equal 'rejected', app.status
       assert_includes app.admin_notes, 'Did not follow up'
     end
@@ -194,7 +194,7 @@ module MembershipApplications
       CSV
 
       CsvImporter.new.call(StringIO.new(csv))
-      app = MembershipApplication.find_by!(email: 'freetext@example.com')
+      app = MembershipApplication.by_email('freetext@example.com').first!
       assert_equal 'submitted', app.status
       assert_includes app.admin_notes, 'Deferred — ask next month'
     end
@@ -206,7 +206,7 @@ module MembershipApplications
       CSV
 
       CsvImporter.new.call(StringIO.new(csv))
-      app = MembershipApplication.find_by!(email: 'email-col-notes@example.com')
+      app = MembershipApplication.by_email('email-col-notes@example.com').first!
       assert_nil app.admin_notes.presence
     end
   end

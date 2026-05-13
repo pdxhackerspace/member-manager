@@ -175,11 +175,7 @@ class SlackUsersController < AdminController
       # Match by email (case-insensitive) - check both primary email and extra_emails
       if slack_user.email.present?
         normalized_email = slack_user.email.to_s.strip.downcase
-        # Match by primary email
-        matches += User.where('LOWER(email) = ?', normalized_email)
-        # Match by extra_emails array (case-insensitive)
-        matches += User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
-                              normalized_email)
+        matches += User.by_any_email(normalized_email)
       end
 
       # Match by full name or alias (real_name) — only multi-word names

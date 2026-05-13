@@ -1,4 +1,9 @@
 class MembershipApplication < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   STATUSES = %w[draft submitted under_review approved rejected].freeze
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
@@ -63,16 +68,16 @@ class MembershipApplication < ApplicationRecord
       Arel.sql('membership_applications.id DESC')
     )
   }
+  # rubocop:disable Metrics/BlockLength
   scope :admin_search, lambda { |query|
     raw = query.to_s.strip
     if raw.blank?
       all
     else
       pattern = "%#{ActiveRecord::Base.sanitize_sql_like(raw.downcase)}%"
-      where(
+      matches = where(
         <<~SQL.squish,
-          LOWER(membership_applications.email) LIKE :p
-          OR EXISTS (
+          EXISTS (
             SELECT 1 FROM application_answers aa
             WHERE aa.membership_application_id = membership_applications.id
             AND LOWER(aa.value) LIKE :p
@@ -82,15 +87,22 @@ class MembershipApplication < ApplicationRecord
             WHERE u.id = membership_applications.user_id
             AND (
               LOWER(COALESCE(u.full_name, '')) LIKE :p
-              OR LOWER(COALESCE(u.email, '')) LIKE :p
               OR LOWER(COALESCE(u.username, '')) LIKE :p
             )
           )
         SQL
         p: pattern
       )
+      email_digest = SensitiveData.email_digest(raw)
+      if email_digest.present?
+        matches = matches.or(where(email_lookup_digest: email_digest))
+                         .or(where('LOWER(email) = ?', SensitiveData.normalize_email(raw)))
+                         .or(where(user_id: User.by_any_email(raw).select(:id)))
+      end
+      matches
     end
   }
+  # rubocop:enable Metrics/BlockLength
 
   def draft?
     status == 'draft'

@@ -119,7 +119,7 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     by_answer.application_answers.create!(application_form_question: q_bio, value: 'unique-quasar-hobby')
     other = MembershipApplication.create!(email: 'other@example.com', status: 'submitted')
 
-    ids = MembershipApplication.admin_search('unique-sapphire').pluck(:id)
+    ids = MembershipApplication.admin_search('unique-sapphire@example.com').pluck(:id)
     assert_includes ids, by_email.id
     assert_not_includes ids, other.id
 

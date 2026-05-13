@@ -12,7 +12,6 @@ module Api
 
       users = User.where(
         "LOWER(COALESCE(full_name, '')) LIKE :p " \
-        "OR LOWER(COALESCE(email, '')) LIKE :p " \
         "OR LOWER(COALESCE(username, '')) LIKE :p " \
         'OR EXISTS (SELECT 1 FROM unnest(aliases) AS a WHERE LOWER(a) LIKE :p)',
         p: pattern

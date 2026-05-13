@@ -44,7 +44,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'home messages nav badge only shows unread count' do
-    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user = User.lookup_by_email(local_accounts(:active_admin).email)
     Message.where(recipient: admin_user).destroy_all
     Message.create!(
       sender: users(:one),

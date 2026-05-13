@@ -1,6 +1,10 @@
 class PaypalPayment < ApplicationRecord
   include NormalizesEmail
+  include SensitiveFields
 
+  encrypts_sensitive_string :payer_email
+  encrypts_sensitive_json :raw_attributes
+  has_email_lookup :payer_email, digest_column: :payer_email_lookup_digest
   normalizes_email_field :payer_email
 
   belongs_to :user, optional: true
@@ -17,10 +21,8 @@ class PaypalPayment < ApplicationRecord
     left_joins(:user).where(
       "LOWER(COALESCE(paypal_payments.paypal_id, '')) LIKE :q " \
       "OR LOWER(COALESCE(paypal_payments.payer_name, '')) LIKE :q " \
-      "OR LOWER(COALESCE(paypal_payments.payer_email, '')) LIKE :q " \
       "OR LOWER(COALESCE(paypal_payments.status, '')) LIKE :q " \
-      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q " \
-      "OR LOWER(COALESCE(users.email, '')) LIKE :q",
+      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q",
       q: pattern
     )
   }

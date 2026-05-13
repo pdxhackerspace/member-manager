@@ -1,4 +1,8 @@
 class AiOllamaProfile < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :api_key, :provider_api_key_override
+
   EMAIL_REWRITING_DEFAULT_PROMPT = <<~PROMPT.freeze
     You rewrite outbound emails for clarity, warmth, and professionalism.
     Keep the original intent, factual details, and calls to action.

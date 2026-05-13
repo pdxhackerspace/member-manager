@@ -273,9 +273,7 @@ class RechargePaymentsController < AdminController
             user = nil
 
             # Try to find by email first
-            if payment_data['user_email'].present?
-              user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
-            end
+            user = User.lookup_by_email(payment_data['user_email']) if payment_data['user_email'].present?
 
             # Try to find by authentik_id if not found
             if user.nil? && payment_data['user_authentik_id'].present?

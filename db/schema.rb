@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -218,12 +218,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.boolean "confirmed_open_house", default: false, null: false
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "email_lookup_digest"
     t.boolean "email_verified", default: false, null: false
     t.datetime "expires_at", null: false
     t.string "token", null: false
     t.datetime "updated_at", null: false
     t.datetime "verified_at"
     t.index ["email"], name: "index_application_verifications_on_email"
+    t.index ["email_lookup_digest"], name: "index_application_verifications_on_email_lookup_digest"
     t.index ["token"], name: "index_application_verifications_on_token", unique: true
   end
 
@@ -240,6 +242,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "authentik_id", null: false
     t.datetime "created_at", null: false
     t.string "email"
+    t.string "email_lookup_digest"
     t.string "full_name"
     t.boolean "is_active", default: true, null: false
     t.boolean "is_superuser", default: false, null: false
@@ -250,6 +253,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "username"
     t.index ["authentik_id"], name: "index_authentik_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_authentik_users_on_email"
+    t.index ["email_lookup_digest"], name: "index_authentik_users_on_email_lookup_digest"
     t.index ["raw_attributes"], name: "index_authentik_users_on_raw_attributes", using: :gin
     t.index ["user_id"], name: "index_authentik_users_on_user_id"
   end
@@ -277,12 +281,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "can_train_prefix", null: false
     t.datetime "created_at", null: false
     t.string "members_prefix", null: false
+    t.integer "rfid_facility_code"
     t.string "site_prefix", default: "ctrlh", null: false
     t.boolean "sync_inactive_members", default: false, null: false
     t.string "trained_on_prefix", null: false
     t.string "unbanned_members_group", null: false
     t.datetime "updated_at", null: false
-    t.integer "rfid_facility_code"
   end
 
   create_table "document_training_topics", force: :cascade do |t|
@@ -302,9 +306,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
   end
 
   create_table "email_templates", force: :cascade do |t|
+    t.boolean "block_send_immediately", default: false, null: false
     t.text "body_html", null: false
     t.text "body_text", null: false
-    t.boolean "block_send_immediately", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description"
     t.boolean "enabled", default: true, null: false
@@ -384,6 +388,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "cancelled_at"
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "email_lookup_digest"
     t.datetime "expires_at", null: false
     t.bigint "invited_by_id", null: false
     t.string "membership_type", default: "member", null: false
@@ -391,6 +396,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["email"], name: "index_invitations_on_email"
+    t.index ["email_lookup_digest"], name: "index_invitations_on_email_lookup_digest"
     t.index ["expires_at"], name: "index_invitations_on_expires_at"
     t.index ["invited_by_id"], name: "index_invitations_on_invited_by_id"
     t.index ["membership_type"], name: "index_invitations_on_membership_type"
@@ -418,6 +424,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "created_at", null: false
     t.string "currency"
     t.string "email"
+    t.string "email_lookup_digest"
     t.string "from_name"
     t.boolean "is_first_subscription_payment", default: false
     t.boolean "is_public", default: false
@@ -437,6 +444,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "url"
     t.bigint "user_id"
     t.index ["email"], name: "index_kofi_payments_on_email"
+    t.index ["email_lookup_digest"], name: "index_kofi_payments_on_email_lookup_digest"
     t.index ["kofi_transaction_id"], name: "index_kofi_payments_on_kofi_transaction_id", unique: true
     t.index ["message_id"], name: "index_kofi_payments_on_message_id"
     t.index ["sheet_entry_id"], name: "index_kofi_payments_on_sheet_entry_id"
@@ -448,11 +456,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.boolean "admin", default: false, null: false
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "email_lookup_digest"
     t.string "full_name"
     t.datetime "last_signed_in_at"
     t.string "password_digest", null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_local_accounts_on_email", unique: true
+    t.index ["email_lookup_digest"], name: "index_local_accounts_on_email_lookup_digest"
   end
 
   create_table "mail_log_entries", force: :cascade do |t|
@@ -529,7 +539,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
 
   create_table "membership_applications", force: :cascade do |t|
     t.text "admin_notes"
-    t.datetime "application_nag_sent_at"
     t.boolean "ai_feedback_garbage", default: false, null: false
     t.text "ai_feedback_garbage_reason"
     t.text "ai_feedback_last_error"
@@ -538,8 +547,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "ai_feedback_recommendation"
     t.integer "ai_feedback_score"
     t.text "ai_feedback_score_rationale"
+    t.datetime "application_nag_sent_at"
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.string "email_lookup_digest"
     t.datetime "reviewed_at"
     t.bigint "reviewed_by_id"
     t.string "status", default: "draft", null: false
@@ -550,6 +561,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.index ["ai_feedback_processed_at"], name: "index_membership_applications_on_ai_feedback_processed_at"
     t.index ["application_nag_sent_at"], name: "index_membership_applications_on_application_nag_sent_at"
     t.index ["email"], name: "index_membership_applications_on_email"
+    t.index ["email_lookup_digest"], name: "index_membership_applications_on_email_lookup_digest"
     t.index ["reviewed_by_id"], name: "index_membership_applications_on_reviewed_by_id"
     t.index ["status"], name: "index_membership_applications_on_status"
     t.index ["token"], name: "index_membership_applications_on_token", unique: true
@@ -696,6 +708,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "last_synced_at"
     t.boolean "matches_plan", default: true, null: false
     t.string "payer_email"
+    t.string "payer_email_lookup_digest"
     t.string "payer_id"
     t.string "payer_name"
     t.string "paypal_id", null: false
@@ -707,6 +720,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.bigint "user_id"
     t.index ["matches_plan"], name: "index_paypal_payments_on_matches_plan"
     t.index ["payer_email"], name: "index_paypal_payments_on_payer_email"
+    t.index ["payer_email_lookup_digest"], name: "index_paypal_payments_on_payer_email_lookup_digest"
     t.index ["paypal_id"], name: "index_paypal_payments_on_paypal_id", unique: true
     t.index ["user_id"], name: "index_paypal_payments_on_user_id"
   end
@@ -760,6 +774,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "created_at", null: false
     t.string "currency"
     t.string "customer_email"
+    t.string "customer_email_lookup_digest"
     t.string "customer_id"
     t.string "customer_name"
     t.boolean "dont_link", default: false, null: false
@@ -771,6 +786,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["customer_email"], name: "index_recharge_payments_on_customer_email"
+    t.index ["customer_email_lookup_digest"], name: "index_recharge_payments_on_customer_email_lookup_digest"
     t.index ["customer_id"], name: "index_recharge_payments_on_customer_id"
     t.index ["processed_at"], name: "index_recharge_payments_on_processed_at", order: :desc
     t.index ["recharge_id"], name: "index_recharge_payments_on_recharge_id", unique: true
@@ -780,10 +796,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
   create_table "rfid_readers", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "key", limit: 32, null: false
+    t.text "key_ciphertext"
+    t.string "key_lookup_digest"
     t.string "name", null: false
     t.text "note"
     t.datetime "updated_at", null: false
     t.index ["key"], name: "index_rfid_readers_on_key", unique: true
+    t.index ["key_lookup_digest"], name: "index_rfid_readers_on_key_lookup_digest", unique: true, where: "(key_lookup_digest IS NOT NULL)"
   end
 
   create_table "rfids", force: :cascade do |t|
@@ -812,6 +831,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "dirty"
     t.string "dremel"
     t.string "email"
+    t.string "email_lookup_digest"
     t.string "embroidery_machine"
     t.string "ender"
     t.string "event_host"
@@ -837,6 +857,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.bigint "user_id"
     t.string "vinyl_cutter"
     t.index ["email"], name: "index_sheet_entries_on_email"
+    t.index ["email_lookup_digest"], name: "index_sheet_entries_on_email_lookup_digest"
     t.index ["name"], name: "index_sheet_entries_on_name"
     t.index ["user_id"], name: "index_sheet_entries_on_user_id"
   end
@@ -847,6 +868,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.string "display_name"
     t.boolean "dont_link", default: false, null: false
     t.string "email"
+    t.string "email_lookup_digest"
     t.boolean "is_admin", default: false, null: false
     t.boolean "is_bot", default: false, null: false
     t.boolean "is_owner", default: false, null: false
@@ -865,6 +887,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.bigint "user_id"
     t.string "username"
     t.index ["email"], name: "index_slack_users_on_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["email_lookup_digest"], name: "index_slack_users_on_email_lookup_digest"
     t.index ["raw_attributes"], name: "index_slack_users_on_raw_attributes", using: :gin
     t.index ["slack_id"], name: "index_slack_users_on_slack_id", unique: true
     t.index ["user_id"], name: "index_slack_users_on_user_id"
@@ -983,7 +1006,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.datetime "dues_due_at"
     t.string "dues_status", default: "unknown"
     t.string "email"
+    t.string "email_lookup_digest"
     t.boolean "emergency_active_override", default: false, null: false
+    t.string "extra_email_lookup_digests", default: [], null: false, array: true
     t.string "extra_emails", default: [], array: true
     t.string "full_name"
     t.string "greeting_name"
@@ -1021,6 +1046,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
     t.index ["authentik_dirty"], name: "index_users_on_authentik_dirty"
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
+    t.index ["email_lookup_digest"], name: "index_users_on_email_lookup_digest", unique: true, where: "(email_lookup_digest IS NOT NULL)"
+    t.index ["extra_email_lookup_digests"], name: "index_users_on_extra_email_lookup_digests", using: :gin
     t.index ["is_sponsored"], name: "index_users_on_is_sponsored"
     t.index ["legacy"], name: "index_users_on_legacy"
     t.index ["login_token"], name: "index_users_on_login_token", unique: true

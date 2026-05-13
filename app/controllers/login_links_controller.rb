@@ -17,7 +17,7 @@ class LoginLinksController < ApplicationController
       return
     end
 
-    user = User.find_by('LOWER(email) = ?', identifier.downcase) ||
+    user = User.lookup_by_email(identifier) ||
            User.find_by('LOWER(username) = ?', identifier.downcase)
 
     if user

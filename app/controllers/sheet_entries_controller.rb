@@ -12,9 +12,9 @@ class SheetEntriesController < AdminController
     @linked_count = SheetEntry.where.not(user_id: nil).count
     @unlinked_count = SheetEntry.where(user_id: nil).count
 
-    user_emails = User.where.not(email: nil).pluck(Arel.sql('LOWER(email)'))
-    @shared_email_count = if user_emails.any?
-                            SheetEntry.where(email: user_emails).count
+    user_email_digests = User.where.not(email_lookup_digest: nil).pluck(:email_lookup_digest)
+    @shared_email_count = if user_email_digests.any?
+                            SheetEntry.where(email_lookup_digest: user_email_digests).count
                           else
                             0
                           end
@@ -175,7 +175,7 @@ class SheetEntriesController < AdminController
       next if sheet_entry.email.blank?
 
       # Find users with matching email (case-insensitive)
-      matching_users = User.where('LOWER(email) = ?', sheet_entry.email.downcase)
+      matching_users = User.by_email(sheet_entry.email)
                            .where.not(full_name: nil)
 
       matching_users.each do |user|
@@ -224,7 +224,7 @@ class SheetEntriesController < AdminController
         name_in_sheet = user.full_name.present? &&
                         SheetEntry.exists?(['LOWER(name) = ?', user.full_name.downcase])
         email_in_sheet = user.email.present? &&
-                         SheetEntry.exists?(['LOWER(email) = ?', user.email.downcase])
+                         SheetEntry.by_email(user.email).exists?
         not_in_sheet = !name_in_sheet && !email_in_sheet
 
         @rfid_mismatches << {
@@ -266,9 +266,7 @@ class SheetEntriesController < AdminController
 
     if sheet_entry.email.present?
       normalized_email = sheet_entry.email.downcase
-      matches += User.where('LOWER(email) = ?', normalized_email)
-      matches += User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
-                            normalized_email)
+      matches += User.by_any_email(normalized_email)
     end
 
     matches += User.by_name_or_alias(sheet_entry.name) if sheet_entry.name.present?

@@ -27,7 +27,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match(/Imported 1 application/, flash[:notice])
 
-    app = MembershipApplication.find_by!(email: 'controller-csv-import@example.com')
+    app = MembershipApplication.by_email('controller-csv-import@example.com').first!
     assert_equal 'approved', app.status
     assert_equal 'Sam Sample', app.answer_for(@page.questions.first)&.value
   end

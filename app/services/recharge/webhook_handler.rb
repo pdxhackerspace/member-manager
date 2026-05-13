@@ -123,9 +123,7 @@ module Recharge
       end
       return if subscription_email.blank?
 
-      normalized = subscription_email.downcase
-      User.find_by('LOWER(email) = ?', normalized) ||
-        User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)', normalized).first
+      User.by_any_email(subscription_email).first
     end
 
     def customer_id

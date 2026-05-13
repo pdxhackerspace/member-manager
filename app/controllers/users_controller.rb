@@ -51,7 +51,6 @@ class UsersController < AuthenticatedController
       search_term = "%#{params[:q].downcase}%"
       @users = @users.where(
         "LOWER(COALESCE(full_name, '')) LIKE :p " \
-        "OR LOWER(COALESCE(email, '')) LIKE :p " \
         'OR LOWER(authentik_id) LIKE :p ' \
         "OR LOWER(COALESCE(username, '')) LIKE :p",
         p: search_term
@@ -930,6 +929,6 @@ class UsersController < AuthenticatedController
     normalized_email = email.to_s.strip.downcase
     return nil if normalized_email.blank?
 
-    User.where('LOWER(email) = ?', normalized_email).first
+    User.lookup_by_email(normalized_email)
   end
 end

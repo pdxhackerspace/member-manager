@@ -161,12 +161,7 @@ module Recharge
       normalized = normalize_email(email)
       return if normalized.blank?
 
-      # Match by primary email
-      user = User.where('LOWER(email) = ?', normalized).first
-      return user if user
-
-      # Match by extra_emails array (check if email exists in the array, case-insensitive)
-      User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)', normalized).first
+      User.by_any_email(normalized).first
     end
 
     def normalize_email(value)

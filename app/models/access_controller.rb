@@ -1,4 +1,8 @@
 class AccessController < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :access_token, :environment_variables
+
   belongs_to :access_controller_type, optional: true
   has_many :access_controller_logs, dependent: :destroy
 

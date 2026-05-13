@@ -12,10 +12,7 @@ class KofiPaymentsController < AdminController
 
     # Try to find user by email
     @user_by_email = nil
-    if @payment.email.present?
-      @user_by_email = User.find_by('LOWER(email) = ? OR ? = ANY(LOWER(extra_emails::text)::text[])',
-                                    @payment.email.downcase, @payment.email.downcase)
-    end
+    @user_by_email = User.by_any_email(@payment.email).first if @payment.email.present?
 
     # Get all users for the selection dropdown (if no match found)
     @all_users = User.ordered_by_display_name if @user_by_email.nil?
@@ -48,7 +45,7 @@ class KofiPaymentsController < AdminController
 
     # Find the most recent payment for this user (by email or user_id)
     most_recent_payment = if @payment.email.present?
-                            KofiPayment.where('LOWER(email) = ?', @payment.email.downcase)
+                            KofiPayment.by_email(@payment.email)
                                        .where.not(timestamp: nil)
                                        .order(timestamp: :desc)
                                        .first
@@ -275,9 +272,7 @@ class KofiPaymentsController < AdminController
           if payment_data['user_email'].present? || payment_data['user_authentik_id'].present?
             user = nil
 
-            if payment_data['user_email'].present?
-              user = User.find_by('LOWER(email) = ?', payment_data['user_email'].to_s.strip.downcase)
-            end
+            user = User.lookup_by_email(payment_data['user_email']) if payment_data['user_email'].present?
 
             if user.nil? && payment_data['user_authentik_id'].present?
               user = User.find_by(authentik_id: payment_data['user_authentik_id'])
@@ -291,8 +286,7 @@ class KofiPaymentsController < AdminController
             sheet_entry = nil
 
             if payment_data['sheet_entry_email'].present?
-              sheet_entry = SheetEntry.find_by('LOWER(email) = ?',
-                                               payment_data['sheet_entry_email'].to_s.strip.downcase)
+              sheet_entry = SheetEntry.by_email(payment_data['sheet_entry_email']).first
             end
 
             if sheet_entry.nil? && payment_data['sheet_entry_name'].present?

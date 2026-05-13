@@ -74,7 +74,7 @@ module MembershipApplications
 
     def find_existing_non_draft_application(email)
       MembershipApplication.where.not(status: 'draft')
-                           .where('LOWER(email) = ?', email.downcase)
+                           .merge(MembershipApplication.by_email(email))
                            .order(created_at: :desc)
                            .first
     end

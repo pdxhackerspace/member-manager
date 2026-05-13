@@ -1,13 +1,19 @@
 class SlackUser < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email
+  encrypts_sensitive_json :raw_attributes
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   belongs_to :user, optional: true
   validates :slack_id, presence: true, uniqueness: true
   validates :email,
             allow_blank: true,
-            uniqueness: true,
             format: {
               with: URI::MailTo::EMAIL_REGEXP,
               allow_blank: true
             }
+  validates :email_lookup_digest, uniqueness: true, allow_blank: true
 
   ACTIVE_WINDOW = 1.year
 

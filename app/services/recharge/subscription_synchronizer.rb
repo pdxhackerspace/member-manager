@@ -140,8 +140,7 @@ module Recharge
       normalized = email.to_s.strip.downcase
       return if normalized.blank?
 
-      User.find_by('LOWER(email) = ?', normalized) ||
-        User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)', normalized).first
+      User.by_any_email(normalized).first
     end
 
     def link_customer_id(user, sub)

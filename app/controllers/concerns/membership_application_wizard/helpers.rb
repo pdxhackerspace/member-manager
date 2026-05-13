@@ -47,7 +47,7 @@ module MembershipApplicationWizard
       verification = current_verification
       email = verification.email
 
-      app = MembershipApplication.find_by(email: email, status: 'draft')
+      app = MembershipApplication.by_email(email).find_by(status: 'draft')
       app ||= MembershipApplication.create!(email: email)
 
       session[:application_token] = app.token

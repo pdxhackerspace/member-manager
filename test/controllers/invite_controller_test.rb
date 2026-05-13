@@ -78,7 +78,7 @@ class InviteControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to profile_setup_path
-    new_user = User.find_by(email: invitation.email)
+    new_user = User.lookup_by_email(invitation.email)
     assert_not_nil new_user
   end
 

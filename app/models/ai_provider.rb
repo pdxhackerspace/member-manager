@@ -1,4 +1,8 @@
 class AiProvider < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :api_key
+
   DEFAULT_PROVIDERS = [
     { name: 'Claude', url: 'https://api.anthropic.com' },
     { name: 'ChatGPT', url: 'https://api.openai.com' },

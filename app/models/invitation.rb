@@ -1,4 +1,9 @@
 class Invitation < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   MEMBERSHIP_TYPES = %w[member sponsored guest].freeze
 
   MEMBERSHIP_TYPE_LABELS = {
@@ -75,7 +80,7 @@ class Invitation < ApplicationRecord
   def email_not_already_registered
     return if email.blank?
 
-    existing = User.find_by('LOWER(email) = ?', email.strip.downcase)
+    existing = User.lookup_by_email(email)
     return unless existing
 
     errors.add(:email, "is already registered to @#{existing.username}")

@@ -153,7 +153,7 @@ module GoogleSheets
       # Try to find by email first (more reliable, case-insensitive)
       if attrs[:email].present?
         normalized_email = attrs[:email].to_s.strip.downcase
-        entry = SheetEntry.where('LOWER(email) = ?', normalized_email).first
+        entry = SheetEntry.by_email(normalized_email).first
         return entry if entry
       end
 

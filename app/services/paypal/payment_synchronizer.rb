@@ -147,12 +147,7 @@ module Paypal
       return nil if normalized_email.blank?
 
       # Match by primary email
-      user = User.where('LOWER(email) = ?', normalized_email).first
-      return user if user
-
-      # Match by extra_emails array
-      User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)',
-                 normalized_email).first
+      User.by_any_email(normalized_email).first
     end
 
     def normalize_email(value)

@@ -110,11 +110,7 @@ module MembershipApplications
 
       email = @application.email.to_s.strip.downcase
 
-      existing = User.where('LOWER(TRIM(email)) = ?', email).first
-      existing ||= User.where(
-        'EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(TRIM(e)) = ?)',
-        email
-      ).first
+      existing = User.by_any_email(email).first
 
       return merge_application_into_user!(existing) if existing
 

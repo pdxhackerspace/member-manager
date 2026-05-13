@@ -14,7 +14,23 @@ class MailDeliveryLogInterceptor
       subject: mail.subject.to_s.truncate(500),
       mailer_class: mail['X-MemberManager-Mailer']&.decoded,
       mailer_action: mail['X-MemberManager-Action']&.decoded,
-      details: nil
+      details: nil,
+      body_html: mail_body_html(mail),
+      body_text: mail_body_text(mail)
     )
+  end
+
+  def self.mail_body_html(mail)
+    return mail.html_part&.body&.decoded if mail.multipart?
+    return mail.body.decoded if mail.mime_type == 'text/html'
+
+    nil
+  end
+
+  def self.mail_body_text(mail)
+    return mail.text_part&.body&.decoded if mail.multipart?
+    return mail.body.decoded if mail.mime_type == 'text/plain'
+
+    nil
   end
 end

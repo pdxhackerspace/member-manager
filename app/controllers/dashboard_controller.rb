@@ -158,6 +158,7 @@ class DashboardController < AdminController
     @authentik_member_source = urgent.authentik_member_source
     @authentik_api_urgent = urgent.authentik_api_urgent
     @authentik_sync_issue = urgent.authentik_sync_issue
+    @mailer_health = urgent.mailer_health
     @ai_ollama_profiles = urgent.ai_ollama_profiles
     @ai_ollama_urgent = urgent.ai_ollama_urgent
     @printers = urgent.printers
@@ -170,6 +171,7 @@ class DashboardController < AdminController
       { tier: :urgent, id: :ac_issues, ok: @ac_issue_count.zero? },
       { tier: :urgent, id: :payment_processors, ok: @payment_processors_sync_unhealthy.empty? },
       { tier: :urgent, id: :authentik, ok: authentik_dashboard_ok? },
+      { tier: :urgent, id: :mailer_health, ok: @mailer_health.healthy? },
       { tier: :urgent, id: :ai_ollama, ok: !@ai_ollama_urgent },
       { tier: :urgent, id: :printers, ok: @unhealthy_printers.empty? },
       { tier: :important, id: :membership_applications, ok: @pending_applications_count.zero? },

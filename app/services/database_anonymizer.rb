@@ -454,7 +454,12 @@ module DatabaseAnonymizer
         SQL
       end
 
-      @conn.execute('UPDATE mail_log_entries SET details = NULL')
+      @conn.execute(<<~SQL.squish)
+        UPDATE mail_log_entries SET
+          details = NULL,
+          delivery_body_html = #{redacted_text},
+          delivery_body_text = #{redacted_text}
+      SQL
     end
 
     def scrub_payment_tables!

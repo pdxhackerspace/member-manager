@@ -26,20 +26,29 @@
   </div>
 </div>
 
+<div data-controller="sensitive-reveal">
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-      <h1 class="h4 mb-0"><%= @authentik_user.display_name %></h1>
-      <div class="d-flex gap-2">
-        <% if @authentik_user.is_active? %>
-          <span class="badge text-bg-success">Active</span>
-        <% else %>
-          <span class="badge text-bg-secondary">Inactive</span>
-        <% end %>
-        <% if @authentik_user.is_superuser? %>
-          <span class="badge text-bg-info">Superuser</span>
-        <% end %>
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+          <h1 class="h4 mb-0"><%= @authentik_user.display_name %></h1>
+          <% if @authentik_user.is_active? %>
+            <span class="badge text-bg-success">Active</span>
+          <% else %>
+            <span class="badge text-bg-secondary">Inactive</span>
+          <% end %>
+          <% if @authentik_user.is_superuser? %>
+            <span class="badge text-bg-info">Superuser</span>
+          <% end %>
+        </div>
+        <p class="mb-0 small text-secondary">Email and raw Authentik attributes are blurred until you show them.</p>
       </div>
+
+      <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0"
+              data-action="click->sensitive-reveal#toggle">
+        <span data-sensitive-reveal-target="label">Show contact details</span>
+      </button>
     </div>
 
     <div class="row">
@@ -51,7 +60,7 @@
           <dt class="col-sm-4 text-secondary">Email</dt>
           <dd class="col-sm-8">
             <% if @authentik_user.email.present? %>
-              <%= mail_to @authentik_user.email %>
+              <span data-sensitive-reveal-target="blurred"><%= mail_to @authentik_user.email %></span>
             <% else %>
               <span class="text-muted fst-italic">Not provided</span>
             <% end %>
@@ -136,8 +145,9 @@
 <div class="card shadow-sm border-0">
   <div class="card-body">
     <h2 class="h6 mb-3">Raw Attributes</h2>
-    <pre class="bg-body-secondary rounded p-3 mb-0"><code class="text-body"><%= JSON.pretty_generate(@authentik_user.raw_attributes) %></code></pre>
+    <pre class="bg-body-secondary rounded p-3 mb-0" data-sensitive-reveal-target="blurred"><code class="text-body"><%= JSON.pretty_generate(@authentik_user.raw_attributes) %></code></pre>
   </div>
+</div>
 </div>
 
 <% if @authentik_user.user.nil? %>

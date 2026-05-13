@@ -566,7 +566,7 @@ class User < ApplicationRecord
         event.amount = pp.amount
         event.currency = pp.currency || 'USD'
         event.occurred_at = pp.transaction_time || pp.created_at
-        event.details = "PayPal payment from #{pp.payer_name || pp.payer_email}"
+        event.details = pp.payment_event_details
         event.paypal_payment = pp
       end
       pe.update!(user: self) if pe.user_id != id

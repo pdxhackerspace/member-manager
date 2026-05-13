@@ -89,7 +89,7 @@ module Paypal
               pe.amount = record.amount
               pe.currency = record.currency || 'USD'
               pe.occurred_at = record.transaction_time || record.created_at
-              pe.details = "PayPal payment from #{record.payer_name || record.payer_email}"
+              pe.details = record.payment_event_details
               pe.paypal_payment = record
             end
           end

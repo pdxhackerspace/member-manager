@@ -69,7 +69,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'admin home parking tab shows print for permits but not tickets' do
-    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user = User.by_email(local_accounts(:active_admin).email).first!
     printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
     permit = admin_user.parking_notices.create!(
       notice_type: 'permit', status: 'active', issued_by: admin_user,
@@ -88,7 +88,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'home parking tab defaults to active notices with stacking filter pills' do
-    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user = User.by_email(local_accounts(:active_admin).email).first!
     admin_user.parking_notices.create!(
       notice_type: 'permit', status: 'active', issued_by: admin_user,
       expires_at: 3.days.from_now, description: 'Active home permit', location: 'Woodshop'
@@ -113,7 +113,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'home parking tab hides print for expired permits' do
-    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user = User.by_email(local_accounts(:active_admin).email).first!
     Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
     expired_permit = admin_user.parking_notices.create!(
       notice_type: 'permit', status: 'expired', issued_by: admin_user,
@@ -128,7 +128,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'member home payments details use source labels without payer emails' do
-    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user = User.by_email(local_accounts(:active_admin).email).first!
     [
       ['paypal', 'PAY-HOME-PRIVACY', 'PayPal payment from private-paypal@example.com'],
       ['recharge', 'RECHARGE-HOME-PRIVACY', 'Recharge payment from private-recharge@example.com'],
@@ -158,7 +158,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'home messages nav badge only shows unread count' do
-    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user = User.lookup_by_email(local_accounts(:active_admin).email)
     Message.where(recipient: admin_user).destroy_all
     Message.create!(
       sender: users(:one),

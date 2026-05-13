@@ -21,7 +21,7 @@ class RewritePaypalPaymentEventDetailsTest < ActiveSupport::TestCase
     assert_equal 'PayPal payment from Migration Payer', event.reload.details
   end
 
-  test 'rewrites paypal payment event details from payer email when name is blank' do
+  test 'falls back to a generic label when payer name is blank' do
     payment = paypal_payments(:sample_payment)
     payment.update!(payer_name: nil, payer_email: 'migration-email@example.com')
     event = PaymentEvent.create!(
@@ -32,11 +32,11 @@ class RewritePaypalPaymentEventDetailsTest < ActiveSupport::TestCase
       amount: payment.amount,
       currency: payment.currency,
       occurred_at: payment.transaction_time,
-      details: 'PayPal payment'
+      details: 'PayPal payment from migration-email@example.com'
     )
 
     RewritePaypalPaymentEventDetails.new.up
 
-    assert_equal 'PayPal payment from migration-email@example.com', event.reload.details
+    assert_equal 'PayPal payment', event.reload.details
   end
 end

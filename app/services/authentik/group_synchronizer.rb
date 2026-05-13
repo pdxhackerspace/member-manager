@@ -81,9 +81,7 @@ module Authentik
       return if email.blank?
 
       normalized_email = email.downcase
-      User.find_by('LOWER(email) = ?', normalized_email) ||
-        User.where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(e) = ?)',
-                   normalized_email).first
+      User.by_any_email(normalized_email).first
     end
 
     def link_user_to_authentik!(user, attrs)

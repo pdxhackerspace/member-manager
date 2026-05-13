@@ -209,9 +209,12 @@ class MembershipApplicationsController < ApplicationController
     @pagy, @application_verifications = pagy(verifications, limit: 25)
 
     emails = @application_verifications.map { |verification| verification.email.downcase }.uniq
+    email_digests = SensitiveData.email_digests(emails)
     @received_applications_by_email = MembershipApplication
                                       .where.not(status: 'draft')
-                                      .where('LOWER(email) IN (?)', emails.presence || [''])
+                                      .where('email_lookup_digest IN (:digests) OR LOWER(email) IN (:emails)',
+                                             digests: email_digests.presence || [''],
+                                             emails: emails.presence || [''])
                                       .newest_first
                                       .group_by { |application| application.email.downcase }
     @verification_mail_logs_by_email = MailLogEntry

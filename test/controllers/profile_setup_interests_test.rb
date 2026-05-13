@@ -6,7 +6,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     Rails.application.config.x.local_auth.enabled = true
     # Sign in as the member_with_local_account fixture user via their local account
     sign_in_as_member
-    @current_user = User.find_by(email: local_accounts(:regular_member).email)
+    @current_user = User.lookup_by_email(local_accounts(:regular_member).email)
   end
 
   teardown do

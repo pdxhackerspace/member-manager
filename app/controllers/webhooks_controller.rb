@@ -97,8 +97,7 @@ class WebhooksController < ApplicationController
 
       # Try to find a matching user by email
       if payment.email.present?
-        user = User.find_by('LOWER(email) = ? OR ? = ANY(LOWER(extra_emails::text)::text[])',
-                            payment.email.downcase, payment.email.downcase)
+        user = User.by_any_email(payment.email).first
         payment.user = user if user
       end
 
@@ -270,7 +269,7 @@ class WebhooksController < ApplicationController
       return
     end
 
-    reader = RfidReader.find_by(key: reader_key.to_s.strip)
+    reader = RfidReader.lookup_by_key(reader_key)
     unless reader
       Rails.logger.warn("Webhook request with invalid reader key: #{reader_key}")
       render json: { error: 'invalid key' }, status: :unauthorized

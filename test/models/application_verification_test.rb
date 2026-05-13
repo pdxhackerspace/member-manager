@@ -95,4 +95,22 @@ class ApplicationVerificationTest < ActiveSupport::TestCase
     assert_not_includes results, expired
     assert_not_includes results, unverified
   end
+
+  test 'extend_expiration_by! extends from current expiry when active' do
+    verification = ApplicationVerification.create!(email: 'extend-active@example.com')
+    original_expiry = verification.expires_at
+
+    verification.extend_expiration_by!(1.day)
+
+    assert_in_delta original_expiry + 1.day, verification.expires_at, 1.second
+  end
+
+  test 'extend_expiration_by! extends from now when expired' do
+    verification = ApplicationVerification.create!(email: 'extend-expired@example.com')
+    verification.update_columns(expires_at: 2.days.ago)
+
+    verification.extend_expiration_by!(1.week)
+
+    assert_in_delta 1.week.from_now, verification.expires_at, 5.seconds
+  end
 end

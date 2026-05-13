@@ -7,7 +7,7 @@ class MembershipApplicationsController < ApplicationController
 
   ADMIN_ACTIONS = %i[
     index show import approve reject delay_for_review link_user unlink_user vote_ai_feedback
-    save_tour_feedback vote_acceptance
+    save_tour_feedback vote_acceptance extend_initiated_application
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
     show approve reject delay_for_review link_user unlink_user vote_ai_feedback
@@ -41,9 +41,16 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def index
+    @current_status = params[:status].presence || 'submitted'
+    @status_counts = membership_application_status_counts
+
+    if @current_status == 'initiated'
+      load_initiated_applications
+      return
+    end
+
     base_scope = MembershipApplication.where.not(status: 'draft')
     @applications = base_scope.includes(:user, :reviewed_by, :application_answers, :acceptance_votes)
-    @current_status = params[:status].presence || 'submitted'
     @applications = case @current_status
                     when 'all'
                       @applications
@@ -56,21 +63,26 @@ class MembershipApplicationsController < ApplicationController
     # Ensure stable newest-first order after search/includes (PostgreSQL + AR can otherwise return arbitrary order).
     @applications = @applications.newest_first
 
-    @status_counts = {
-      all: MembershipApplication.where.not(status: 'draft').count,
-      submitted: MembershipApplication.submitted_apps.count,
-      under_review: MembershipApplication.under_review_apps.count,
-      approved: MembershipApplication.approved.count,
-      rejected: MembershipApplication.rejected.count,
-      unlinked: MembershipApplication.where(status: 'approved').where(user_id: nil).count
-    }
-
     @pagy, @applications = pagy(@applications, limit: 25)
 
     name_q_scope = ApplicationFormQuestion.joins(:application_form_page)
     @applicant_name_question_id = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
 
     @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
+  end
+
+  def extend_initiated_application
+    verification = ApplicationVerification.find(params[:id])
+    duration = initiated_application_extension_duration
+
+    if duration.nil?
+      redirect_to membership_applications_path(status: 'initiated'), alert: 'Choose one day or one week.'
+      return
+    end
+
+    verification.extend_expiration_by!(duration)
+    redirect_to membership_applications_path(status: 'initiated'),
+                notice: "Extended #{verification.email}'s verification link."
   end
 
   def show
@@ -202,6 +214,44 @@ class MembershipApplicationsController < ApplicationController
   end
 
   private
+
+  def membership_application_status_counts
+    {
+      all: MembershipApplication.where.not(status: 'draft').count,
+      initiated: ApplicationVerification.count,
+      submitted: MembershipApplication.submitted_apps.count,
+      under_review: MembershipApplication.under_review_apps.count,
+      approved: MembershipApplication.approved.count,
+      rejected: MembershipApplication.rejected.count,
+      unlinked: MembershipApplication.where(status: 'approved').where(user_id: nil).count
+    }
+  end
+
+  def load_initiated_applications
+    @applications = MembershipApplication.none
+    @users_for_application_link = []
+    verifications = ApplicationVerification.admin_search(params[:q]).newest_first
+    @pagy, @application_verifications = pagy(verifications, limit: 25)
+
+    emails = @application_verifications.map { |verification| verification.email.downcase }.uniq
+    @received_applications_by_email = MembershipApplication
+                                      .where.not(status: 'draft')
+                                      .where('LOWER(email) IN (?)', emails.presence || [''])
+                                      .newest_first
+                                      .group_by { |application| application.email.downcase }
+    @verification_mail_logs_by_email = MailLogEntry
+                                       .where(delivery_action: 'application_email_verification')
+                                       .where('LOWER(delivery_to) IN (?)', emails.presence || [''])
+                                       .newest_first
+                                       .group_by { |entry| entry.delivery_to.downcase }
+  end
+
+  def initiated_application_extension_duration
+    case params[:duration]
+    when 'day' then 1.day
+    when 'week' then 1.week
+    end
+  end
 
   def require_executive_director_for_final_decision!
     return if true_user&.can_finalize_membership_application?

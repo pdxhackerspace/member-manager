@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# Action Mailer 8.1+ no longer exposes +delivery_interceptors+ on +ActionMailer::Base+;
-# registration delegates to the Mail gem, which skips duplicates.
-Rails.application.config.after_initialize do
-  ActionMailer::Base.register_interceptor(MailDeliveryLogInterceptor)
-end
+# Delivery logging is handled by +ApplicationMailer+ delivery callbacks so failures can be
+# recorded accurately. Keep this initializer as a compatibility placeholder for deployments
+# that still autoload +MailDeliveryLogInterceptor+.

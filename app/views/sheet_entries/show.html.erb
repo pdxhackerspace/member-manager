@@ -30,9 +30,18 @@
 
 <%= render "paypal_payments/payment_history", payments: @payments %>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0" data-controller="sensitive-reveal">
   <div class="card-body">
-    <h1 class="h4 mb-3"><%= @sheet_entry.name %></h1>
+    <div class="d-flex flex-column flex-sm-row align-items-sm-start justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h4 mb-1"><%= @sheet_entry.name %></h1>
+        <p class="mb-0 small text-secondary">Email and raw sheet data are blurred until you show them.</p>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0"
+              data-action="click->sensitive-reveal#toggle">
+        <span data-sensitive-reveal-target="label">Show contact details</span>
+      </button>
+    </div>
 
     <dl class="row mb-0">
       <dt class="col-sm-3 text-secondary">Member</dt>
@@ -52,7 +61,7 @@
       <dt class="col-sm-3 text-secondary">Email</dt>
       <dd class="col-sm-9">
         <% if @sheet_entry.email.present? %>
-          <%= mail_to @sheet_entry.email %>
+          <span data-sensitive-reveal-target="blurred"><%= mail_to @sheet_entry.email %></span>
         <% else %>
           <span class="text-muted fst-italic">Not provided</span>
         <% end %>
@@ -102,7 +111,7 @@
 
       <dt class="col-sm-3 text-secondary">Raw data</dt>
       <dd class="col-sm-9">
-        <pre class="bg-body-secondary rounded p-3 mb-0"><code class="text-body"><%= JSON.pretty_generate(@sheet_entry.raw_attributes) %></code></pre>
+        <pre class="bg-body-secondary rounded p-3 mb-0" data-sensitive-reveal-target="blurred"><code class="text-body"><%= JSON.pretty_generate(@sheet_entry.raw_attributes) %></code></pre>
       </dd>
     </dl>
   </div>

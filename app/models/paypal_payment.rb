@@ -42,6 +42,12 @@ class PaypalPayment < ApplicationRecord
     transaction_time
   end
 
+  def payment_event_details
+    return "PayPal payment from #{payer_name}" if payer_name.present?
+
+    'PayPal payment'
+  end
+
   private
 
   def user_id_changed_to_present?

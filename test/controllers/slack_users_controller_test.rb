@@ -25,6 +25,26 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_match 'Unlinked', response.body
   end
 
+  test 'index does not show the email column' do
+    get slack_users_path
+
+    assert_response :success
+    assert_select 'th', text: 'Email', count: 0
+    assert_select 'a[href^=?]', 'mailto:', count: 0
+  end
+
+  test 'show masks email and raw attributes with reveal control' do
+    slack_user = slack_users(:with_dept)
+
+    get slack_user_path(slack_user)
+
+    assert_response :success
+    assert_select '[data-controller=?]', 'sensitive-reveal'
+    assert_select '[data-action=?]', 'click->sensitive-reveal#toggle', text: /Show contact details/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /with_dept@example\.com/
+    assert_select 'pre[data-sensitive-reveal-target=?]', 'blurred', text: /department/
+  end
+
   test 'index link modal can search members by email and username' do
     user = users(:one)
 

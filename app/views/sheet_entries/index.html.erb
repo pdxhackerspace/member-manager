@@ -63,7 +63,7 @@
     </div>
     
     <div class="d-flex gap-2">
-      <input type="text" id="sheet_search" class="form-control" placeholder="Search by name, email, status, payment, or access…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input type="text" id="sheet_search" class="form-control" placeholder="Search by name, status, payment, or access…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <button type="button" id="clear_sheet_search" class="btn btn-outline-secondary d-none">Clear</button>
     </div>
   </div>
@@ -75,7 +75,6 @@
       <thead class="bg-body-tertiary">
         <tr>
           <th scope="col">Name</th>
-          <th scope="col">Email</th>
           <th scope="col">Status</th>
           <th scope="col">Payment</th>
           <th scope="col">Access</th>
@@ -93,7 +92,6 @@
                 entry.access_permissions.join(" ")
               ].compact.join(' ').downcase %>">
             <td class="fw-semibold"><%= link_to entry.name, sheet_entry_path(entry) %></td>
-            <td><%= entry.email ? mail_to(entry.email) : content_tag(:span, "Not provided", class: "text-muted fst-italic") %></td>
             <td><%= entry.status.presence || content_tag(:span, "Inactive", class: "text-muted") %></td>
             <td><%= entry.payment.presence || content_tag(:span, "—", class: "text-muted") %></td>
             <td>

@@ -23,11 +23,29 @@ class SheetEntriesControllerTest < ActionDispatch::IntegrationTest
     assert_match @sheet_entry.name, response.body
   end
 
+  test 'index does not show the email column' do
+    get sheet_entries_path
+
+    assert_response :success
+    assert_select 'th', text: 'Email', count: 0
+    assert_select 'a[href^=?]', 'mailto:', count: 0
+  end
+
   test 'shows a single entry' do
     get sheet_entry_path(@sheet_entry)
     assert_response :success
     assert_match @sheet_entry.name, response.body
     assert_match @sheet_entry.status, response.body
+  end
+
+  test 'show masks email and raw data with reveal control' do
+    get sheet_entry_path(@sheet_entry)
+
+    assert_response :success
+    assert_select '[data-controller=?]', 'sensitive-reveal'
+    assert_select '[data-action=?]', 'click->sensitive-reveal#toggle', text: /Show contact details/
+    assert_select '[data-sensitive-reveal-target=?]', 'blurred', text: /user1@example\.com/
+    assert_select 'pre[data-sensitive-reveal-target=?]', 'blurred', text: /Owner/
   end
 
   test 'enqueues sync job' do

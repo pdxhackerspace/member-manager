@@ -2,9 +2,18 @@
   <%= link_to "&larr; Back to Ko-Fi payments".html_safe, kofi_payments_path, class: "text-decoration-none" %>
 </div>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0" data-controller="sensitive-reveal">
   <div class="card-body">
-    <h1 class="h4 mb-3">Ko-Fi Payment <%= @payment.kofi_transaction_id %></h1>
+    <div class="d-flex flex-column flex-sm-row align-items-sm-start justify-content-between gap-2 mb-3">
+      <div>
+        <h1 class="h4 mb-1">Ko-Fi Payment <%= @payment.kofi_transaction_id %></h1>
+        <p class="mb-0 small text-secondary">Supporter email and raw payment data are blurred until you show them.</p>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0"
+              data-action="click->sensitive-reveal#toggle">
+        <span data-sensitive-reveal-target="label">Show contact details</span>
+      </button>
+    </div>
 
     <dl class="row mb-0">
       <dt class="col-sm-3 text-secondary">Status</dt>
@@ -32,7 +41,7 @@
           <div><%= @payment.from_name %></div>
         <% end %>
         <% if @payment.email.present? %>
-          <div><%= mail_to @payment.email %></div>
+          <div data-sensitive-reveal-target="blurred"><%= mail_to @payment.email %></div>
         <% end %>
         <% if @payment.from_name.blank? && @payment.email.blank? %>
           <span class="text-muted fst-italic">Not provided</span>
@@ -96,7 +105,7 @@
 
       <dt class="col-sm-3 text-secondary">Raw data</dt>
       <dd class="col-sm-9">
-        <pre class="bg-body-secondary rounded p-3 mb-0"><code class="text-body"><%= JSON.pretty_generate(@payment.raw_attributes) %></code></pre>
+        <pre class="bg-body-secondary rounded p-3 mb-0" data-sensitive-reveal-target="blurred"><code class="text-body"><%= JSON.pretty_generate(@payment.raw_attributes) %></code></pre>
       </dd>
     </dl>
   </div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_12_092500) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -995,6 +995,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_12_092500) do
     t.boolean "legacy", default: false, null: false
     t.string "login_token"
     t.datetime "login_token_expires_at"
+    t.text "mailing_address"
     t.date "membership_ended_date"
     t.bigint "membership_plan_id"
     t.date "membership_start_date"
@@ -1002,6 +1003,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_12_092500) do
     t.text "notes"
     t.string "payment_type", default: "unknown"
     t.string "paypal_account_id"
+    t.string "phone_number"
     t.string "profile_visibility", default: "members", null: false
     t.string "pronouns"
     t.string "recharge_customer_id"

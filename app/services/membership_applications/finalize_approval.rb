@@ -14,9 +14,9 @@ module MembershipApplications
       end
     end
 
+    MAILING_ADDRESS_LABEL = 'Mailing Address'
+    PHONE_NUMBER_LABEL = 'Phone number'
     CONTACT_LABELS_FOR_NOTES = [
-      'Mailing Address',
-      'Phone number',
       'Member Email',
       'Member Phone'
     ].freeze
@@ -125,6 +125,8 @@ module MembershipApplications
       attrs = {
         email: email,
         full_name: derived_full_name,
+        mailing_address: mailing_address_from_application,
+        phone_number: phone_number_from_application,
         membership_status: 'applicant',
         active: false,
         service_account: false
@@ -142,6 +144,10 @@ module MembershipApplications
       attrs[:full_name] = name if user.full_name.blank? && name.present?
       pn = answer_for_label('Pronouns')
       attrs[:pronouns] = pn if user.pronouns.blank? && pn.present?
+      mailing_address = mailing_address_from_application
+      attrs[:mailing_address] = mailing_address if user.mailing_address.blank? && mailing_address.present?
+      phone_number = phone_number_from_application
+      attrs[:phone_number] = phone_number if user.phone_number.blank? && phone_number.present?
       extra_notes = contact_notes_section
       if extra_notes.present?
         attrs[:notes] = [user.notes, "From membership application:\n#{extra_notes}"].compact.join("\n\n").strip
@@ -165,6 +171,14 @@ module MembershipApplications
       return nil unless q
 
       @application.application_answers.find_by(application_form_question: q)&.value&.strip.presence
+    end
+
+    def mailing_address_from_application
+      answer_for_label(MAILING_ADDRESS_LABEL)
+    end
+
+    def phone_number_from_application
+      answer_for_label(PHONE_NUMBER_LABEL)
     end
 
     def contact_notes_section

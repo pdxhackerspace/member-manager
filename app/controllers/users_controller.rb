@@ -883,7 +883,7 @@ class UsersController < AuthenticatedController
     if current_user_admin?
       permitted += %i[
         membership_status payment_type notes membership_plan_id aliases_text service_account legacy
-        dues_due_at sponsored_guest_duration_months
+        mailing_address phone_number dues_due_at sponsored_guest_duration_months
       ]
       permitted << :is_admin
       # Only allow manual active toggle for service accounts

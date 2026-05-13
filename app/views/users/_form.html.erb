@@ -182,6 +182,18 @@
     </div>
 
     <div>
+      <%= f.label :mailing_address, "Mailing address", class: "form-label" %>
+      <%= f.text_area :mailing_address, class: "form-control", rows: 3, autocomplete: "street-address" %>
+      <div class="form-text">Admin-only contact information. This is hidden from member-facing profile views.</div>
+    </div>
+
+    <div>
+      <%= f.label :phone_number, "Phone number", class: "form-label" %>
+      <%= f.telephone_field :phone_number, class: "form-control", autocomplete: "tel" %>
+      <div class="form-text">Admin-only contact information. This is hidden from member-facing profile views.</div>
+    </div>
+
+    <div>
       <%= f.label :aliases, "Aliases (alternate names)", class: "form-label" %>
       <%= f.text_field :aliases_text, value: @user.aliases&.join(", "), class: "form-control",
           placeholder: "e.g., Bob Smith, Robert J. Smith" %>

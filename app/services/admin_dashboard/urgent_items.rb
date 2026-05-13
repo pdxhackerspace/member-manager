@@ -17,6 +17,7 @@ module AdminDashboard
       :authentik_member_source,
       :authentik_api_urgent,
       :authentik_sync_issue,
+      :mailer_health,
       :ai_ollama_profiles,
       :ai_ollama_urgent,
       :printers,
@@ -51,6 +52,7 @@ module AdminDashboard
         authentik_member_source,
         authentik_api_urgent?,
         authentik_sync_issue,
+        mailer_health,
         ai_ollama_profiles,
         ai_ollama_urgent?,
         printers,
@@ -68,6 +70,7 @@ module AdminDashboard
         access_controller_item,
         payment_processors_item,
         authentik_item,
+        mailer_item,
         ai_ollama_item,
         printers_item
       ].compact
@@ -194,6 +197,21 @@ module AdminDashboard
                     authentik_member_source.sync_status.in?(%w[degraded failing])
 
       authentik_member_source
+    end
+
+    def mailer_health
+      @mailer_health ||= MailerHealthCheck.call
+    end
+
+    def mailer_item
+      return nil if mailer_health.healthy?
+
+      item(
+        :mailer_health,
+        'Outgoing mail is unhealthy',
+        mailer_health.message.to_s.truncate(300),
+        mail_log_path
+      )
     end
 
     def ai_ollama_profiles

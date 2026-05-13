@@ -21,20 +21,37 @@ class MailLogEntry < ApplicationRecord
 
   # Logs an immediate Action Mailer delivery (not via +QueuedMail+).
   # rubocop:disable Metrics/ParameterLists -- mirrors mail metadata fields
-  def self.log_direct_delivery!(to:, subject:, mailer_class:, mailer_action:, details: nil, actor: nil)
+  def self.log_direct_delivery!(to:, subject:, mailer_class:, mailer_action:, details: nil, actor: nil,
+                                event: 'sent', body_html: nil, body_text: nil)
     detail = details.presence || [mailer_class, mailer_action].compact.join('#')
     create!(
       queued_mail: nil,
-      event: 'sent',
+      event: event,
       actor: actor,
       details: detail,
       delivery_to: to,
       delivery_subject: subject,
       delivery_mailer: mailer_class,
-      delivery_action: mailer_action
+      delivery_action: mailer_action,
+      delivery_body_html: body_html,
+      delivery_body_text: body_text
     )
   end
   # rubocop:enable Metrics/ParameterLists
+
+  def self.log_queued_delivery!(queued_mail)
+    create!(
+      queued_mail: queued_mail,
+      event: 'sent',
+      details: "Delivered to #{queued_mail.to}",
+      delivery_to: queued_mail.to,
+      delivery_subject: queued_mail.subject,
+      delivery_mailer: 'QueuedMailMailer',
+      delivery_action: queued_mail.mailer_action,
+      delivery_body_html: queued_mail.body_html,
+      delivery_body_text: queued_mail.body_text
+    )
+  end
 
   def self.log_once!(queued_mail, event, actor: nil, details: nil)
     last_entry = queued_mail.mail_log_entries
@@ -69,6 +86,26 @@ class MailLogEntry < ApplicationRecord
       days = (seconds / 86_400).round
       "#{days} #{'day'.pluralize(days)}"
     end
+  end
+
+  def message_to
+    delivery_to.presence || queued_mail&.to
+  end
+
+  def message_subject
+    delivery_subject.presence || queued_mail&.subject
+  end
+
+  def message_body_html
+    delivery_body_html.presence || queued_mail&.body_html
+  end
+
+  def message_body_text
+    delivery_body_text.presence || queued_mail&.body_text
+  end
+
+  def message_available?
+    message_body_html.present? || message_body_text.present?
   end
 
   private

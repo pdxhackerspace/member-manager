@@ -2,7 +2,7 @@ require 'net/smtp'
 require 'openssl'
 
 class MailerHealthCheck
-  CACHE_KEY = 'mailer_health_check:v3'.freeze
+  CACHE_KEY = 'mailer_health_check:v4'.freeze
   CACHE_TTL = 5.minutes
   DEFAULT_TIMEOUT = 5
 
@@ -46,9 +46,11 @@ class MailerHealthCheck
   end
 
   def configure_tls(smtp)
-    smtp.enable_tls if settings[:enable_tls]
-    smtp.enable_starttls if settings[:enable_starttls]
-    smtp.enable_starttls_auto if settings.fetch(:enable_starttls_auto, false)
+    return smtp.enable_tls if settings[:enable_tls]
+    return smtp.enable_starttls if settings[:enable_starttls]
+    return smtp.enable_starttls_auto if settings.fetch(:enable_starttls_auto, false)
+
+    smtp.disable_starttls
   end
 
   def smtp_delivery_method?

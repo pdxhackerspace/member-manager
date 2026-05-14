@@ -26,6 +26,10 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
       @starttls_auto = true
     end
 
+    def disable_starttls
+      @starttls_disabled = true
+    end
+
     def start(domain, username, password, authentication)
       raise self.class.error if self.class.error
 
@@ -36,7 +40,8 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
       yield if block_given?
     end
 
-    attr_reader :address, :port, :domain, :username, :password, :authentication, :tls, :starttls, :starttls_auto
+    attr_reader :address, :port, :domain, :username, :password, :authentication, :tls, :starttls, :starttls_auto,
+                :starttls_disabled
   end
 
   setup do
@@ -79,14 +84,17 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
     assert_equal 'secret', FakeSmtp.last.password
     assert_equal :plain, FakeSmtp.last.authentication
     assert_equal true, FakeSmtp.last.starttls_auto
+    assert_nil FakeSmtp.last.starttls_disabled
   end
 
-  test 'healthy for unauthenticated local SMTP relay without TLS' do
+  test 'healthy for local SMTP relay without TLS' do
     Rails.configuration.action_mailer.delivery_method = :smtp
     Rails.configuration.action_mailer.smtp_settings = {
       address: 'localhost',
       port: 25,
       domain: 'members.example.test',
+      user_name: 'mailer',
+      password: 'secret',
       authentication: :plain,
       enable_starttls_auto: false
     }
@@ -94,15 +102,16 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
     result = MailerHealthCheck.call(force: true)
 
     assert result.healthy?
-    assert_equal 'Connected to localhost:25', result.message
+    assert_equal 'Connected and authenticated to localhost:25', result.message
     assert_equal 'localhost', FakeSmtp.last.address
     assert_equal 25, FakeSmtp.last.port
-    assert_nil FakeSmtp.last.username
-    assert_nil FakeSmtp.last.password
-    assert_nil FakeSmtp.last.authentication
+    assert_equal 'mailer', FakeSmtp.last.username
+    assert_equal 'secret', FakeSmtp.last.password
+    assert_equal :plain, FakeSmtp.last.authentication
     assert_nil FakeSmtp.last.tls
     assert_nil FakeSmtp.last.starttls
     assert_nil FakeSmtp.last.starttls_auto
+    assert_equal true, FakeSmtp.last.starttls_disabled
   end
 
   test 'unhealthy when SMTP credentials are partially configured' do

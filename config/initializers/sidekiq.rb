@@ -109,6 +109,14 @@ Sidekiq.configure_server do |config|
     class: 'MessageTrashCleanupJob',
     active_job: true
   )
+
+  # Member Geocoding - Hourly
+  Sidekiq::Cron::Job.create(
+    name: 'Member Geocoding - Hourly',
+    cron: '0 * * * *',
+    class: 'MemberGeocodingJob',
+    active_job: true
+  )
 end
 
 Sidekiq.configure_client do |config|

@@ -16,7 +16,7 @@ class MemberMapsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select '#member-map[data-markers]'
-    assert_select 'link[href*="leaflet.css"]'
+    assert_select 'link[href*="leaflet.css"]', false
   end
 
   test 'should show mapped members' do

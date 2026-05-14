@@ -77,14 +77,17 @@ Rails.application.configure do
   config.action_mailer.perform_deliveries = true
   config.action_mailer.delivery_method = :smtp
 
+  smtp_port = ENV.fetch('SMTP_PORT', 587).to_i
+  smtp_enable_starttls = ENV.fetch('SMTP_ENABLE_STARTTLS') { smtp_port == 587 ? 'true' : 'false' } == 'true'
+
   config.action_mailer.smtp_settings = {
     address: ENV.fetch('SMTP_ADDRESS', 'smtp.example.com'),
-    port: ENV.fetch('SMTP_PORT', 587).to_i,
+    port: smtp_port,
     domain: ENV.fetch('SMTP_DOMAIN', 'example.com'),
     user_name: ENV['SMTP_USERNAME'],
     password: ENV['SMTP_PASSWORD'],
     authentication: ENV.fetch('SMTP_AUTHENTICATION', 'plain').to_sym,
-    enable_starttls_auto: ENV.fetch('SMTP_ENABLE_STARTTLS', 'true') == 'true'
+    enable_starttls_auto: smtp_enable_starttls
   }
 
   # Default URL options for mailer links

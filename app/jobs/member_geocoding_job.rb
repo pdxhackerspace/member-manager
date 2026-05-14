@@ -25,8 +25,12 @@ class MemberGeocodingJob < ApplicationJob
     result = geocoder.geocode(user.mailing_address)
     updates = { mailing_geocoded_at: Time.current, updated_at: Time.current }
     if result.present?
-      updates[:mailing_latitude] = result.fetch(:latitude)
-      updates[:mailing_longitude] = result.fetch(:longitude)
+      fuzzed_result = Geocoding::CoordinateFuzzer.call(
+        latitude: result.fetch(:latitude),
+        longitude: result.fetch(:longitude)
+      )
+      updates[:mailing_latitude] = fuzzed_result.fetch(:latitude)
+      updates[:mailing_longitude] = fuzzed_result.fetch(:longitude)
     end
 
     user.update_columns(updates)

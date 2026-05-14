@@ -15,7 +15,7 @@
         <%= f.label :rfid_facility_code, "Facility code", class: "form-label" %>
         <%= f.number_field :rfid_facility_code,
             class: "form-control #{'is-invalid' if @default_setting.errors.key?(:rfid_facility_code)}",
-            min: 0, step: 1, placeholder: "127" %>
+            min: 0, step: 1, required: true, placeholder: "127" %>
         <% if @default_setting.errors.key?(:rfid_facility_code) %>
           <div class="invalid-feedback">
             <%= @default_setting.errors[:rfid_facility_code].first %>

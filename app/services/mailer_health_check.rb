@@ -2,7 +2,7 @@ require 'net/smtp'
 require 'openssl'
 
 class MailerHealthCheck
-  CACHE_KEY = 'mailer_health_check:v1'.freeze
+  CACHE_KEY = 'mailer_health_check:v2'.freeze
   CACHE_TTL = 5.minutes
   DEFAULT_TIMEOUT = 5
 
@@ -19,11 +19,11 @@ class MailerHealthCheck
   def call
     return unhealthy('Action Mailer is not configured to use SMTP') unless smtp_delivery_method?
     return unhealthy('SMTP is not configured') unless configured?
-    return unhealthy('SMTP username is missing') if settings[:user_name].blank?
-    return unhealthy('SMTP password is missing') if settings[:password].blank?
+    return unhealthy('SMTP password is missing') if settings[:user_name].present? && settings[:password].blank?
+    return unhealthy('SMTP username is missing') if settings[:password].present? && settings[:user_name].blank?
 
     check_smtp!
-    healthy("Connected and authenticated to #{settings[:address]}:#{settings[:port] || 25}")
+    healthy(success_message)
   rescue Net::SMTPAuthenticationError => e
     unhealthy("SMTP authentication failed: #{e.message}")
   rescue Net::OpenTimeout, Net::ReadTimeout
@@ -42,7 +42,7 @@ class MailerHealthCheck
     smtp.start(settings[:domain].presence || 'localhost',
                settings[:user_name],
                settings[:password],
-               authentication) { true }
+               authentication_for_start) { true }
   end
 
   def configure_tls(smtp)
@@ -67,6 +67,22 @@ class MailerHealthCheck
 
   def authentication
     (settings[:authentication].presence || :plain).to_sym
+  end
+
+  def authentication_for_start
+    return nil unless authenticated?
+
+    authentication
+  end
+
+  def authenticated?
+    settings[:user_name].present? && settings[:password].present?
+  end
+
+  def success_message
+    action = authenticated? ? 'Connected and authenticated' : 'Connected'
+
+    "#{action} to #{settings[:address]}:#{settings[:port] || 25}"
   end
 
   def timeout

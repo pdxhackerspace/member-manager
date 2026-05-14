@@ -37,6 +37,17 @@
 
       <dt class="col-sm-4 text-secondary">Can Train Prefix</dt>
       <dd class="col-sm-8"><code><%= @default_setting.can_train_prefix %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Map Center</dt>
+      <dd class="col-sm-8">
+        <code><%= @default_setting.map_center_latitude %>, <%= @default_setting.map_center_longitude %></code>
+      </dd>
+
+      <dt class="col-sm-4 text-secondary">Map Radius</dt>
+      <dd class="col-sm-8">
+        <%= number_with_precision(@default_setting.map_radius_miles, precision: 1, strip_insignificant_zeros: true) %>
+        miles
+      </dd>
     </dl>
   </div>
 </div>

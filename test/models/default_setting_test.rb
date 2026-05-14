@@ -14,4 +14,16 @@ class DefaultSettingTest < ActiveSupport::TestCase
 
     assert_equal '', setting.rfid_facility_prefix
   end
+
+  test 'map defaults require plausible coordinates and radius' do
+    setting = default_settings(:one)
+    setting.map_center_latitude = 91
+    setting.map_center_longitude = -181
+    setting.map_radius_miles = 0
+
+    assert_not setting.valid?
+    assert_includes setting.errors[:map_center_latitude], 'must be less than or equal to 90'
+    assert_includes setting.errors[:map_center_longitude], 'must be greater than or equal to -180'
+    assert_includes setting.errors[:map_radius_miles], 'must be greater than 0'
+  end
 end

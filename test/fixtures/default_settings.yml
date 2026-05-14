@@ -11,3 +11,6 @@ one:
   trained_on_prefix: trained-on
   can_train_prefix: can-train
   rfid_facility_code:
+  map_center_latitude: 45.581678
+  map_center_longitude: -122.682156
+  map_radius_miles: 4.0

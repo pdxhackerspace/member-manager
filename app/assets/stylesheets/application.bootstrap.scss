@@ -503,6 +503,10 @@
 
 .text-tertiary { color: var(--bs-secondary-color); opacity: 0.7; }
 
+.report-map {
+  min-height: 520px;
+}
+
 /* === Record training flow === */
 .form-section {
   background: rgba(255,255,255,0.02);

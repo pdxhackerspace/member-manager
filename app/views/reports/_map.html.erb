@@ -1,0 +1,140 @@
+<div class="tab-pane fade <%= 'show active' if active_tab == 'map' %>"
+     id="map-pane"
+     role="tabpanel"
+     aria-labelledby="map-tab">
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="h5 mb-0">Member Map</h2>
+        <div class="text-13 text-secondary mt-1">
+          <span class="text-body"><%= @map_mapped_count %></span> mapped within
+          <span class="text-body"><%= number_with_precision(@map_radius_miles, precision: 1, strip_insignificant_zeros: true) %></span> miles ·
+          <span class="<%= @map_missing_coordinates_count.positive? ? 'text-warning' : 'text-secondary' %>">
+            <%= @map_missing_coordinates_count %>
+          </span> missing coordinates ·
+          <span class="text-secondary"><%= @map_out_of_radius_count %></span> outside radius
+        </div>
+      </div>
+      <%= link_to "Map settings", edit_default_settings_path, class: "btn btn-outline-secondary btn-sm" %>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div id="member-map" class="report-map rounded border"
+               data-center="<%= @map_center.to_json %>"
+               data-radius-miles="<%= @map_radius_miles %>"
+               data-markers="<%= @map_markers.to_json %>"></div>
+        </div>
+        <div class="col-lg-4">
+          <div class="status-panel status-clear mb-3">
+            <div class="fw-medium mb-1">Default view</div>
+            <div class="text-13 text-secondary">
+              Centered on the hackerspace at
+              <span class="text-body"><%= @map_center[:latitude] %>, <%= @map_center[:longitude] %></span>
+              and limited to
+              <span class="text-body"><%= number_with_precision(@map_radius_miles, precision: 1, strip_insignificant_zeros: true) %></span>
+              miles.
+            </div>
+          </div>
+
+          <% if @map_markers.any? %>
+            <div class="list-group list-compact">
+              <% @map_markers.first(20).each do |marker| %>
+                <%= link_to marker[:profile_path], class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center" do %>
+                  <span>
+                    <div class="item-title"><%= marker[:name] %></div>
+                    <div class="item-desc"><%= marker[:distance_miles] %> miles from the hackerspace</div>
+                  </span>
+                  <span class="chevron"></span>
+                <% end %>
+              <% end %>
+            </div>
+            <% if @map_markers.size > 20 %>
+              <div class="text-12 text-secondary mt-2">
+                Showing the first 20 mapped members in the list. All <%= @map_markers.size %> appear on the map.
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-secondary mb-0">
+              No active members have coordinates inside the configured radius yet.
+            </p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIINfQ8dbybeAI8or+Hi4m0YbXv3wC6lQ7A="
+      crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+<script>
+  (function() {
+    var map;
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, function(character) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[character];
+      });
+    }
+
+    function initializeMemberMap() {
+      var mapElement = document.getElementById('member-map');
+      if (!mapElement || typeof L === 'undefined' || map) return;
+
+      var center = JSON.parse(mapElement.dataset.center || '{}');
+      var markers = JSON.parse(mapElement.dataset.markers || '[]');
+      var radiusMiles = Number(mapElement.dataset.radiusMiles || 4);
+
+      map = L.map(mapElement).setView([center.latitude, center.longitude], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      L.circle([center.latitude, center.longitude], {
+        radius: radiusMiles * 1609.344,
+        color: '#0d6efd',
+        weight: 1,
+        fillColor: '#0d6efd',
+        fillOpacity: 0.06
+      }).addTo(map);
+
+      L.marker([center.latitude, center.longitude]).addTo(map).bindPopup('Hackerspace');
+
+      markers.forEach(function(marker) {
+        var popup = '<strong>' + escapeHtml(marker.name) + '</strong><br>' +
+          escapeHtml(marker.distance_miles) + ' miles from the hackerspace<br>' +
+          '<a href="' + encodeURI(marker.profile_path) + '">View profile</a>';
+
+        L.circleMarker([marker.latitude, marker.longitude], {
+          radius: 6,
+          color: '#198754',
+          weight: 1,
+          fillColor: '#198754',
+          fillOpacity: 0.75
+        }).addTo(map).bindPopup(popup);
+      });
+
+      setTimeout(function() { map.invalidateSize(); }, 100);
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeMemberMap);
+    document.addEventListener('turbo:load', initializeMemberMap);
+    document.addEventListener('shown.bs.tab', function(event) {
+      if (event.target && event.target.id === 'map-tab') {
+        initializeMemberMap();
+        if (map) setTimeout(function() { map.invalidateSize(); }, 100);
+      }
+    });
+  })();
+</script>

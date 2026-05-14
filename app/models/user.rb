@@ -57,6 +57,12 @@ class User < ApplicationRecord
   PROFILE_VISIBILITY_OPTIONS = %w[public members private].freeze
   validates :profile_visibility, inclusion: { in: PROFILE_VISIBILITY_OPTIONS }
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
+  validates :mailing_latitude,
+            numericality: { greater_than_or_equal_to: -90, less_than_or_equal_to: 90 },
+            allow_nil: true
+  validates :mailing_longitude,
+            numericality: { greater_than_or_equal_to: -180, less_than_or_equal_to: 180 },
+            allow_nil: true
   validate :extra_emails_format
 
   # Submitted with admin user form: if set for guest/sponsored, sets dues_due_at to now + N months

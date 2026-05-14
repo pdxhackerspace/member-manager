@@ -2,7 +2,7 @@ require 'net/smtp'
 require 'openssl'
 
 class MailerHealthCheck
-  CACHE_KEY = 'mailer_health_check:v2'.freeze
+  CACHE_KEY = 'mailer_health_check:v3'.freeze
   CACHE_TTL = 5.minutes
   DEFAULT_TIMEOUT = 5
 

@@ -1,5 +1,6 @@
 class MemberMapsController < AdminController
   EARTH_RADIUS_MILES = 3958.8
+  INITIAL_VIEW_HALF_SPAN_MILES = 2.5
 
   def show
     prepare_map_data
@@ -19,16 +20,15 @@ class MemberMapsController < AdminController
       longitude: settings.map_center_longitude.to_f
     }
     @map_radius_miles = settings.map_radius_miles.to_f
+    @map_initial_bounds = initial_bounds
   end
 
   def apply_member_marker_data
     scope = map_member_scope
     @map_missing_coordinates_count = scope.where(mailing_latitude: nil).or(scope.where(mailing_longitude: nil)).count
 
-    marker_data = build_marker_data(scope)
-    @map_markers = marker_data.fetch(:markers)
+    @map_markers = build_markers(scope)
     @map_mapped_count = @map_markers.size
-    @map_out_of_radius_count = marker_data.fetch(:out_of_radius_count)
   end
 
   def map_member_scope
@@ -37,20 +37,11 @@ class MemberMapsController < AdminController
         .non_legacy
   end
 
-  def build_marker_data(scope)
-    markers = []
-    out_of_radius_count = 0
-
-    users_with_coordinates(scope).find_each do |user|
-      distance = distance_from_map_center(user)
-      if distance > @map_radius_miles
-        out_of_radius_count += 1
-      else
-        markers << marker_for(user, distance)
-      end
+  def build_markers(scope)
+    markers = users_with_coordinates(scope).map do |user|
+      marker_for(user, distance_from_map_center(user))
     end
-
-    { markers: markers, out_of_radius_count: out_of_radius_count }
+    markers.sort_by { |marker| marker.fetch(:distance_miles) }
   end
 
   def users_with_coordinates(scope)
@@ -76,6 +67,20 @@ class MemberMapsController < AdminController
       distance_miles: distance.round(2),
       profile_path: user_path(user)
     }
+  end
+
+  def initial_bounds
+    latitude_delta = INITIAL_VIEW_HALF_SPAN_MILES / miles_per_degree_latitude
+    {
+      south: @map_center[:latitude] - latitude_delta,
+      north: @map_center[:latitude] + latitude_delta,
+      west: @map_center[:longitude],
+      east: @map_center[:longitude]
+    }
+  end
+
+  def miles_per_degree_latitude
+    (Math::PI / 180) * EARTH_RADIUS_MILES
   end
 
   def distance_miles_between(from_latitude, from_longitude, to_latitude, to_longitude)

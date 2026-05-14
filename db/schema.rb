@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_181900) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_14_033000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -285,7 +285,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_181900) do
     t.string "trained_on_prefix", null: false
     t.string "unbanned_members_group", null: false
     t.datetime "updated_at", null: false
-    t.integer "rfid_facility_code"
+    t.integer "rfid_facility_code", default: 127, null: false
   end
 
   create_table "document_training_topics", force: :cascade do |t|

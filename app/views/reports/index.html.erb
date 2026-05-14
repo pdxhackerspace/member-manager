@@ -7,7 +7,6 @@
   active_tab = params[:tab] || 'charts'
   tabs = [
     { id: 'charts', name: 'Charts', count: nil },
-    { id: 'map', name: 'Map', count: @map_mapped_count },
     { id: 'membership-status-unknown', name: 'Membership', count: @membership_status_unknown_count },
     { id: 'payment-type-unknown', name: 'Payment', count: @payment_type_unknown_count },
     { id: 'dues-status-unknown', name: 'Dues', count: @dues_status_unknown_count },
@@ -142,8 +141,6 @@
       </div>
     </div>
   </div>
-
-  <%= render 'map', active_tab: active_tab %>
 
   <!-- Membership Status Unknown -->
   <div class="tab-pane fade <%= 'show active' if active_tab == 'membership-status-unknown' %>" 

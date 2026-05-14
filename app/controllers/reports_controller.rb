@@ -2,6 +2,7 @@ class ReportsController < AdminController
   include Pagy::Method
 
   LIMIT = 20
+  EARTH_RADIUS_MILES = 3958.8
 
   def index
     @membership_status_unknown = User.where(membership_status: 'unknown',
@@ -93,6 +94,7 @@ class ReportsController < AdminController
 
     # Prepare chart data
     prepare_chart_data
+    prepare_map_data
   end
 
   def prepare_lapsed_with_access(limit: nil)
@@ -389,6 +391,65 @@ class ReportsController < AdminController
       @duration_median = 0
       @duration_avg = 0
     end
+  end
+
+  def prepare_map_data
+    settings = DefaultSetting.instance
+    @map_center = {
+      latitude: settings.map_center_latitude.to_f,
+      longitude: settings.map_center_longitude.to_f
+    }
+    @map_radius_miles = settings.map_radius_miles.to_f
+
+    scope = User.where(active: true)
+                .non_service_accounts
+                .non_legacy
+    mapped_users = scope.where.not(mailing_latitude: nil).where.not(mailing_longitude: nil)
+    @map_missing_coordinates_count = scope.where(mailing_latitude: nil).or(scope.where(mailing_longitude: nil)).count
+
+    markers = []
+    out_of_radius = 0
+
+    mapped_users.ordered_by_display_name.find_each do |user|
+      distance = distance_miles_between(
+        @map_center[:latitude],
+        @map_center[:longitude],
+        user.mailing_latitude.to_f,
+        user.mailing_longitude.to_f
+      )
+
+      if distance > @map_radius_miles
+        out_of_radius += 1
+        next
+      end
+
+      markers << {
+        name: user.display_name,
+        latitude: user.mailing_latitude.to_f,
+        longitude: user.mailing_longitude.to_f,
+        distance_miles: distance.round(2),
+        profile_path: user_path(user)
+      }
+    end
+
+    @map_markers = markers
+    @map_mapped_count = markers.size
+    @map_out_of_radius_count = out_of_radius
+  end
+
+  def distance_miles_between(from_latitude, from_longitude, to_latitude, to_longitude)
+    from_lat = degrees_to_radians(from_latitude)
+    to_lat = degrees_to_radians(to_latitude)
+    delta_lat = degrees_to_radians(to_latitude - from_latitude)
+    delta_lng = degrees_to_radians(to_longitude - from_longitude)
+
+    a = (Math.sin(delta_lat / 2)**2) +
+        (Math.cos(from_lat) * Math.cos(to_lat) * (Math.sin(delta_lng / 2)**2))
+    2 * EARTH_RADIUS_MILES * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  end
+
+  def degrees_to_radians(degrees)
+    degrees * Math::PI / 180
   end
 
   def view_all

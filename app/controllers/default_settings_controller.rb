@@ -40,7 +40,8 @@ class DefaultSettingsController < AdminController
                     active_members_group admins_group
                     unbanned_members_group all_members_group
                     trained_on_prefix can_train_prefix
-                    sync_inactive_members
+                    sync_inactive_members map_center_latitude
+                    map_center_longitude map_radius_miles
                   ])
   end
 end

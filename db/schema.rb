@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_164500) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_13_173500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -277,6 +277,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_164500) do
     t.string "can_train_prefix", null: false
     t.datetime "created_at", null: false
     t.string "members_prefix", null: false
+    t.decimal "map_center_latitude", precision: 10, scale: 6, default: "45.581678", null: false
+    t.decimal "map_center_longitude", precision: 10, scale: 6, default: "-122.682156", null: false
+    t.decimal "map_radius_miles", precision: 5, scale: 2, default: "4.0", null: false
     t.string "site_prefix", default: "ctrlh", null: false
     t.boolean "sync_inactive_members", default: false, null: false
     t.string "trained_on_prefix", null: false
@@ -997,7 +1000,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_164500) do
     t.boolean "legacy", default: false, null: false
     t.string "login_token"
     t.datetime "login_token_expires_at"
+    t.datetime "mailing_geocoded_at"
     t.text "mailing_address"
+    t.decimal "mailing_latitude", precision: 10, scale: 6
+    t.decimal "mailing_longitude", precision: 10, scale: 6
     t.date "membership_ended_date"
     t.bigint "membership_plan_id"
     t.date "membership_start_date"

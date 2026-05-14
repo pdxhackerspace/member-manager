@@ -16,6 +16,20 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'should show mapped members on map report' do
+    users(:one).update!(
+      mailing_latitude: 45.582,
+      mailing_longitude: -122.682,
+      mailing_geocoded_at: Time.current
+    )
+
+    get reports_url(tab: 'map')
+
+    assert_response :success
+    assert_select '#member-map[data-markers]'
+    assert_includes response.body, 'Example User One'
+  end
+
   private
 
   def sign_in_as_admin

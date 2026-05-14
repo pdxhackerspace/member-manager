@@ -503,8 +503,19 @@
 
 .text-tertiary { color: var(--bs-secondary-color); opacity: 0.7; }
 
+.report-map-card {
+  max-width: 1100px;
+}
+
 .report-map {
-  min-height: 520px;
+  height: 420px;
+  width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .report-map {
+    height: 320px;
+  }
 }
 
 /* === Record training flow === */

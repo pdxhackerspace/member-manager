@@ -1,6 +1,13 @@
 require 'test_helper'
 
 class UserTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  teardown do
+    clear_enqueued_jobs
+    clear_performed_jobs
+  end
+
   test 'ordered_by_display_name sorts by name then email' do
     ordered = User.ordered_by_display_name.map(&:display_name)
 
@@ -87,5 +94,43 @@ class UserTest < ActiveSupport::TestCase
     )
     Training.create!(trainee: member, training_topic: topic, trained_at: Time.current)
     assert_not member.can_finalize_membership_application?
+  end
+
+  test 'changing mailing address clears coordinates and queues geocoding' do
+    user = users(:one)
+    user.update_columns(
+      mailing_address: 'Old address',
+      mailing_latitude: 45.5,
+      mailing_longitude: -122.6,
+      mailing_geocoded_at: 1.day.ago
+    )
+
+    assert_enqueued_with(job: MemberGeocodingJob, args: [user.id]) do
+      user.update!(mailing_address: '7608 N Interstate Ave, Portland, OR')
+    end
+
+    user.reload
+    assert_nil user.mailing_latitude
+    assert_nil user.mailing_longitude
+    assert_nil user.mailing_geocoded_at
+  end
+
+  test 'clearing mailing address clears coordinates without queuing geocoding' do
+    user = users(:one)
+    user.update_columns(
+      mailing_address: 'Old address',
+      mailing_latitude: 45.5,
+      mailing_longitude: -122.6,
+      mailing_geocoded_at: 1.day.ago
+    )
+
+    assert_no_enqueued_jobs only: MemberGeocodingJob do
+      user.update!(mailing_address: nil)
+    end
+
+    user.reload
+    assert_nil user.mailing_latitude
+    assert_nil user.mailing_longitude
+    assert_nil user.mailing_geocoded_at
   end
 end

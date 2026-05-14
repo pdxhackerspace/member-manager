@@ -10,6 +10,9 @@ class DefaultSetting < ApplicationRecord
   validates :can_train_prefix, presence: true
   validates :sync_inactive_members, inclusion: { in: [true, false] }
   validates :rfid_facility_code, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :map_center_latitude, numericality: { greater_than_or_equal_to: -90, less_than_or_equal_to: 90 }
+  validates :map_center_longitude, numericality: { greater_than_or_equal_to: -180, less_than_or_equal_to: 180 }
+  validates :map_radius_miles, numericality: { greater_than: 0, less_than_or_equal_to: 100 }
 
   def rfid_facility_prefix
     return '' if rfid_facility_code.blank?
@@ -29,6 +32,9 @@ class DefaultSetting < ApplicationRecord
       setting.all_members_group = 'ctrlh:org:members:all'
       setting.trained_on_prefix = 'ctrlh:org:members:trained-on'
       setting.can_train_prefix = 'ctrlh:org:members:can-train'
+      setting.map_center_latitude = 45.581678
+      setting.map_center_longitude = -122.682156
+      setting.map_radius_miles = 4.0
     end
   end
 

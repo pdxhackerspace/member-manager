@@ -505,15 +505,18 @@ class User < ApplicationRecord
   before_save :auto_fill_greeting_name
   before_save :compute_active_status
   before_save :clear_legacy_if_meaningful_data
+  before_save :clear_mailing_coordinates_if_address_changed
   before_save :mark_authentik_dirty_if_needed
   after_save :update_greeting_name_on_source_change
   after_create_commit :journal_created!
   after_create_commit :provision_to_authentik
   after_create_commit :sync_application_group_memberships_on_create
+  after_create_commit :enqueue_mailing_geocoding_if_needed
   after_update_commit :journal_updated!
   after_update_commit :sync_authentik_user_if_needed
   after_update_commit :sync_application_group_memberships_on_update
   after_update_commit :queue_lapsed_email_if_needed
+  after_update_commit :enqueue_mailing_geocoding_if_needed
 
   private
 
@@ -790,6 +793,21 @@ class User < ApplicationRecord
     return if changed.empty?
 
     self.authentik_dirty = true
+  end
+
+  def clear_mailing_coordinates_if_address_changed
+    return unless will_save_change_to_mailing_address?
+
+    self.mailing_latitude = nil
+    self.mailing_longitude = nil
+    self.mailing_geocoded_at = nil
+  end
+
+  def enqueue_mailing_geocoding_if_needed
+    return unless saved_change_to_mailing_address?
+    return if mailing_address.blank?
+
+    MemberGeocodingJob.perform_later(id)
   end
 
   def provision_to_authentik

@@ -8,11 +8,12 @@ class DefaultSettingTest < ActiveSupport::TestCase
     assert_equal '127,', setting.rfid_facility_prefix
   end
 
-  test 'rfid facility prefix is blank when facility code is not configured' do
+  test 'rfid facility code is required' do
     setting = default_settings(:one)
     setting.rfid_facility_code = nil
 
-    assert_equal '', setting.rfid_facility_prefix
+    assert_not setting.valid?
+    assert_includes setting.errors[:rfid_facility_code], "can't be blank"
   end
 
   test 'map defaults require plausible coordinates and radius' do

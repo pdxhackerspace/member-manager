@@ -14,6 +14,14 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
       self.class.last = self
     end
 
+    def enable_tls
+      @tls = true
+    end
+
+    def enable_starttls
+      @starttls = true
+    end
+
     def enable_starttls_auto
       @starttls_auto = true
     end
@@ -28,7 +36,7 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
       yield if block_given?
     end
 
-    attr_reader :address, :port, :domain, :username, :password, :authentication, :starttls_auto
+    attr_reader :address, :port, :domain, :username, :password, :authentication, :tls, :starttls, :starttls_auto
   end
 
   setup do
@@ -71,6 +79,43 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
     assert_equal 'secret', FakeSmtp.last.password
     assert_equal :plain, FakeSmtp.last.authentication
     assert_equal true, FakeSmtp.last.starttls_auto
+  end
+
+  test 'healthy for unauthenticated local SMTP relay without TLS' do
+    Rails.configuration.action_mailer.delivery_method = :smtp
+    Rails.configuration.action_mailer.smtp_settings = {
+      address: 'localhost',
+      port: 25,
+      domain: 'members.example.test',
+      authentication: :plain,
+      enable_starttls_auto: false
+    }
+
+    result = MailerHealthCheck.call(force: true)
+
+    assert result.healthy?
+    assert_equal 'Connected to localhost:25', result.message
+    assert_equal 'localhost', FakeSmtp.last.address
+    assert_equal 25, FakeSmtp.last.port
+    assert_nil FakeSmtp.last.username
+    assert_nil FakeSmtp.last.password
+    assert_nil FakeSmtp.last.authentication
+    assert_nil FakeSmtp.last.tls
+    assert_nil FakeSmtp.last.starttls
+    assert_nil FakeSmtp.last.starttls_auto
+  end
+
+  test 'unhealthy when SMTP credentials are partially configured' do
+    Rails.configuration.action_mailer.delivery_method = :smtp
+    Rails.configuration.action_mailer.smtp_settings = {
+      address: 'smtp.example.test',
+      user_name: 'mailer'
+    }
+
+    result = MailerHealthCheck.call(force: true)
+
+    assert_not result.healthy?
+    assert_equal 'SMTP password is missing', result.message
   end
 
   test 'unhealthy when SMTP authentication fails' do

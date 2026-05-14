@@ -105,7 +105,13 @@
         fillOpacity: 0.06
       }).addTo(map);
 
-      L.marker([center.latitude, center.longitude]).addTo(map).bindPopup('Hackerspace');
+      L.circleMarker([center.latitude, center.longitude], {
+        radius: 7,
+        color: '#0d6efd',
+        weight: 2,
+        fillColor: '#0d6efd',
+        fillOpacity: 0.95
+      }).addTo(map).bindPopup('Hackerspace');
 
       markers.forEach(function(marker) {
         var popup = '<strong>' + escapeHtml(marker.name) + '</strong><br>' +

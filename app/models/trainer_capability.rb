@@ -4,8 +4,8 @@ class TrainerCapability < ApplicationRecord
 
   validates :user_id, uniqueness: { scope: :training_topic_id }
 
-  after_create_commit :sync_can_train_group
-  after_destroy_commit :sync_can_train_group
+  after_create :sync_can_train_group
+  after_destroy :sync_can_train_group
 
   private
 

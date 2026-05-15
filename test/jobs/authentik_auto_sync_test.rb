@@ -28,6 +28,56 @@ class AuthentikAutoSyncTest < ActiveJob::TestCase
     end
   end
 
+  test 'source application group membership change queues sync for dependent groups' do
+    group = application_groups(:sample_group)
+    group.update_columns(authentik_group_id: nil)
+    ApplicationGroup.create!(
+      application: group.application,
+      name: 'Dependent Sync Group',
+      authentik_name: 'sample:dependent-sync-group',
+      authentik_group_id: 'dependent-authentik-group',
+      member_source: 'sync_group',
+      sync_with_group: group
+    )
+    user = users(:two)
+
+    assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob) do
+      group.users << user unless group.users.include?(user)
+    end
+  end
+
+  test 'training changes queue trained-in application group membership sync' do
+    training = nil
+
+    assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[trained_in]]) do
+      training = Training.create!(
+        trainee: users(:one),
+        trainer: users(:two),
+        training_topic: training_topics(:laser_cutting),
+        trained_at: Time.current
+      )
+    end
+
+    assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[trained_in]]) do
+      training.destroy!
+    end
+  end
+
+  test 'trainer capability changes queue can-train application group membership sync' do
+    capability = nil
+
+    assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[can_train]]) do
+      capability = TrainerCapability.create!(
+        user: users(:one),
+        training_topic: training_topics(:laser_cutting)
+      )
+    end
+
+    assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[can_train]]) do
+      capability.destroy!
+    end
+  end
+
   test 'provisioning a user queues application group membership sync after authentik id is assigned' do
     user = users(:two)
     user.update_columns(authentik_id: nil, username: 'provision-membership-sync')

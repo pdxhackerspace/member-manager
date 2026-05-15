@@ -39,7 +39,7 @@ class TrainingTopicsController < AuthenticatedController
     user = User.find(params[:user_id])
 
     # Delete all trainings for this user and topic
-    deleted_count = @training_topic.trainings.where(trainee: user).delete_all
+    deleted_count = @training_topic.trainings.where(trainee: user).destroy_all.count
 
     if deleted_count.positive?
       redirect_to edit_training_topic_path(@training_topic), notice: "Training revoked for #{user.display_name}."

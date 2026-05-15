@@ -108,7 +108,6 @@ class ApplicationGroup < ApplicationRecord
 
   def queue_authentik_membership_sync(_user)
     return if Current.skip_authentik_sync
-    return if authentik_group_id.blank?
 
     Authentik::ApplicationGroupMembershipSyncJob.perform_later([member_source])
   end

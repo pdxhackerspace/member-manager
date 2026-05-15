@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h1 class="h3 mb-1">Manage Defaults</h1>
-    <p class="text-muted mb-0">Configure default prefixes and group names used throughout the application.</p>
+    <h1 class="h3 mb-1">Application Group Defaults</h1>
+    <p class="text-muted mb-0">Configure default prefixes and group names used for applications and core member groups.</p>
   </div>
   <div>
     <%= link_to "&larr; Back to Settings".html_safe, settings_path, class: "text-decoration-none" %>
@@ -38,16 +38,6 @@
       <dt class="col-sm-4 text-secondary">Can Train Prefix</dt>
       <dd class="col-sm-8"><code><%= @default_setting.can_train_prefix %></code></dd>
 
-      <dt class="col-sm-4 text-secondary">Map Center</dt>
-      <dd class="col-sm-8">
-        <code><%= @default_setting.map_center_latitude %>, <%= @default_setting.map_center_longitude %></code>
-      </dd>
-
-      <dt class="col-sm-4 text-secondary">Map Radius</dt>
-      <dd class="col-sm-8">
-        <%= number_with_precision(@default_setting.map_radius_miles, precision: 1, strip_insignificant_zeros: true) %>
-        miles
-      </dd>
     </dl>
   </div>
 </div>

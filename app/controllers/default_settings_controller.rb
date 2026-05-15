@@ -7,6 +7,14 @@ class DefaultSettingsController < AdminController
     @default_setting = DefaultSetting.instance
   end
 
+  def map
+    @default_setting = DefaultSetting.instance
+  end
+
+  def edit_map
+    @default_setting = DefaultSetting.instance
+  end
+
   def provision_core_groups
     provisioner = Authentik::CoreGroupProvisioner.new
     results = provisioner.provision_and_sync!
@@ -32,6 +40,17 @@ class DefaultSettingsController < AdminController
     end
   end
 
+  def update_map
+    @default_setting = DefaultSetting.instance
+
+    if @default_setting.update(map_default_setting_params)
+      redirect_to map_default_settings_path, notice: 'Map defaults updated successfully.'
+    else
+      flash.now[:alert] = 'Unable to update map defaults.'
+      render :edit_map, status: :unprocessable_content
+    end
+  end
+
   private
 
   def default_setting_params
@@ -40,8 +59,14 @@ class DefaultSettingsController < AdminController
                     active_members_group admins_group
                     unbanned_members_group all_members_group
                     trained_on_prefix can_train_prefix
-                    sync_inactive_members map_center_latitude
-                    map_center_longitude map_radius_miles
+                    sync_inactive_members
+                  ])
+  end
+
+  def map_default_setting_params
+    params.expect(default_setting: %i[
+                    map_center_latitude map_center_longitude
+                    map_radius_miles map_default_city map_default_state
                   ])
   end
 end

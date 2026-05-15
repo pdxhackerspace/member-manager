@@ -282,6 +282,9 @@ Rails.application.routes.draw do
   end
 
   resource :default_settings, only: [:show, :edit, :update], path: "settings/defaults" do
+    get :map, on: :member
+    get :edit_map, on: :member
+    patch :update_map, on: :member
     post :provision_core_groups, on: :member
   end
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"

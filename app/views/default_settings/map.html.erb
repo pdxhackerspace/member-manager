@@ -1,0 +1,39 @@
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Map Defaults</h1>
+    <div class="text-13 text-secondary mt-1">
+      Hackerspace location and fallback locality for member address geocoding
+    </div>
+  </div>
+  <%= link_to "Edit", edit_map_default_settings_path, class: "btn btn-primary btn-sm" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h-section-label mb-3">Hackerspace location</h2>
+    <dl class="row mb-4">
+      <dt class="col-sm-4 text-secondary">Latitude</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.map_center_latitude %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Longitude</dt>
+      <dd class="col-sm-8"><code><%= @default_setting.map_center_longitude %></code></dd>
+
+      <dt class="col-sm-4 text-secondary">Reference radius</dt>
+      <dd class="col-sm-8">
+        <%= number_with_precision(@default_setting.map_radius_miles, precision: 1, strip_insignificant_zeros: true) %>
+        miles
+      </dd>
+    </dl>
+
+    <h2 class="h-section-label mb-3">Address geocoding fallback</h2>
+    <dl class="row mb-0">
+      <dt class="col-sm-4 text-secondary">Default city</dt>
+      <dd class="col-sm-8"><%= @default_setting.map_default_city %></dd>
+
+      <dt class="col-sm-4 text-secondary">Default state</dt>
+      <dd class="col-sm-8"><%= @default_setting.map_default_state %></dd>
+    </dl>
+  </div>
+</div>
+
+<%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary btn-sm" %>

@@ -16,6 +16,14 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'settings index links map defaults separately from application group defaults' do
+    get settings_url
+
+    assert_response :success
+    assert_select 'a[href=?]', default_settings_path, text: /Application group defaults/
+    assert_select 'a[href=?]', map_default_settings_path, text: /Map defaults/
+  end
+
   private
 
   def sign_in_as_admin

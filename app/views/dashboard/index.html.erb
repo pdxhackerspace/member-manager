@@ -156,12 +156,6 @@
             <div class="col-md-4">
               <div class="h-section-label mb-2">Members</div>
               <div class="d-flex flex-wrap gap-2">
-                <%= link_to onboard_path, class: "btn btn-primary btn-sm" do %>
-                  <i class="bi bi-person-badge me-1"></i>New member
-                <% end %>
-                <%= link_to new_invitation_path, class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-envelope-plus me-1"></i>Invitation
-                <% end %>
                 <%= link_to new_rfid_path, class: "btn btn-outline-secondary btn-sm" do %>
                   <i class="bi bi-key me-1"></i>Key
                 <% end %>
@@ -169,6 +163,12 @@
                   <%= link_to record_training_path, class: "btn btn-outline-secondary btn-sm" do %>
                     <i class="bi bi-mortarboard me-1"></i>Record training
                   <% end %>
+                <% end %>
+                <%= link_to onboard_path, class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-person-badge me-1"></i>New member
+                <% end %>
+                <%= link_to new_invitation_path, class: "btn btn-outline-secondary btn-sm" do %>
+                  <i class="bi bi-envelope-plus me-1"></i>Invitation
                 <% end %>
               </div>
             </div>

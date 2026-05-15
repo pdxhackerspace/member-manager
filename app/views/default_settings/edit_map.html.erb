@@ -1,0 +1,66 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Map Defaults</h1>
+    <p class="text-muted mb-0">Set the hackerspace location and fallback locality for incomplete mailing addresses.</p>
+  </div>
+  <div>
+    <%= link_to "&larr; Back to Map Defaults".html_safe, map_default_settings_path, class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <%= form_with model: @default_setting, url: update_map_default_settings_path, method: :patch, local: true do |f| %>
+      <% if @default_setting.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @default_setting.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <h2 class="h-section-label mb-3">Hackerspace location</h2>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <%= f.label :map_center_latitude, "Latitude", class: "form-label" %>
+          <%= f.number_field :map_center_latitude, class: "form-control", step: "0.000001", required: true %>
+          <div class="form-text">Default center for the member map.</div>
+        </div>
+        <div class="col-md-4">
+          <%= f.label :map_center_longitude, "Longitude", class: "form-label" %>
+          <%= f.number_field :map_center_longitude, class: "form-control", step: "0.000001", required: true %>
+          <div class="form-text">Use a negative value for west longitude.</div>
+        </div>
+        <div class="col-md-4">
+          <%= f.label :map_radius_miles, "Reference radius", class: "form-label" %>
+          <div class="input-group">
+            <%= f.number_field :map_radius_miles, class: "form-control", step: "0.1", min: "0.1", max: "100", required: true %>
+            <span class="input-group-text">miles</span>
+          </div>
+          <div class="form-text">Default report radius around the center.</div>
+        </div>
+      </div>
+
+      <h2 class="h-section-label mb-3">Address geocoding fallback</h2>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= f.label :map_default_city, "Default city", class: "form-label" %>
+          <%= f.text_field :map_default_city, class: "form-control", required: true %>
+          <div class="form-text">Used when a member mailing address looks like it only has a street address.</div>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :map_default_state, "Default state", class: "form-label" %>
+          <%= f.text_field :map_default_state, class: "form-control", required: true %>
+          <div class="form-text">Examples: Oregon, OR.</div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <%= f.submit "Update Map Defaults", class: "btn btn-primary" %>
+        <%= link_to "Cancel", map_default_settings_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

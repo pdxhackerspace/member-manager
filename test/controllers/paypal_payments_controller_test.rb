@@ -77,6 +77,37 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
                   paypal_payment_path(payment), '_top'
   end
 
+  test 'index shows linked member in payer column without separate linked member column' do
+    get paypal_payments_path(q: @payment.paypal_id)
+
+    assert_response :success
+    assert_select 'th', text: 'Linked Member', count: 0
+    assert_select 'td.paypal-payment-payer a[href=?][data-turbo-frame=?]',
+                  user_path(@payment.user), '_top',
+                  text: @payment.user.display_name
+  end
+
+  test 'index falls back to payer email when payment is unlinked' do
+    payment = PaypalPayment.create!(
+      paypal_id: 'PAY-UNLINKED-PAYER',
+      status: 'COMPLETED',
+      amount: 42.50,
+      currency: 'USD',
+      transaction_time: Time.current,
+      transaction_type: 'T0001',
+      payer_email: 'unlinked-payer@example.com',
+      payer_name: 'Unlinked Payer',
+      payer_id: 'PAYER-UNLINKED-PAYER',
+      matches_plan: true
+    )
+
+    get paypal_payments_path(q: payment.paypal_id)
+
+    assert_response :success
+    assert_select 'td.paypal-payment-payer a[href=?]', 'mailto:unlinked-payer@example.com',
+                  text: 'unlinked-payer@example.com'
+  end
+
   test 'payment search paginates the filtered result set' do
     105.times do |index|
       PaypalPayment.create!(

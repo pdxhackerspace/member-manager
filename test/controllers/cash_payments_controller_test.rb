@@ -58,6 +58,37 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal Date.current + 1.month, @user.dues_due_at.to_date
   end
 
+  test 'create sets payment due date when none is recorded' do
+    @user.update_columns(dues_due_at: nil, last_payment_date: nil)
+
+    post_cash_payment
+
+    assert_redirected_to cash_payment_path(CashPayment.last)
+    @user.reload
+    assert_equal Date.current + 1.month, @user.dues_due_at.to_date
+  end
+
+  test 'create advances payment due date when calculated date is later' do
+    @user.update_columns(dues_due_at: 1.week.from_now, last_payment_date: nil)
+
+    post_cash_payment
+
+    assert_redirected_to cash_payment_path(CashPayment.last)
+    @user.reload
+    assert_equal Date.current + 1.month, @user.dues_due_at.to_date
+  end
+
+  test 'create does not move payment due date earlier' do
+    existing_due_at = 2.months.from_now.beginning_of_day
+    @user.update_columns(dues_due_at: existing_due_at, last_payment_date: nil)
+
+    post_cash_payment
+
+    assert_redirected_to cash_payment_path(CashPayment.last)
+    @user.reload
+    assert_equal existing_due_at.to_date, @user.dues_due_at.to_date
+  end
+
   test 'create rejects invalid data' do
     assert_no_difference('CashPayment.count') do
       post cash_payments_path, params: {
@@ -121,6 +152,18 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
       session: {
         email: account.email,
         password: 'localpassword123'
+      }
+    }
+  end
+
+  def post_cash_payment(paid_on: Date.current)
+    post cash_payments_path, params: {
+      cash_payment: {
+        user_id: @user.id,
+        membership_plan_id: @plan.id,
+        amount: 100.00,
+        paid_on: paid_on,
+        notes: 'Test payment'
       }
     }
   end

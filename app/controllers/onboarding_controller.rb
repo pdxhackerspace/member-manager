@@ -13,7 +13,7 @@ class OnboardingController < AdminController
     @user.dues_status = 'unknown'
     @user.active = false
 
-    if @user.save
+    if onboarding_email_present? && @user.save
       redirect_to onboard_payment_path(@user), status: :see_other
     else
       render :member_info, status: :unprocessable_content
@@ -188,5 +188,12 @@ class OnboardingController < AdminController
 
   def member_params
     params.expect(user: %i[full_name email username])
+  end
+
+  def onboarding_email_present?
+    return true if @user.email.present?
+
+    @user.errors.add(:email, :blank)
+    false
   end
 end

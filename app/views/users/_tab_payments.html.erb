@@ -48,8 +48,10 @@
                   <% linked = event.linked_payment %>
                   <% if local_assigns[:show_payment_links] && linked %>
                     <%= link_to event.details || event.identifier, payment_show_path(linked), class: "text-decoration-none" %>
-                  <% else %>
+                  <% elsif local_assigns[:show_payment_links] %>
                     <span class="text-muted"><%= event.details || event.identifier %></span>
+                  <% else %>
+                    <span class="text-muted"><%= member_payment_event_details(event) %></span>
                   <% end %>
                 </td>
                 <td><%= event.amount_with_currency || "—" %></td>

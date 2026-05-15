@@ -43,6 +43,36 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Request training/i, response.body)
   end
 
+  test 'member home payments details use source labels without payer emails' do
+    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    [
+      ['paypal', 'PAY-HOME-PRIVACY', 'PayPal payment from private-paypal@example.com'],
+      ['recharge', 'RECHARGE-HOME-PRIVACY', 'Recharge payment from private-recharge@example.com'],
+      ['kofi', 'KOFI-HOME-PRIVACY', 'Ko-Fi Tip from private-kofi@example.com']
+    ].each do |source, external_id, details|
+      PaymentEvent.create!(
+        user: admin_user,
+        source: source,
+        external_id: external_id,
+        event_type: 'payment',
+        details: details,
+        amount: 10,
+        currency: 'USD',
+        occurred_at: Time.current
+      )
+    end
+
+    get root_path(tab: :payments)
+
+    assert_response :success
+    assert_select 'td', text: 'PayPal payment'
+    assert_select 'td', text: 'Recharge payment'
+    assert_select 'td', text: 'Ko-Fi Tip'
+    assert_no_match(/private-paypal@example\.com/, response.body)
+    assert_no_match(/private-recharge@example\.com/, response.body)
+    assert_no_match(/private-kofi@example\.com/, response.body)
+  end
+
   test 'home messages nav badge only shows unread count' do
     admin_user = User.find_by!(email: local_accounts(:active_admin).email)
     Message.where(recipient: admin_user).destroy_all

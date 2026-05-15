@@ -74,11 +74,13 @@ class CashPaymentsController < AdminController
   def update_user_dues_status(cash_payment)
     user = cash_payment.user
     old_dues_status = user.dues_status
+    current_dues_due_at = user.dues_due_at
 
     updates = user.apply_payment_updates(
       { time: cash_payment.paid_on.beginning_of_day, amount: cash_payment.amount },
       { payment_type: 'cash', last_payment_date: cash_payment.paid_on }
     )
+    keep_later_dues_due_at!(updates, current_dues_due_at)
 
     user.update!(updates) if updates.present?
 
@@ -92,5 +94,20 @@ class CashPaymentsController < AdminController
         'note' => "Cash payment of $#{format('%.2f', cash_payment.amount)} recorded"
       }
     )
+  end
+
+  def keep_later_dues_due_at!(updates, current_dues_due_at)
+    return unless updates.key?(:dues_due_at)
+
+    new_dues_due_at = updates[:dues_due_at]
+    if new_dues_due_at.blank?
+      updates.delete(:dues_due_at)
+      return
+    end
+
+    return if current_dues_due_at.blank?
+    return if new_dues_due_at > current_dues_due_at
+
+    updates.delete(:dues_due_at)
   end
 end

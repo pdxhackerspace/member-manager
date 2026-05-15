@@ -109,6 +109,16 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to edit_training_topic_path(@laser_topic)
   end
 
+  test 'admin training revocation queues trained-in Authentik group sync' do
+    sign_in_as_admin
+    user = users(:one)
+    Training.create!(trainee: user, training_topic: @laser_topic, trained_at: Time.current)
+
+    assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[trained_in]]) do
+      delete revoke_training_training_topic_path(@laser_topic, user_id: user.id)
+    end
+  end
+
   test 'admin can revoke trainer capability' do
     sign_in_as_admin
     user = users(:one)

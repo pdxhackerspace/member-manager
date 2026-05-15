@@ -10,7 +10,7 @@ module Authentik
         return
       end
 
-      groups = ApplicationGroup.with_authentik_group_id.with_member_sources(member_sources)
+      groups = groups_for_member_sources(member_sources)
       return if groups.empty?
 
       Rails.logger.info(
@@ -18,7 +18,7 @@ module Authentik
         "for sources: #{member_sources.join(', ')}"
       )
 
-      groups.find_each do |group|
+      groups.each do |group|
         sync = Authentik::GroupSync.new(group)
         result = sync.sync_members!
         Rails.logger.info("[ApplicationGroupMembershipSyncJob] Synced #{group.name}: #{result[:status]}")
@@ -31,6 +31,26 @@ module Authentik
 
     def api_configured?
       AuthentikConfig.settings.api_token.present? && AuthentikConfig.settings.api_base_url.present?
+    end
+
+    def groups_for_member_sources(member_sources)
+      source_groups = ApplicationGroup.with_member_sources(Array(member_sources).compact).to_a
+      groups_with_sync_dependents(source_groups).select { |group| group.authentik_group_id.present? }
+    end
+
+    def groups_with_sync_dependents(source_groups)
+      groups_by_id = source_groups.index_by(&:id)
+      frontier_ids = groups_by_id.keys
+
+      until frontier_ids.empty?
+        dependent_groups = ApplicationGroup.where(member_source: 'sync_group', sync_with_group_id: frontier_ids).to_a
+        new_groups = dependent_groups.reject { |group| groups_by_id.key?(group.id) }
+
+        new_groups.each { |group| groups_by_id[group.id] = group }
+        frontier_ids = new_groups.map(&:id)
+      end
+
+      groups_by_id.values
     end
   end
 end

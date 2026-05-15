@@ -123,7 +123,6 @@
           <th scope="col">Status</th>
           <th scope="col">Amount</th>
           <th scope="col">Payer</th>
-          <th scope="col">Linked Member</th>
           <th scope="col">Time</th>
         </tr>
       </thead>
@@ -143,19 +142,13 @@
             <td class="fw-semibold"><%= link_to payment.paypal_id, paypal_payment_path(payment), data: { turbo_frame: "_top" } %></td>
             <td><span class="badge text-bg-secondary"><%= payment.status.presence || "Unknown" %></span></td>
             <td><%= payment.amount_with_currency || "—" %></td>
-            <td>
-              <% if payment.payer_name.present? %>
-                <div><strong><%= payment.payer_name %></strong></div>
-              <% end %>
-              <% if payment.payer_email.present? %>
-                <div class="text-muted small"><%= mail_to payment.payer_email %></div>
-              <% end %>
-            </td>
-            <td>
+            <td class="paypal-payment-payer">
               <% if payment.user.present? %>
                 <%= link_to payment.user.display_name, user_path(payment.user), class: "text-decoration-none", data: { turbo_frame: "_top" } %>
+              <% elsif payment.payer_email.present? %>
+                <%= mail_to payment.payer_email %>
               <% else %>
-                <span class="text-muted fst-italic">Not linked</span>
+                <span class="text-muted fst-italic">No payer email</span>
               <% end %>
             </td>
             <td><%= payment.transaction_time ? l(payment.transaction_time, format: :long) : "n/a" %></td>

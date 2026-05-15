@@ -31,6 +31,46 @@ class MemberGeocodingJobTest < ActiveJob::TestCase
     assert_equal ['7608 N Interstate Ave, Portland, OR'], geocoder.addresses
   end
 
+  test 'appends default city and state when mailing address has no locality' do
+    DefaultSetting.instance.update!(map_default_city: 'Portland', map_default_state: 'Oregon')
+    user = users(:one)
+    user.update_columns(
+      mailing_address: '7608 N Interstate Ave',
+      mailing_latitude: nil,
+      mailing_longitude: nil,
+      mailing_geocoded_at: nil
+    )
+    geocoder = FakeGeocoder.new({ latitude: 45.581678.to_d, longitude: -122.682156.to_d }, [])
+
+    with_env('GEOCODING_FUZZ_BLOCKS' => '0') do
+      with_geocoder(geocoder) do
+        MemberGeocodingJob.perform_now(user.id)
+      end
+    end
+
+    assert_equal ['7608 N Interstate Ave, Portland, Oregon'], geocoder.addresses
+  end
+
+  test 'does not append default city and state when mailing address already has them' do
+    DefaultSetting.instance.update!(map_default_city: 'Portland', map_default_state: 'Oregon')
+    user = users(:one)
+    user.update_columns(
+      mailing_address: '7608 N Interstate Ave, Portland, OR',
+      mailing_latitude: nil,
+      mailing_longitude: nil,
+      mailing_geocoded_at: nil
+    )
+    geocoder = FakeGeocoder.new({ latitude: 45.581678.to_d, longitude: -122.682156.to_d }, [])
+
+    with_env('GEOCODING_FUZZ_BLOCKS' => '0') do
+      with_geocoder(geocoder) do
+        MemberGeocodingJob.perform_now(user.id)
+      end
+    end
+
+    assert_equal ['7608 N Interstate Ave, Portland, OR'], geocoder.addresses
+  end
+
   test 'fuzzes coordinates when geocoding stores a result' do
     user = users(:one)
     user.update_columns(

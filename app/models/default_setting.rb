@@ -15,6 +15,8 @@ class DefaultSetting < ApplicationRecord
                                  numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :map_center_latitude, numericality: { greater_than_or_equal_to: -90, less_than_or_equal_to: 90 }
   validates :map_center_longitude, numericality: { greater_than_or_equal_to: -180, less_than_or_equal_to: 180 }
+  validates :map_default_city, presence: true
+  validates :map_default_state, presence: true
   validates :map_radius_miles, numericality: { greater_than: 0, less_than_or_equal_to: 100 }
 
   def rfid_facility_prefix
@@ -36,6 +38,8 @@ class DefaultSetting < ApplicationRecord
       setting.rfid_facility_code = DEFAULT_RFID_FACILITY_CODE
       setting.map_center_latitude = 45.581678
       setting.map_center_longitude = -122.682156
+      setting.map_default_city = 'Portland'
+      setting.map_default_state = 'Oregon'
       setting.map_radius_miles = 4.0
     end
   end

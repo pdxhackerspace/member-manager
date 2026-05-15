@@ -13,4 +13,6 @@ one:
   rfid_facility_code: 127
   map_center_latitude: 45.581678
   map_center_longitude: -122.682156
+  map_default_city: Portland
+  map_default_state: Oregon
   map_radius_miles: 4.0

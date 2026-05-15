@@ -137,6 +137,88 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Updated notes', @payment.notes
   end
 
+  test 'updating cash payment recalculates overdue dues and active status' do
+    @user.cash_payments.destroy_all
+    payment = CashPayment.create!(
+      user: @user,
+      membership_plan: @plan,
+      amount: 100.00,
+      paid_on: Date.current,
+      recorded_by: users(:one)
+    )
+    @user.update!(
+      membership_status: 'paying',
+      dues_status: 'current',
+      active: true,
+      payment_type: 'cash',
+      dues_due_at: 1.month.from_now
+    )
+
+    patch cash_payment_path(payment), params: {
+      cash_payment: {
+        paid_on: 2.months.ago.to_date
+      }
+    }
+
+    assert_redirected_to cash_payment_path(payment)
+    @user.reload
+    assert_equal 2.months.ago.to_date, @user.last_payment_date
+    assert_equal 1.month.ago.to_date, @user.dues_due_at.to_date
+    assert_equal 'lapsed', @user.dues_status
+    assert_not @user.active?
+  end
+
+  test 'updating older cash payment keeps dues based on latest paid date' do
+    @user.cash_payments.destroy_all
+    latest_paid_on = 3.days.ago.to_date
+    CashPayment.create!(
+      user: @user,
+      membership_plan: @plan,
+      amount: 100.00,
+      paid_on: latest_paid_on,
+      recorded_by: users(:one)
+    )
+    older_payment = CashPayment.create!(
+      user: @user,
+      membership_plan: @plan,
+      amount: 100.00,
+      paid_on: 3.months.ago.to_date,
+      recorded_by: users(:one)
+    )
+
+    patch cash_payment_path(older_payment), params: {
+      cash_payment: {
+        notes: 'Edited older payment'
+      }
+    }
+
+    assert_redirected_to cash_payment_path(older_payment)
+    @user.reload
+    assert_equal latest_paid_on, @user.last_payment_date
+    assert_equal latest_paid_on + 1.month, @user.dues_due_at.to_date
+    assert_equal 'current', @user.dues_status
+    assert @user.active?
+  end
+
+  test 'updating cash payment syncs payment event date and amount' do
+    @user.cash_payments.destroy_all
+    post_cash_payment
+    payment = CashPayment.last
+    event = payment.payment_events.first
+
+    patch cash_payment_path(payment), params: {
+      cash_payment: {
+        amount: 125.50,
+        paid_on: 10.days.ago.to_date
+      }
+    }
+
+    assert_redirected_to cash_payment_path(payment)
+    event.reload
+    assert_equal 125.50, event.amount.to_f
+    assert_equal 10.days.ago.to_date, event.occurred_at.to_date
+  end
+
   test 'deletes cash payment' do
     assert_difference('CashPayment.count', -1) do
       delete cash_payment_path(@payment)

@@ -76,6 +76,40 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
                   recharge_payment_path(unlinked), '_top'
   end
 
+  test 'index combines customer and link action in member column for unlinked payments' do
+    unlinked = RechargePayment.create!(
+      recharge_id: 'RC-UNLINKED-MEMBER-COLUMN',
+      status: 'success',
+      amount: 30.00,
+      currency: 'USD',
+      processed_at: Time.current,
+      customer_id: 'recharge-unlinked-member-column',
+      customer_email: 'hidden-customer@example.com',
+      customer_name: 'Visible Customer'
+    )
+
+    get recharge_payments_path(q: unlinked.recharge_id)
+
+    assert_response :success
+    assert_select 'th', text: 'Customer', count: 0
+    assert_select 'th', text: 'Linked Member', count: 0
+    assert_select 'th', text: 'Member'
+    assert_select 'td.recharge-payment-member', text: /Visible Customer/
+    assert_select 'td.recharge-payment-member', text: /hidden-customer@example\.com/, count: 0
+    assert_select 'td.recharge-payment-member a[href=?][data-turbo-frame=?]',
+                  recharge_payment_path(unlinked), '_top',
+                  text: /Link member/
+  end
+
+  test 'index shows linked member in member column' do
+    get recharge_payments_path(q: @payment.recharge_id)
+
+    assert_response :success
+    assert_select 'td.recharge-payment-member a[href=?][data-turbo-frame=?]',
+                  user_path(@payment.user), '_top',
+                  text: @payment.user.display_name
+  end
+
   test 'link member modal can search by member email and username' do
     unlinked = RechargePayment.create!(
       recharge_id: 'RC-LINK-MODAL-SEARCH',

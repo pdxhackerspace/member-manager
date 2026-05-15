@@ -28,17 +28,7 @@ class CashPaymentsController < AdminController
     @cash_payment.recorded_by = current_user
 
     if @cash_payment.save
-      PaymentEvent.create!(
-        user: @cash_payment.user,
-        event_type: 'payment',
-        source: 'cash',
-        amount: @cash_payment.amount,
-        currency: 'USD',
-        occurred_at: @cash_payment.paid_on&.beginning_of_day || Time.current,
-        external_id: "CASH-#{@cash_payment.id}",
-        details: "Cash payment — #{@cash_payment.membership_plan&.name || 'Unknown plan'}",
-        cash_payment: @cash_payment
-      )
+      sync_payment_event(@cash_payment)
       update_user_dues_status(@cash_payment)
       redirect_to cash_payment_path(@cash_payment),
                   notice: "Cash payment recorded for #{@cash_payment.user.display_name}."
@@ -48,7 +38,12 @@ class CashPaymentsController < AdminController
   end
 
   def update
+    original_user = @cash_payment.user
+
     if @cash_payment.update(cash_payment_params)
+      sync_payment_event(@cash_payment)
+      recalculate_user_cash_dues!(original_user) if original_user != @cash_payment.user
+      recalculate_user_cash_dues!(@cash_payment.user)
       redirect_to cash_payment_path(@cash_payment), notice: 'Cash payment updated.'
     else
       render :edit, status: :unprocessable_content
@@ -94,6 +89,45 @@ class CashPaymentsController < AdminController
         'note' => "Cash payment of $#{format('%.2f', cash_payment.amount)} recorded"
       }
     )
+  end
+
+  def sync_payment_event(cash_payment)
+    event = cash_payment.payment_events.find_or_initialize_by(
+      source: 'cash',
+      external_id: cash_payment.identifier,
+      event_type: 'payment'
+    )
+    event.assign_attributes(
+      user: cash_payment.user,
+      amount: cash_payment.amount,
+      currency: 'USD',
+      occurred_at: cash_payment.paid_on&.beginning_of_day || Time.current,
+      details: "Cash payment - #{cash_payment.membership_plan&.name || 'Unknown plan'}"
+    )
+    event.save!
+  end
+
+  def recalculate_user_cash_dues!(user)
+    latest_payment = user.cash_payments.order(paid_on: :desc, created_at: :desc).first
+    return if latest_payment.blank?
+
+    due_at = User.dues_due_at_from_payment_cycle(latest_payment.paid_on, latest_payment.membership_plan)
+    updates = {
+      payment_type: 'cash',
+      last_payment_date: latest_payment.paid_on,
+      dues_due_at: due_at,
+      dues_status: cash_dues_status(due_at)
+    }
+    updates[:membership_status] = 'paying' unless user.membership_status.in?(%w[cancelled banned deceased sponsored])
+    updates[:membership_ended_date] = nil if updates[:dues_status] == 'current' && user.membership_ended_date.present?
+
+    user.update!(updates)
+  end
+
+  def cash_dues_status(due_at)
+    return 'current' if due_at.blank? || due_at.to_date >= Date.current
+
+    'lapsed'
   end
 
   def keep_later_dues_due_at!(updates, current_dues_due_at)

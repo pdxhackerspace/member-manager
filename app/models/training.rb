@@ -7,8 +7,8 @@ class Training < ApplicationRecord
 
   scope :recent, -> { order(trained_at: :desc) }
 
-  after_create_commit :sync_trained_in_group
-  after_destroy_commit :sync_trained_in_group
+  after_create :sync_trained_in_group
+  after_destroy :sync_trained_in_group
 
   private
 

@@ -32,7 +32,7 @@ class OnboardingController < AdminController
         plan = MembershipPlan.create!(
           name: "Cash - #{@user.display_name}",
           cost: params[:plan_cost].to_f.positive? ? params[:plan_cost].to_f : 0,
-          billing_frequency: params[:plan_billing_frequency] || 'monthly',
+          billing_period_days: onboarding_cash_plan_billing_period_days,
           description: params[:plan_notes].presence,
           plan_type: 'primary',
           manual: true,
@@ -180,6 +180,11 @@ class OnboardingController < AdminController
     return {} unless m.present? && m.positive?
 
     { dues_due_at: Time.current + m.months }
+  end
+
+  def onboarding_cash_plan_billing_period_days
+    days = params[:plan_billing_period_days].to_i
+    days.positive? ? days : 30
   end
 
   def set_user

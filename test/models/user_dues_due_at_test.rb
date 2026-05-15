@@ -15,6 +15,13 @@ class UserDuesDueAtTest < ActiveSupport::TestCase
     assert_equal Time.zone.local(2026, 1, 15, 0, 0, 0), at
   end
 
+  test 'dues_due_at_from_payment_cycle custom days' do
+    anchor = Date.new(2025, 1, 15)
+    plan = membership_plans(:personal_equipment_donation)
+    at = User.dues_due_at_from_payment_cycle(anchor, plan)
+    assert_equal Time.zone.local(2025, 2, 14, 0, 0, 0), at
+  end
+
   test 'dues_due_at_from_payment_cycle one-time returns nil' do
     plan = MembershipPlan.create!(
       name: "One-shot #{SecureRandom.hex(4)}",

@@ -25,7 +25,8 @@ supplementary_storage:
 personal_equipment_donation:
   name: Equipment Donation
   cost: 100.00
-  billing_frequency: monthly
+  billing_frequency: custom_days
+  billing_period_days: 30
   plan_type: primary
   visible: false
   manual: true

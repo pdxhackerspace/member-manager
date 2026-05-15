@@ -100,7 +100,7 @@
                   <% else %>
                     <span class="badge text-bg-info">Supplementary</span>
                   <% end %>
-                  <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
+                  <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_label %></span>
                   <% member_count = plan.primary? ? plan.users.count : plan.supplementary_users.count %>
                   <span class="badge text-bg-secondary"><%= member_count %> member<%= member_count == 1 ? '' : 's' %></span>
                   <% if plan.manual? %>
@@ -135,7 +135,7 @@
                       <dd class="col-sm-8">$<%= format('%.2f', plan.cost) %></dd>
                       
                       <dt class="col-sm-4">Frequency</dt>
-                      <dd class="col-sm-8"><span class="badge text-bg-secondary"><%= plan.billing_frequency.humanize %></span></dd>
+                      <dd class="col-sm-8"><span class="badge text-bg-secondary"><%= plan.billing_label %></span></dd>
                       
                       <dt class="col-sm-4">Payment Link</dt>
                       <dd class="col-sm-8">
@@ -293,10 +293,19 @@
           <% end %>
         </div>
         <div class="col-md-2">
-          <%= f.select :billing_frequency,
-              options_for_select([['Monthly', 'monthly'], ['Yearly', 'yearly'], ['One-time', 'one-time']], @personal_plan&.billing_frequency),
-              { prompt: 'Frequency' },
-              { class: "form-select", required: true } %>
+          <%= f.label :billing_period_days, "Billing Frequency", class: "form-label" %>
+          <div class="input-group">
+            <%= f.number_field :billing_period_days,
+                value: @personal_plan&.billing_period_days,
+                min: 1,
+                step: 1,
+                class: "form-control #{'is-invalid' if @personal_plan&.errors&.key?(:billing_period_days)}",
+                required: true %>
+            <span class="input-group-text">Days</span>
+          </div>
+          <% if @personal_plan&.errors&.key?(:billing_period_days) %>
+            <div class="invalid-feedback d-block"><%= @personal_plan.errors[:billing_period_days].first %></div>
+          <% end %>
         </div>
         <div class="col-md-8">
           <%= f.text_area :description, class: "form-control", placeholder: "Description / notes about this arrangement (e.g., Donated CNC router, covers 12 months)", rows: 2 %>
@@ -331,7 +340,7 @@
                 </td>
                 <td><%= plan.name %></td>
                 <td><strong>$<%= format('%.2f', plan.cost) %></strong></td>
-                <td><span class="badge text-bg-secondary"><%= plan.billing_frequency.humanize %></span></td>
+                <td><span class="badge text-bg-secondary"><%= plan.billing_label %></span></td>
                 <td>
                   <% if plan.description.present? %>
                     <span class="text-muted small"><%= truncate(plan.description, length: 80) %></span>

@@ -1,5 +1,6 @@
 class MembershipPlan < ApplicationRecord
   PLAN_TYPES = %w[primary supplementary].freeze
+  BILLING_FREQUENCIES = %w[monthly yearly one-time custom_days].freeze
 
   belongs_to :user, optional: true
 
@@ -11,7 +12,9 @@ class MembershipPlan < ApplicationRecord
   validates :name, presence: true
   validates :name, uniqueness: true, if: -> { user_id.nil? }
   validates :cost, presence: true, numericality: { greater_than_or_equal_to: 0 }
-  validates :billing_frequency, presence: true, inclusion: { in: %w[monthly yearly one-time] }
+  validates :billing_frequency, presence: true, inclusion: { in: BILLING_FREQUENCIES }
+  validates :billing_period_days, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :billing_period_days, presence: true, if: :personal?
   validates :plan_type, presence: true, inclusion: { in: PLAN_TYPES }
   validates :display_order, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
   validates :payment_link,
@@ -33,10 +36,16 @@ class MembershipPlan < ApplicationRecord
 
   def display_name
     if personal?
-      "#{name} (#{user&.display_name}) - $#{format('%.2f', cost)}/#{billing_frequency}"
+      "#{name} (#{user&.display_name}) - $#{format('%.2f', cost)}/#{billing_label}"
     else
-      "#{name} - $#{format('%.2f', cost)}/#{billing_frequency}"
+      "#{name} - $#{format('%.2f', cost)}/#{billing_label}"
     end
+  end
+
+  def billing_label
+    return "#{billing_period_days} #{'day'.pluralize(billing_period_days)}" if billing_period_days.present?
+
+    billing_frequency.to_s.humanize
   end
 
   def has_payment_link?
@@ -56,6 +65,8 @@ class MembershipPlan < ApplicationRecord
   end
 
   def billing_cycle_duration
+    return billing_period_days.days if billing_period_days.present?
+
     case billing_frequency
     when 'monthly'  then 1.month
     when 'yearly'   then 1.year
@@ -74,5 +85,6 @@ class MembershipPlan < ApplicationRecord
   def enforce_personal_plan_defaults
     self.manual = true
     self.visible = false
+    self.billing_frequency = 'custom_days'
   end
 end

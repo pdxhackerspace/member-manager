@@ -129,7 +129,7 @@ class MembershipPlansController < AdminController
   end
 
   def membership_plan_params
-    params.expect(membership_plan: %i[name cost billing_frequency description payment_link plan_type
+    params.expect(membership_plan: %i[name cost billing_frequency billing_period_days description payment_link plan_type
                                       paypal_transaction_subject manual visible display_order user_id])
   end
 end

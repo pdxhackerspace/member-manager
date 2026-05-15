@@ -43,7 +43,7 @@
             <div>
               <%= f.label :email, "Email Address", class: "form-label" %>
               <%= f.email_field :email, value: @user.email, class: "form-control form-control-lg",
-                  autocorrect: "off", autocapitalize: "off", spellcheck: "false" %>
+                  autocorrect: "off", autocapitalize: "off", spellcheck: "false", required: true %>
             </div>
 
             <div>

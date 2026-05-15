@@ -70,6 +70,19 @@ module PaymentsHelper
     end
   end
 
+  def member_payment_event_details(event)
+    case event.source
+    when 'paypal'
+      'PayPal payment'
+    when 'recharge'
+      'Recharge payment'
+    when 'kofi'
+      'Ko-Fi Tip'
+    else
+      event.details || event.identifier
+    end
+  end
+
   def payment_type_badge_class(payment_type)
     case payment_type.to_s.downcase
     when 'donation'

@@ -21,6 +21,22 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'should get map defaults' do
+    get map_default_settings_url
+
+    assert_response :success
+    assert_select 'h1', /Map Defaults/
+    assert_match(/Portland/, response.body)
+    assert_match(/Oregon/, response.body)
+  end
+
+  test 'should get edit map defaults' do
+    get edit_map_default_settings_url
+
+    assert_response :success
+    assert_select 'h1', /Edit Map Defaults/
+  end
+
   test 'should update default settings' do
     patch default_settings_url, params: {
       default_setting: { site_prefix: 'test-prefix' }
@@ -29,19 +45,23 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'should update map defaults' do
-    patch default_settings_url, params: {
+    patch update_map_default_settings_url, params: {
       default_setting: {
         map_center_latitude: '45.500000',
         map_center_longitude: '-122.600000',
-        map_radius_miles: '6.5'
+        map_radius_miles: '6.5',
+        map_default_city: 'Beaverton',
+        map_default_state: 'Oregon'
       }
     }
 
-    assert_redirected_to default_settings_url
+    assert_redirected_to map_default_settings_url
     setting = DefaultSetting.instance
     assert_equal 45.5, setting.map_center_latitude.to_f
     assert_equal(-122.6, setting.map_center_longitude.to_f)
     assert_equal 6.5, setting.map_radius_miles.to_f
+    assert_equal 'Beaverton', setting.map_default_city
+    assert_equal 'Oregon', setting.map_default_state
   end
 
   private

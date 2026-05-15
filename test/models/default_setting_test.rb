@@ -27,4 +27,14 @@ class DefaultSettingTest < ActiveSupport::TestCase
     assert_includes setting.errors[:map_center_longitude], 'must be greater than or equal to -180'
     assert_includes setting.errors[:map_radius_miles], 'must be greater than 0'
   end
+
+  test 'map defaults require fallback city and state' do
+    setting = default_settings(:one)
+    setting.map_default_city = ''
+    setting.map_default_state = ''
+
+    assert_not setting.valid?
+    assert_includes setting.errors[:map_default_city], "can't be blank"
+    assert_includes setting.errors[:map_default_state], "can't be blank"
+  end
 end

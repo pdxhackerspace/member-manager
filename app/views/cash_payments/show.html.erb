@@ -25,7 +25,7 @@
       <dd class="col-sm-9">
         <span class="badge text-bg-info"><%= @cash_payment.membership_plan.name %></span>
         <span class="text-muted ms-1">
-          <%= number_to_currency(@cash_payment.membership_plan.cost) %>/<%= @cash_payment.membership_plan.billing_frequency %>
+          <%= number_to_currency(@cash_payment.membership_plan.cost) %>/<%= @cash_payment.membership_plan.billing_label %>
         </span>
       </dd>
 

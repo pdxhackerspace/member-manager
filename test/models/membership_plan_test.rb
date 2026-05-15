@@ -24,7 +24,7 @@ class MembershipPlanTest < ActiveSupport::TestCase
   test 'personal plan enforces manual true' do
     user = users(:cash_payer)
     plan = MembershipPlan.new(
-      name: 'Test Personal', cost: 50, billing_frequency: 'monthly',
+      name: 'Test Personal', cost: 50, billing_period_days: 30,
       plan_type: 'primary', user: user, manual: false, visible: true, display_order: 1
     )
     plan.valid?
@@ -35,7 +35,7 @@ class MembershipPlanTest < ActiveSupport::TestCase
   test 'personal plan enforces visible false' do
     user = users(:cash_payer)
     plan = MembershipPlan.new(
-      name: 'Test Personal Visible', cost: 50, billing_frequency: 'monthly',
+      name: 'Test Personal Visible', cost: 50, billing_period_days: 30,
       plan_type: 'primary', user: user, visible: true, display_order: 1
     )
     plan.valid?
@@ -56,7 +56,7 @@ class MembershipPlanTest < ActiveSupport::TestCase
     user = users(:cash_payer)
     existing = membership_plans(:monthly_standard)
     plan = MembershipPlan.new(
-      name: existing.name, cost: 99, billing_frequency: 'monthly',
+      name: existing.name, cost: 99, billing_period_days: 30,
       plan_type: 'primary', user: user, display_order: 1
     )
     assert plan.valid?, plan.errors.full_messages.join(', ')
@@ -65,7 +65,7 @@ class MembershipPlanTest < ActiveSupport::TestCase
   test 'personal plans can share names with other personal plans' do
     user = users(:one)
     plan = MembershipPlan.new(
-      name: 'Equipment Donation', cost: 50, billing_frequency: 'monthly',
+      name: 'Equipment Donation', cost: 50, billing_period_days: 30,
       plan_type: 'primary', user: user, display_order: 1
     )
     assert plan.valid?, plan.errors.full_messages.join(', ')
@@ -81,5 +81,24 @@ class MembershipPlanTest < ActiveSupport::TestCase
     plan = membership_plans(:monthly_standard)
     assert_includes plan.display_name, plan.name
     assert_includes plan.display_name, format('%.2f', plan.cost)
+  end
+
+  test 'personal plan requires billing period days' do
+    plan = MembershipPlan.new(
+      name: 'Missing Days',
+      cost: 50,
+      plan_type: 'primary',
+      user: users(:cash_payer)
+    )
+
+    assert_not plan.valid?
+    assert_includes plan.errors[:billing_period_days], "can't be blank"
+  end
+
+  test 'personal plan billing cycle uses configured days' do
+    plan = membership_plans(:personal_equipment_donation)
+
+    assert_equal 30.days, plan.billing_cycle_duration
+    assert_equal '30 days', plan.billing_label
   end
 end

@@ -77,7 +77,7 @@
                 <strong><%= link_to user.membership_plan.name, membership_plan_path(user.membership_plan), class: "text-decoration-none" %></strong>
                 <span class="badge text-bg-primary ms-1">Primary</span>
                 <br>
-                <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_frequency %></span>
+                <span class="text-muted">$<%= format('%.2f', user.membership_plan.cost) %>/<%= user.membership_plan.billing_label %></span>
               </div>
             <% end %>
             <% user.supplementary_plans.order(:name).each do |plan| %>
@@ -85,7 +85,7 @@
                 <strong><%= link_to plan.name, membership_plan_path(plan), class: "text-decoration-none" %></strong>
                 <span class="badge text-bg-info ms-1">Supplementary</span>
                 <br>
-                <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %></span>
+                <span class="text-muted">$<%= format('%.2f', plan.cost) %>/<%= plan.billing_label %></span>
               </div>
             <% end %>
           </div>
@@ -172,7 +172,7 @@
                 <% plans_with_links.each do |plan| %>
                   <%= link_to plan.payment_link, class: "btn btn-outline-primary btn-sm", target: "_blank", rel: "noopener" do %>
                     <i class="bi bi-credit-card me-1"></i>
-                    <%= plan.name %> - $<%= format('%.2f', plan.cost) %>/<%= plan.billing_frequency %>
+                    <%= plan.name %> - $<%= format('%.2f', plan.cost) %>/<%= plan.billing_label %>
                   <% end %>
                 <% end %>
               </div>

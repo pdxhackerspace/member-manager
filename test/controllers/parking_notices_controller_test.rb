@@ -195,6 +195,82 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_predicate printed[:data], :present?
   end
 
+  test 'create print another still saves when no default printer is configured' do
+    user = users(:one)
+    expires_at = '2026-06-01T17:00'
+
+    assert_no_difference 'Printer.count' do
+      assert_difference 'ParkingNotice.count', 1 do
+        post parking_notices_url, params: {
+          print_create_another_permit: 'Save, Print and Create Another Permit',
+          parking_notice: {
+            notice_type: 'permit',
+            user_id: user.id,
+            description: 'Repeat unprinted permit',
+            expires_at: expires_at,
+            location: 'Woodshop',
+            location_detail: 'South wall shelf'
+          }
+        }
+      end
+    end
+
+    location = URI.parse(response.location)
+    redirect_params = Rack::Utils.parse_nested_query(location.query)
+
+    assert_equal new_parking_notice_path, location.path
+    assert_equal 'permit', redirect_params['type']
+    assert_equal user.id.to_s, redirect_params.dig('parking_notice', 'user_id')
+    assert_equal 'Repeat unprinted permit', redirect_params.dig('parking_notice', 'description')
+    assert_equal expires_at, redirect_params.dig('parking_notice', 'expires_at')
+    assert_equal 'Woodshop', redirect_params.dig('parking_notice', 'location')
+    assert_equal 'South wall shelf', redirect_params.dig('parking_notice', 'location_detail')
+    assert_equal 'Parking permit created successfully.', flash[:notice]
+    assert_equal 'No default printer is configured.', flash[:alert]
+  end
+
+  test 'create print another still saves when printing fails' do
+    user = users(:one)
+    Printer.create!(name: 'Default Printer', cups_printer_name: 'default_printer', default_printer: true)
+    expires_at = '2026-06-01T17:00'
+    original_print_data = CupsService.method(:print_data)
+
+    CupsService.define_singleton_method(:print_data) do |*_args, **_kwargs|
+      raise CupsService::PrintError, 'printer is offline'
+    end
+
+    begin
+      assert_difference 'ParkingNotice.count', 1 do
+        post parking_notices_url, params: {
+          print_create_another_permit: 'Save, Print and Create Another Permit',
+          parking_notice: {
+            notice_type: 'permit',
+            user_id: user.id,
+            description: 'Repeat failed print permit',
+            expires_at: expires_at,
+            location: 'Woodshop',
+            location_detail: 'South wall shelf'
+          }
+        }
+      end
+    ensure
+      CupsService.define_singleton_method(:print_data, original_print_data)
+    end
+
+    location = URI.parse(response.location)
+    redirect_params = Rack::Utils.parse_nested_query(location.query)
+
+    assert_equal new_parking_notice_path, location.path
+    assert_equal 'permit', redirect_params['type']
+    assert_equal user.id.to_s, redirect_params.dig('parking_notice', 'user_id')
+    assert_equal 'Repeat failed print permit', redirect_params.dig('parking_notice', 'description')
+    assert_equal expires_at, redirect_params.dig('parking_notice', 'expires_at')
+    assert_equal 'Woodshop', redirect_params.dig('parking_notice', 'location')
+    assert_equal 'South wall shelf', redirect_params.dig('parking_notice', 'location_detail')
+    assert_equal 'Parking permit created successfully.', flash[:notice]
+    assert_equal 'Print failed: printer is offline', flash[:alert]
+  end
+
   test 'create saves a ticket without user' do
     assert_difference 'ParkingNotice.count', 1 do
       post parking_notices_url, params: {

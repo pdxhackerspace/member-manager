@@ -35,6 +35,57 @@ class MemberMapsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'Example User One'
   end
 
+  test 'excludes inactive mapped members by default' do
+    users(:one).update_columns(
+      active: false,
+      membership_status: 'paying',
+      mailing_latitude: 45.582,
+      mailing_longitude: -122.682,
+      mailing_geocoded_at: Time.current
+    )
+
+    get member_map_url
+
+    assert_response :success
+    assert_not_includes response.body, 'Example User One'
+    markers = JSON.parse(css_select('#member-map').first['data-markers'])
+    assert_not_includes markers.map { |marker| marker.fetch('name') }, 'Example User One'
+    assert_select 'input[name=?][value=?]', 'include_inactive', '1'
+  end
+
+  test 'includes inactive mapped members when requested' do
+    users(:one).update_columns(
+      active: false,
+      membership_status: 'paying',
+      mailing_latitude: 45.582,
+      mailing_longitude: -122.682,
+      mailing_geocoded_at: Time.current
+    )
+
+    get member_map_url(include_inactive: '1')
+
+    assert_response :success
+    assert_includes response.body, 'Example User One'
+    assert_select 'input[name=?][checked]', 'include_inactive'
+  end
+
+  test 'excludes banned mapped members even when inactive members are included' do
+    users(:one).update_columns(
+      active: false,
+      membership_status: 'banned',
+      mailing_latitude: 45.582,
+      mailing_longitude: -122.682,
+      mailing_geocoded_at: Time.current
+    )
+
+    get member_map_url(include_inactive: '1')
+
+    assert_response :success
+    assert_not_includes response.body, 'Example User One'
+    markers = JSON.parse(css_select('#member-map').first['data-markers'])
+    assert_not_includes markers.map { |marker| marker.fetch('name') }, 'Example User One'
+  end
+
   test 'shows all mapped members ordered by distance' do
     near_member = users(:one)
     far_member = users(:two)

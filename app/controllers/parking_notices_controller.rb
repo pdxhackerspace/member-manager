@@ -48,6 +48,11 @@ class ParkingNoticesController < AdminController
       @parking_notice.record_journal_entry!(journal_action, actor: current_user)
       @parking_notice.enqueue_notification!(template_key)
 
+      if print_and_create_another_permit?
+        redirect_after_print_and_create_another_permit
+        return
+      end
+
       if create_another_permit?
         redirect_to new_parking_notice_path(type: 'permit', parking_notice: parking_notice_prefill_params),
                     notice: 'Parking permit created successfully.'
@@ -95,15 +100,7 @@ class ParkingNoticesController < AdminController
     printer = Printer.find(params[:printer_id])
     cookies[:last_printer_id] = { value: printer.id.to_s, expires: 1.year.from_now }
 
-    pdf, cups_options = parking_notice_pdf_and_cups_options(printer)
-
-    job_id = CupsService.print_data(
-      pdf.render,
-      printer.cups_printer_name,
-      cups_printer_server: printer.cups_printer_server,
-      filename: "parking_notice_#{@parking_notice.id}.pdf",
-      options: cups_options
-    )
+    job_id = print_parking_notice(printer)
 
     redirect_to parking_notice_path(@parking_notice),
                 notice: "Printed to #{printer.name} (job #{job_id})."
@@ -144,6 +141,18 @@ class ParkingNoticesController < AdminController
     end
   end
 
+  def print_parking_notice(printer)
+    pdf, cups_options = parking_notice_pdf_and_cups_options(printer)
+
+    CupsService.print_data(
+      pdf.render,
+      printer.cups_printer_name,
+      cups_printer_server: printer.cups_printer_server,
+      filename: "parking_notice_#{@parking_notice.id}.pdf",
+      options: cups_options
+    )
+  end
+
   def set_parking_notice
     @parking_notice = ParkingNotice.find(params[:id])
   end
@@ -168,5 +177,31 @@ class ParkingNoticesController < AdminController
 
   def create_another_permit?
     @parking_notice.permit? && params[:create_another_permit].present?
+  end
+
+  def print_and_create_another_permit?
+    @parking_notice.permit? && params[:print_create_another_permit].present?
+  end
+
+  def redirect_after_print_and_create_another_permit
+    printer = Printer.default
+    redirect_path = new_parking_notice_path(type: 'permit', parking_notice: parking_notice_prefill_params)
+
+    if printer.blank?
+      redirect_to redirect_path,
+                  notice: 'Parking permit created successfully.',
+                  alert: 'No default printer is configured.'
+      return
+    end
+
+    cookies[:last_printer_id] = { value: printer.id.to_s, expires: 1.year.from_now }
+    job_id = print_parking_notice(printer)
+
+    redirect_to redirect_path,
+                notice: "Parking permit created and printed to #{printer.name} (job #{job_id})."
+  rescue CupsService::PrintError => e
+    redirect_to redirect_path,
+                notice: 'Parking permit created successfully.',
+                alert: "Print failed: #{e.message}"
   end
 end

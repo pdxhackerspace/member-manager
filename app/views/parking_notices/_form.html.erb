@@ -81,12 +81,7 @@
       <div class="mb-3">
         <%= f.label :expires_at, 'Expiration', class: 'form-label' %>
         <span class="text-danger">*</span>
-        <div class="d-flex flex-wrap gap-2 mb-2">
-          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="1">1 Day</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="3">3 Days</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="7">1 Week</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary quick-expire" data-days="10">10 Days</button>
-        </div>
+        <%= render 'parking_notices/expiration_quick_buttons' %>
         <%= f.datetime_local_field :expires_at, class: 'form-control', required: true,
             value: parking_notice.expires_at&.strftime('%Y-%m-%dT%H:%M') %>
       </div>
@@ -150,6 +145,11 @@
     <% label = parking_notice.persisted? ? "Update" : "Create" %>
     <%= f.submit "#{label} Parking #{parking_notice.notice_type_display}",
         class: "btn btn-#{parking_notice.permit? ? 'success' : 'danger'}" %>
+    <% if parking_notice.new_record? && parking_notice.permit? %>
+      <%= f.submit 'Save and Create Another Permit',
+          name: 'create_another_permit',
+          class: 'btn btn-outline-secondary' %>
+    <% end %>
     <%= link_to "Cancel", parking_notice.persisted? ? parking_notice_path(parking_notice) : parking_notices_path, class: "btn btn-outline-secondary" %>
   </div>
 <% end %>
@@ -163,10 +163,16 @@
       if (!expiresField) return;
 
       document.querySelectorAll('.quick-expire').forEach(function(btn) {
+        if (btn.dataset.quickExpireBound === 'true') return;
+        btn.dataset.quickExpireBound = 'true';
+
         btn.addEventListener('click', function() {
-          var days = parseInt(this.dataset.days);
           var date = new Date();
-          date.setDate(date.getDate() + days);
+          if (this.dataset.years) {
+            date.setFullYear(date.getFullYear() + parseInt(this.dataset.years, 10));
+          } else {
+            date.setDate(date.getDate() + parseInt(this.dataset.days, 10));
+          }
           date.setHours(17, 0, 0, 0);
           var pad = function(n) { return n < 10 ? '0' + n : n; };
           expiresField.value = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' +

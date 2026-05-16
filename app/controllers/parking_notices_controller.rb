@@ -29,6 +29,7 @@ class ParkingNoticesController < AdminController
       notice_type: params[:type].presence || 'permit',
       expires_at: 7.days.from_now
     )
+    @parking_notice.assign_attributes(parking_notice_prefill_params) if params[:parking_notice].present?
     load_form_data
   end
 
@@ -46,6 +47,12 @@ class ParkingNoticesController < AdminController
 
       @parking_notice.record_journal_entry!(journal_action, actor: current_user)
       @parking_notice.enqueue_notification!(template_key)
+
+      if create_another_permit?
+        redirect_to new_parking_notice_path(type: 'permit', parking_notice: parking_notice_prefill_params),
+                    notice: 'Parking permit created successfully.'
+        return
+      end
 
       redirect_to parking_notice_path(@parking_notice),
                   notice: "Parking #{@parking_notice.notice_type} created successfully."
@@ -151,5 +158,15 @@ class ParkingNoticesController < AdminController
       parking_notice: [:notice_type, :user_id, :description, :location,
                        :location_detail, :expires_at, :notes, { photos: [] }]
     )
+  end
+
+  def parking_notice_prefill_params
+    params.expect(
+      parking_notice: %i[user_id description expires_at location location_detail]
+    )
+  end
+
+  def create_another_permit?
+    @parking_notice.permit? && params[:create_another_permit].present?
   end
 end

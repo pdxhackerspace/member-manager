@@ -16,6 +16,7 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     get new_member_parking_permit_path
     assert_response :success
     assert_match(/New Parking Permit/i, response.body)
+    assert_expiration_quick_buttons
   end
 
   test 'member can create own parking permit' do
@@ -52,5 +53,16 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: { email: local_accounts(:regular_member).email, password: 'memberpassword123' }
     }
+  end
+
+  def assert_expiration_quick_buttons
+    assert_select '.quick-expire', 7
+    assert_select '.quick-expire[data-days="1"]', text: '1 day'
+    assert_select '.quick-expire[data-days="3"]', text: '3 days'
+    assert_select '.quick-expire[data-days="7"]', text: '1 week'
+    assert_select '.quick-expire[data-days="14"]', text: '2 weeks'
+    assert_select '.quick-expire[data-days="30"]', text: '30 days'
+    assert_select '.quick-expire[data-days="180"]', text: '180 days'
+    assert_select '.quick-expire[data-years="1"]', text: '1 year'
   end
 end

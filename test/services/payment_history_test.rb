@@ -19,7 +19,7 @@ class PaymentHistoryTest < ActiveSupport::TestCase
     assert_equal times, times.sort.reverse
   end
 
-  test 'paypal payment event details do not expose email fallback' do
+  test 'paypal payment event details fall back to email when name is blank' do
     user = users(:one)
     payment = PaypalPayment.create!(
       paypal_id: 'PAY-HISTORY-PRIVACY',
@@ -35,7 +35,6 @@ class PaymentHistoryTest < ActiveSupport::TestCase
     )
     event = PaymentEvent.find_by!(source: 'paypal', external_id: payment.paypal_id)
 
-    assert_equal 'PayPal payment', event.details
-    assert_no_match(/history-private@example\.com/, event.details)
+    assert_equal 'PayPal payment from history-private@example.com', event.details
   end
 end

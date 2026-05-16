@@ -149,6 +149,9 @@
       <%= f.submit 'Save and Create Another Permit',
           name: 'create_another_permit',
           class: 'btn btn-outline-secondary' %>
+      <%= f.submit 'Save, Print and Create Another Permit',
+          name: 'print_create_another_permit',
+          class: 'btn btn-outline-secondary' %>
     <% end %>
     <%= link_to "Cancel", parking_notice.persisted? ? parking_notice_path(parking_notice) : parking_notices_path, class: "btn btn-outline-secondary" %>
   </div>

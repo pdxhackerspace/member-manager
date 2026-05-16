@@ -24,6 +24,7 @@ class MemberMapsController < AdminController
   end
 
   def apply_member_marker_data
+    @include_inactive_members = include_inactive_members?
     scope = map_member_scope
     @map_missing_coordinates_count = scope.where(mailing_latitude: nil).or(scope.where(mailing_longitude: nil)).count
 
@@ -32,9 +33,15 @@ class MemberMapsController < AdminController
   end
 
   def map_member_scope
-    User.where(active: true)
-        .non_service_accounts
-        .non_legacy
+    scope = User.non_service_accounts
+                .non_legacy
+                .where.not(membership_status: 'banned')
+    scope = scope.where(active: true) unless @include_inactive_members
+    scope
+  end
+
+  def include_inactive_members?
+    params[:include_inactive] == '1'
   end
 
   def build_markers(scope)

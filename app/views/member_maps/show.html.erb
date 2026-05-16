@@ -28,6 +28,16 @@
              data-markers="<%= @map_markers.to_json %>"></div>
       </div>
       <div class="col-lg-4">
+        <%= form_with url: member_map_path, method: :get, local: true, class: "mb-3", data: { turbo: true } do %>
+          <div class="form-check form-switch">
+            <%= check_box_tag :include_inactive, '1', @include_inactive_members,
+                class: "form-check-input",
+                id: "include_inactive_members",
+                onchange: "this.form.requestSubmit()" %>
+            <%= label_tag :include_inactive_members, "Include inactive members", class: "form-check-label" %>
+          </div>
+        <% end %>
+
         <% if @map_markers.any? %>
           <div class="list-group list-compact">
             <% @map_markers.each do |marker| %>

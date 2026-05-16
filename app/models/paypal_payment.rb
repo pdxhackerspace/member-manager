@@ -44,6 +44,7 @@ class PaypalPayment < ApplicationRecord
 
   def payment_event_details
     return "PayPal payment from #{payer_name}" if payer_name.present?
+    return "PayPal payment from #{payer_email}" if payer_email.present?
 
     'PayPal payment'
   end

@@ -35,15 +35,32 @@
         <% end %>
       </div>
       <div class="col-md-3">
-        <%= f.label :billing_frequency, "Billing Frequency", class: "form-label" %>
-        <%= f.select :billing_frequency, 
-            options_for_select([['Monthly', 'monthly'], ['Yearly', 'yearly'], ['One-time', 'one-time']], @membership_plan.billing_frequency),
-            {},
-            { class: "form-select #{'is-invalid' if @membership_plan.errors.key?(:billing_frequency)}", required: true } %>
-        <% if @membership_plan.errors.key?(:billing_frequency) %>
-          <div class="invalid-feedback">
-            <%= @membership_plan.errors[:billing_frequency].first %>
+        <% if @membership_plan.personal? %>
+          <%= f.label :billing_period_days, "Billing Frequency", class: "form-label" %>
+          <div class="input-group">
+            <%= f.number_field :billing_period_days,
+                min: 1,
+                step: 1,
+                class: "form-control #{'is-invalid' if @membership_plan.errors.key?(:billing_period_days)}",
+                required: true %>
+            <span class="input-group-text">Days</span>
           </div>
+          <% if @membership_plan.errors.key?(:billing_period_days) %>
+            <div class="invalid-feedback d-block">
+              <%= @membership_plan.errors[:billing_period_days].first %>
+            </div>
+          <% end %>
+        <% else %>
+          <%= f.label :billing_frequency, "Billing Frequency", class: "form-label" %>
+          <%= f.select :billing_frequency,
+              options_for_select([['Monthly', 'monthly'], ['Yearly', 'yearly'], ['One-time', 'one-time']], @membership_plan.billing_frequency),
+              {},
+              { class: "form-select #{'is-invalid' if @membership_plan.errors.key?(:billing_frequency)}", required: true } %>
+          <% if @membership_plan.errors.key?(:billing_frequency) %>
+            <div class="invalid-feedback">
+              <%= @membership_plan.errors[:billing_frequency].first %>
+            </div>
+          <% end %>
         <% end %>
       </div>
       <div class="col-md-2">

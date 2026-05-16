@@ -28,7 +28,7 @@
   <div class="text-14 fw-medium"><%= plan_name %></div>
   <div class="text-12 text-secondary mb-3">
     <% if plan.present? %>
-      $<%= format('%.2f', plan.cost) %> / <%= plan.billing_frequency %> · <%= payment_method %>
+      $<%= format('%.2f', plan.cost) %> / <%= plan.billing_label %> · <%= payment_method %>
     <% else %>
       <%= payment_method %>
     <% end %>

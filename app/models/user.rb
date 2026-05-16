@@ -216,11 +216,10 @@ class User < ApplicationRecord
   def self.dues_due_at_from_payment_cycle(anchor_date, plan)
     return nil if anchor_date.blank? || plan.blank?
 
-    d = case plan.billing_frequency
-        when 'monthly' then anchor_date.to_date + 1.month
-        when 'yearly' then anchor_date.to_date + 1.year
-        when 'one-time' then nil
-        end
+    duration = plan.billing_cycle_duration
+    return nil if duration.blank?
+
+    d = anchor_date.to_date + duration
     d&.in_time_zone&.beginning_of_day
   end
 

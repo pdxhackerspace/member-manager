@@ -91,11 +91,10 @@
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Billing Frequency</label>
-                    <select name="plan_billing_frequency" class="form-select">
-                      <option value="monthly">Monthly</option>
-                      <option value="yearly">Yearly</option>
-                      <option value="one-time">One-time</option>
-                    </select>
+                    <div class="input-group">
+                      <input type="number" name="plan_billing_period_days" class="form-control" min="1" step="1" value="30">
+                      <span class="input-group-text">Days</span>
+                    </div>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Notes</label>

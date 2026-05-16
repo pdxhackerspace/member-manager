@@ -41,7 +41,7 @@
               </td>
               <td>
                 <strong>$<%= format('%.2f', plan.cost) %></strong>
-                <span class="text-muted">/ <%= plan.billing_frequency %></span>
+                <span class="text-muted">/ <%= plan.billing_label %></span>
               </td>
               <td>
                 <% dues_badge = case user.dues_status

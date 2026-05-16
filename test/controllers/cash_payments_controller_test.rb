@@ -55,7 +55,7 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'current', @user.dues_status
     assert_equal 'cash', @user.payment_type
     assert @user.dues_due_at.present?
-    assert_equal Date.current + 1.month, @user.dues_due_at.to_date
+    assert_equal Date.current + @plan.billing_period_days.days, @user.dues_due_at.to_date
   end
 
   test 'create sets payment due date when none is recorded' do
@@ -65,7 +65,7 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to cash_payment_path(CashPayment.last)
     @user.reload
-    assert_equal Date.current + 1.month, @user.dues_due_at.to_date
+    assert_equal Date.current + @plan.billing_period_days.days, @user.dues_due_at.to_date
   end
 
   test 'create advances payment due date when calculated date is later' do
@@ -75,7 +75,7 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to cash_payment_path(CashPayment.last)
     @user.reload
-    assert_equal Date.current + 1.month, @user.dues_due_at.to_date
+    assert_equal Date.current + @plan.billing_period_days.days, @user.dues_due_at.to_date
   end
 
   test 'create does not move payment due date earlier' do
@@ -163,7 +163,7 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to cash_payment_path(payment)
     @user.reload
     assert_equal 2.months.ago.to_date, @user.last_payment_date
-    assert_equal 1.month.ago.to_date, @user.dues_due_at.to_date
+    assert_equal 2.months.ago.to_date + @plan.billing_period_days.days, @user.dues_due_at.to_date
     assert_equal 'lapsed', @user.dues_status
     assert_not @user.active?
   end
@@ -195,7 +195,7 @@ class CashPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to cash_payment_path(older_payment)
     @user.reload
     assert_equal latest_paid_on, @user.last_payment_date
-    assert_equal latest_paid_on + 1.month, @user.dues_due_at.to_date
+    assert_equal latest_paid_on + @plan.billing_period_days.days, @user.dues_due_at.to_date
     assert_equal 'current', @user.dues_status
     assert @user.active?
   end

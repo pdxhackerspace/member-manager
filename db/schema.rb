@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_15_075600) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_15_095300) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -565,6 +565,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_15_075600) do
 
   create_table "membership_plans", force: :cascade do |t|
     t.string "billing_frequency", null: false
+    t.integer "billing_period_days"
     t.decimal "cost", precision: 10, scale: 2, null: false
     t.datetime "created_at", null: false
     t.text "description"

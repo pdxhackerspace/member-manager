@@ -55,8 +55,11 @@ class ApplicationGroup < ApplicationRecord
       training_topic&.trainers || User.none
     when 'trained_in'
       if training_topic
-        User.where(id: User.joins(:trainings_as_trainee)
-                       .where(trainings: { training_topic_id: training_topic_id }).select(:id))
+        trained_user_ids = User.joins(:trainings_as_trainee)
+                               .where(trainings: { training_topic_id: training_topic_id })
+                               .select(:id)
+
+        User.where(id: trained_user_ids)
       else
         User.none
       end

@@ -157,6 +157,22 @@ class QueuedMailTest < ActiveSupport::TestCase
     assert_equal @pending.body_text, entry.message_body_text
   end
 
+  test 'record_delivery_failure registers monitor failure and does not mark sent' do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    Rails.cache.clear
+    @pending.update!(status: 'approved')
+
+    assert_no_changes -> { @pending.reload.sent_at } do
+      @pending.record_delivery_failure!(RuntimeError.new('smtp down'))
+    end
+
+    assert_equal 1, MailerDeliveryMonitor.recent_failures.size
+    assert_match(/smtp down/, MailerDeliveryMonitor.recent_failures.last['message'])
+  ensure
+    Rails.cache = original_cache if defined?(original_cache)
+  end
+
   # ─── Reject ──────────────────────────────────────────────────────
 
   test 'reject! sets status without sending mail' do

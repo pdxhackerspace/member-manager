@@ -16,6 +16,7 @@ class ApplicationMailer < ActionMailer::Base
     yield
     log_direct_mail_delivery!('sent')
   rescue StandardError => e
+    MailerDeliveryMonitor.record_failure!(e, source: "#{self.class.name}##{action_name}")
     log_direct_mail_delivery!('send_failed', details: "#{e.class}: #{e.message}")
     raise
   end

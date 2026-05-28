@@ -7,7 +7,15 @@ module MembershipApplications
     include ActiveJob::TestHelper
 
     setup do
+      ActionMailer::Base.deliveries.clear
+      clear_enqueued_jobs
+      EmailTemplate.where(key: 'staff_application_nag').delete_all
+      ensure_staff_new_application_template!
       @app = MembershipApplication.create!(email: 'notify-directors@example.com', status: 'submitted')
+    end
+
+    teardown do
+      clear_enqueued_jobs
     end
 
     test 'sends one deliver_later mail per trained staff with email' do
@@ -18,13 +26,16 @@ module MembershipApplications
       Training.create!(trainee: u1, training_topic: ed, trained_at: Time.current)
       Training.create!(trainee: u2, training_topic: aed, trained_at: Time.current)
 
+      delivery_count_before = ActionMailer::Base.deliveries.size
+
       assert_difference 'ActionMailer::Base.deliveries.size', 2 do
         perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
           NotifyDirectorsOfSubmission.call(@app)
         end
       end
 
-      ActionMailer::Base.deliveries.each do |mail|
+      ActionMailer::Base.deliveries.drop(delivery_count_before).each do |mail|
+        assert_equal 'staff_new_application', mail['X-MemberManager-Action']&.decoded
         assert_match(/needs review/i, mail.subject)
       end
     end
@@ -74,6 +85,13 @@ module MembershipApplications
           NotifyDirectorsOfSubmission.call(@app)
         end
       end
+    end
+
+    def ensure_staff_new_application_template!
+      return if EmailTemplate.exists?(key: 'staff_new_application')
+
+      attrs = EmailTemplate::DEFAULT_TEMPLATES.fetch('staff_new_application')
+      EmailTemplate.create!({ key: 'staff_new_application', enabled: true }.merge(attrs))
     end
   end
 end

@@ -2,7 +2,7 @@ require 'net/smtp'
 require 'openssl'
 
 class MailerHealthCheck
-  CACHE_KEY = 'mailer_health_check:v4'.freeze
+  CACHE_KEY = 'mailer_health_check:v5'.freeze
   CACHE_TTL = 5.minutes
   DEFAULT_TIMEOUT = 5
 
@@ -11,6 +11,9 @@ class MailerHealthCheck
   end
 
   def self.call(force: false)
+    recent_failure = MailerDeliveryMonitor.unhealthy_result
+    return recent_failure if recent_failure
+
     return new.call if force
 
     Rails.cache.fetch(CACHE_KEY, expires_in: CACHE_TTL) { new.call }
@@ -26,6 +29,8 @@ class MailerHealthCheck
     healthy(success_message)
   rescue Net::SMTPAuthenticationError => e
     unhealthy("SMTP authentication failed: #{e.message}")
+  rescue Net::SMTPServerBusy, Net::SMTPFatalError, Net::SMTPUnknownError, Net::SMTPUnsupportedCommand => e
+    unhealthy("SMTP rejected the health check: #{e.message}")
   rescue Net::OpenTimeout, Net::ReadTimeout
     unhealthy("SMTP connection timed out connecting to #{settings[:address]}:#{settings[:port] || 25}")
   rescue SocketError, SystemCallError, IOError, OpenSSL::SSL::SSLError, Net::SMTPError => e
@@ -42,7 +47,27 @@ class MailerHealthCheck
     smtp.start(settings[:domain].presence || 'localhost',
                settings[:user_name],
                settings[:password],
-               authentication_for_start) { true }
+               authentication_for_start) do |client|
+      verify_mail_transaction!(client) unless skip_transaction_check?
+    end
+  end
+
+  def verify_mail_transaction!(client)
+    client.mailfrom(from_addr: mail_from_address)
+    client.rcptto(to_addr: rcpt_probe_address)
+    client.rset
+  end
+
+  def mail_from_address
+    ENV.fetch('EMAIL_FROM_ADDRESS', 'noreply@example.com').to_s.strip
+  end
+
+  def rcpt_probe_address
+    ENV.fetch('SMTP_HEALTH_CHECK_RCPT_TO', mail_from_address).to_s.strip
+  end
+
+  def skip_transaction_check?
+    ENV.fetch('SMTP_HEALTH_CHECK_SKIP_TRANSACTION', 'false') == 'true'
   end
 
   def configure_tls(smtp)
@@ -83,8 +108,9 @@ class MailerHealthCheck
 
   def success_message
     action = authenticated? ? 'Connected and authenticated' : 'Connected'
+    transaction = skip_transaction_check? ? '' : ', verified MAIL FROM/RCPT TO'
 
-    "#{action} to #{settings[:address]}:#{settings[:port] || 25}"
+    "#{action} to #{settings[:address]}:#{settings[:port] || 25}#{transaction}"
   end
 
   def timeout

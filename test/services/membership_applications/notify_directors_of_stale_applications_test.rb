@@ -8,6 +8,7 @@ module MembershipApplications
 
     setup do
       ActionMailer::Base.deliveries.clear
+      clear_enqueued_jobs
       EmailTemplate.where(key: 'staff_application_nag').delete_all
       EmailTemplate.create!(
         key: 'staff_application_nag',
@@ -17,6 +18,10 @@ module MembershipApplications
         body_text: "Open: {{application_url}}\nSubmitted: {{submitted_at}}",
         enabled: true
       )
+    end
+
+    teardown do
+      clear_enqueued_jobs
     end
 
     test 'emails executive application reviewers for applications pending after a week' do
@@ -53,6 +58,8 @@ module MembershipApplications
           NotifyDirectorsOfStaleApplications.call(now: now)
         end
       end
+    ensure
+      clear_enqueued_jobs
     end
 
     test 'does not email applications that are not stale and pending' do

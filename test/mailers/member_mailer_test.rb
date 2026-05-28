@@ -34,6 +34,9 @@ class MemberMailerTest < ActionMailer::TestCase
   end
 
   test 'application email verification logs failed delivery instead of sent when delivery raises' do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    Rails.cache.clear
     ActionMailer::Base.add_delivery_method :member_manager_failure, FailingDelivery
     original_delivery_method = ActionMailer::Base.delivery_method
     ActionMailer::Base.delivery_method = :member_manager_failure
@@ -61,7 +64,10 @@ class MemberMailerTest < ActionMailer::TestCase
     assert_equal 'applicant@example.com', entry.delivery_to
     assert_match(/smtp down/, entry.details)
     assert_includes entry.delivery_body_html, 'https://example.com/verify'
+    assert_equal 1, MailerDeliveryMonitor.recent_failures.size
+    assert_match(/smtp down/, MailerDeliveryMonitor.recent_failures.last['message'])
   ensure
+    Rails.cache = original_cache if defined?(original_cache)
     ActionMailer::Base.delivery_method = original_delivery_method if defined?(original_delivery_method)
   end
 end

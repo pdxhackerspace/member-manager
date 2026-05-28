@@ -204,6 +204,7 @@ class QueuedMail < ApplicationRecord
   end
 
   def record_delivery_failure!(error)
+    MailerDeliveryMonitor.record_failure!(error, source: "QueuedMail##{id}")
     error_message = "#{error.class}: #{error.message}"
     update!(last_error: error_message, last_error_at: Time.current)
     MailLogEntry.log_once!(self, 'send_failed', details: error_message)

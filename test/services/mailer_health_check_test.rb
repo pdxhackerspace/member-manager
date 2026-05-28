@@ -66,9 +66,9 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
     Rails.cache.clear
     @original_delivery_method = Rails.configuration.action_mailer.delivery_method
     @original_smtp_settings = Rails.configuration.action_mailer.smtp_settings&.dup
-    @original_from = ENV['EMAIL_FROM_ADDRESS']
-    @original_rcpt = ENV['SMTP_HEALTH_CHECK_RCPT_TO']
-    @original_skip = ENV['SMTP_HEALTH_CHECK_SKIP_TRANSACTION']
+    @original_from = ENV.fetch('EMAIL_FROM_ADDRESS', nil)
+    @original_rcpt = ENV.fetch('SMTP_HEALTH_CHECK_RCPT_TO', nil)
+    @original_skip = ENV.fetch('SMTP_HEALTH_CHECK_SKIP_TRANSACTION', nil)
     @original_smtp_new = Net::SMTP.method(:new)
     FakeSmtp.error = nil
     FakeSmtp.transaction_error = nil
@@ -118,7 +118,7 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
 
     assert result.healthy?
     assert_match(/Connected and authenticated/, result.message)
-    assert_match(/verified MAIL FROM\/RCPT TO/, result.message)
+    assert_match(%r{verified MAIL FROM/RCPT TO}, result.message)
     assert_equal 'smtp.example.test', FakeSmtp.last.address
     assert_equal 587, FakeSmtp.last.port
     assert_equal 'members.example.test', FakeSmtp.last.domain
@@ -242,7 +242,7 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
 
     assert result.healthy?
     assert_match(/Connected and authenticated/, result.message)
-    assert_no_match(/verified MAIL FROM\/RCPT TO/, result.message)
+    assert_no_match(%r{verified MAIL FROM/RCPT TO}, result.message)
     assert_nil FakeSmtp.last.mail_from
   end
 end

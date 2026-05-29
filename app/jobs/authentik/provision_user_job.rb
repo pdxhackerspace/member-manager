@@ -29,6 +29,7 @@ module Authentik
       if existing
         authentik_id = existing['pk'].to_s
         user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current, authentik_dirty: false)
+        client.update_user(authentik_id, attributes: Authentik::UserAttributes.for(user))
         sync_application_group_memberships(user)
         Rails.logger.info(
           '[Authentik::ProvisionUserJob] Linked existing Authentik user ' \

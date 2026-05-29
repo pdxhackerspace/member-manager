@@ -49,5 +49,58 @@ module Authentik
       assert_equal 'Member Manager Name', user.full_name
       assert_equal 'membermanager', user.username
     end
+
+    test 'sync_to_authentik includes slack fields in attributes' do
+      user = users(:two)
+      user.update_columns(
+        authentik_id: 'authentik-sync-to-test',
+        slack_id: 'U123SLACK',
+        slack_handle: 'alice'
+      )
+
+      captured_attrs = nil
+      client = Class.new do
+        define_method(:update_user) do |authentik_id, **attrs|
+          captured_attrs = attrs
+          { 'pk' => authentik_id }
+        end
+      end.new
+
+      result = Authentik::UserSync.new(user, client: client).sync_to_authentik!
+
+      assert_equal 'synced', result[:status]
+      assert_equal(
+        {
+          'member_manager_id' => user.id.to_s,
+          'slack_user_id' => 'U123SLACK',
+          'slack_handle' => 'alice'
+        },
+        captured_attrs[:attributes]
+      )
+    end
+
+    test 'sync_to_authentik syncs slack attribute changes only' do
+      user = users(:two)
+      user.update_columns(
+        authentik_id: 'authentik-slack-only-test',
+        slack_id: 'U999SLACK',
+        slack_handle: 'bob'
+      )
+
+      captured_attrs = nil
+      client = Class.new do
+        define_method(:update_user) do |authentik_id, **attrs|
+          captured_attrs = attrs
+          { 'pk' => authentik_id }
+        end
+      end.new
+
+      result = Authentik::UserSync.new(user, client: client).sync_to_authentik!(changed_fields: %w[slack_id])
+
+      assert_equal 'synced', result[:status]
+      assert_equal %w[slack_id], result[:fields]
+      assert_equal 'U999SLACK', captured_attrs[:attributes]['slack_user_id']
+      assert_empty captured_attrs.except(:attributes)
+    end
   end
 end

@@ -781,7 +781,9 @@ class User < ApplicationRecord
   end
 
   # Fields that correspond to Authentik user attributes
-  AUTHENTIK_SYNCABLE_FIELDS = %w[email full_name username active].freeze
+  AUTHENTIK_SYNCABLE_FIELDS = (
+    Authentik::UserSync::SYNCABLE_FIELDS + Authentik::UserSync::ATTRIBUTE_SYNC_FIELDS
+  ).freeze
   private_constant :AUTHENTIK_SYNCABLE_FIELDS
 
   # Mark user as needing sync to Authentik when syncable fields change
@@ -818,7 +820,7 @@ class User < ApplicationRecord
   def sync_authentik_user_if_needed
     return if Current.skip_authentik_sync
 
-    changed_fields = saved_changes.keys & Authentik::UserSync::SYNCABLE_FIELDS
+    changed_fields = saved_changes.keys & AUTHENTIK_SYNCABLE_FIELDS
     return if changed_fields.empty?
 
     if authentik_id.present?

@@ -96,7 +96,7 @@ module Authentik
         name: name,
         email: user.email,
         is_active: user.active?,
-        attributes: { 'member_manager_id' => user.id.to_s }
+        attributes: Authentik::UserAttributes.for(user)
       )
 
       authentik_id = result['pk'].to_s
@@ -124,10 +124,7 @@ module Authentik
       attrs[:username] = user.username if user.username.present?
       attrs[:is_active] = user.active?
 
-      # Write member_manager_id as extra data in attributes
-      attrs[:attributes] = {
-        'member_manager_id' => user.id.to_s
-      }
+      attrs[:attributes] = Authentik::UserAttributes.for(user)
 
       client.update_user(user.authentik_id, **attrs)
       user.update_columns(last_synced_at: Time.current, authentik_dirty: false)

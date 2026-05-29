@@ -3,6 +3,9 @@ module Authentik
     # Fields that can be synced to Authentik
     SYNCABLE_FIELDS = %w[email full_name username active].freeze
 
+    # User fields stored in Authentik's attributes JSON (not top-level user fields)
+    ATTRIBUTE_SYNC_FIELDS = %w[slack_id slack_handle].freeze
+
     # Mapping from MemberManager field names to Authentik field names
     FIELD_MAPPING = {
       'email' => 'email',
@@ -23,33 +26,24 @@ module Authentik
       return { status: 'skipped', reason: 'no_authentik_id' } if user.authentik_id.blank?
       return { status: 'skipped', reason: 'api_not_configured' } unless api_configured?
 
-      # Determine which fields to sync
-      fields_to_sync = if changed_fields.present?
-                         changed_fields & SYNCABLE_FIELDS
-                       else
-                         SYNCABLE_FIELDS
-                       end
-
-      return { status: 'skipped', reason: 'no_syncable_changes' } if fields_to_sync.empty?
-
-      Rails.logger.info(
-        "[Authentik::UserSync] Syncing user #{user.id} " \
-        "(#{user.authentik_id}) to Authentik: #{fields_to_sync.join(', ')}"
-      )
-
-      # Build the update payload
-      attrs = {}
-      fields_to_sync.each do |field|
-        authentik_field = FIELD_MAPPING[field]
-        attrs[authentik_field] = user.send(field)
+      fields_to_sync = syncable_fields_for(changed_fields)
+      attribute_fields_to_sync = attribute_fields_for(changed_fields)
+      if fields_to_sync.empty? && attribute_fields_to_sync.empty? && changed_fields.present?
+        return { status: 'skipped', reason: 'no_syncable_changes' }
       end
 
+      synced_fields = fields_to_sync + attribute_fields_to_sync
+      Rails.logger.info(
+        "[Authentik::UserSync] Syncing user #{user.id} " \
+        "(#{user.authentik_id}) to Authentik: #{synced_fields.join(', ')}"
+      )
+
       begin
-        client.update_user(user.authentik_id, **attrs)
+        client.update_user(user.authentik_id, **build_update_payload(fields_to_sync))
         user.update_columns(last_synced_at: Time.current, authentik_dirty: false)
 
         Rails.logger.info("[Authentik::UserSync] Successfully synced user #{user.id} to Authentik")
-        { status: 'synced', authentik_id: user.authentik_id, fields: fields_to_sync }
+        { status: 'synced', authentik_id: user.authentik_id, fields: synced_fields }
       rescue StandardError => e
         Rails.logger.error("[Authentik::UserSync] Failed to sync user to Authentik: #{e.message}")
         { status: 'error', error: e.message }
@@ -97,6 +91,25 @@ module Authentik
 
     def api_configured?
       AuthentikConfig.settings.api_token.present? && AuthentikConfig.settings.api_base_url.present?
+    end
+
+    def syncable_fields_for(changed_fields)
+      return SYNCABLE_FIELDS if changed_fields.blank?
+
+      changed_fields & SYNCABLE_FIELDS
+    end
+
+    def attribute_fields_for(changed_fields)
+      return ATTRIBUTE_SYNC_FIELDS if changed_fields.blank?
+
+      changed_fields & ATTRIBUTE_SYNC_FIELDS
+    end
+
+    def build_update_payload(fields_to_sync)
+      attrs = fields_to_sync.index_with { |field| user.send(field) }
+                            .transform_keys { |field| FIELD_MAPPING[field] }
+      attrs[:attributes] = UserAttributes.for(user)
+      attrs
     end
 
     def record_authentik_data(authentik_data, skip_if_no_changes: true)

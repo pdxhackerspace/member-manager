@@ -42,7 +42,7 @@ module Authentik
         name: name,
         email: user.email,
         is_active: user.active?,
-        attributes: { 'member_manager_id' => user_id.to_s }
+        attributes: Authentik::UserAttributes.for(user)
       )
 
       authentik_id = result['pk'].to_s

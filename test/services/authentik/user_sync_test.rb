@@ -73,7 +73,9 @@ module Authentik
         {
           'member_manager_id' => user.id.to_s,
           'slack_user_id' => 'U123SLACK',
-          'slack_handle' => 'alice'
+          'slack_handle' => 'alice',
+          'trained_on' => [],
+          'can_train' => []
         },
         captured_attrs[:attributes]
       )
@@ -122,6 +124,35 @@ module Authentik
       assert_equal 'synced', result[:status]
       assert_equal slack_user.slack_id, captured_attrs[:attributes]['slack_user_id']
       assert_equal slack_user.username, captured_attrs[:attributes]['slack_handle']
+    end
+
+    test 'sync_to_authentik includes training attributes' do
+      user = users(:one)
+      user.update_columns(authentik_id: 'authentik-training-sync-test')
+      Training.create!(
+        trainee: user,
+        trainer: users(:two),
+        training_topic: training_topics(:laser_cutting),
+        trained_at: Time.current
+      )
+      TrainerCapability.create!(user: user, training_topic: training_topics(:woodworking))
+
+      captured_attrs = nil
+      client = Class.new do
+        define_method(:update_user) do |authentik_id, **attrs|
+          captured_attrs = attrs
+          { 'pk' => authentik_id }
+        end
+      end.new
+
+      result = Authentik::UserSync.new(user, client: client).sync_to_authentik!(
+        changed_fields: %w[trained_on can_train]
+      )
+
+      assert_equal 'synced', result[:status]
+      assert_equal %w[trained_on can_train], result[:fields]
+      assert_equal ['Laser Cutting'], captured_attrs[:attributes]['trained_on']
+      assert_equal ['Woodworking'], captured_attrs[:attributes]['can_train']
     end
   end
 end

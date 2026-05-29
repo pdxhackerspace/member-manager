@@ -7,11 +7,10 @@ module Authentik
       user.update_columns(slack_id: 'U123SLACK', slack_handle: 'alice')
 
       assert_equal(
-        {
-          'member_manager_id' => user.id.to_s,
+        base_attributes(user).merge(
           'slack_user_id' => 'U123SLACK',
           'slack_handle' => 'alice'
-        },
+        ),
         UserAttributes.for(user)
       )
     end
@@ -20,14 +19,7 @@ module Authentik
       user = users(:two)
       user.update_columns(slack_id: nil, slack_handle: nil)
 
-      assert_equal(
-        {
-          'member_manager_id' => user.id.to_s,
-          'slack_user_id' => '',
-          'slack_handle' => ''
-        },
-        UserAttributes.for(user)
-      )
+      assert_equal base_attributes(user), UserAttributes.for(user)
     end
 
     test 'for falls back to linked slack user when member slack columns are blank' do
@@ -37,13 +29,77 @@ module Authentik
       slack_user.update!(user_id: user.id)
 
       assert_equal(
-        {
-          'member_manager_id' => user.id.to_s,
+        base_attributes(user).merge(
           'slack_user_id' => slack_user.slack_id,
           'slack_handle' => slack_user.username
-        },
+        ),
         UserAttributes.for(user)
       )
+    end
+
+    test 'for includes trained_on topic names sorted alphabetically' do
+      user = users(:one)
+      Training.create!(
+        trainee: user,
+        trainer: users(:two),
+        training_topic: training_topics(:woodworking),
+        trained_at: Time.current
+      )
+      Training.create!(
+        trainee: user,
+        trainer: users(:two),
+        training_topic: training_topics(:laser_cutting),
+        trained_at: Time.current
+      )
+
+      assert_equal(
+        base_attributes(user).merge('trained_on' => ['Laser Cutting', 'Woodworking']),
+        UserAttributes.for(user)
+      )
+    end
+
+    test 'for includes can_train topic names sorted alphabetically' do
+      user = users(:one)
+      TrainerCapability.create!(user: user, training_topic: training_topics(:woodworking))
+      TrainerCapability.create!(user: user, training_topic: training_topics(:laser_cutting))
+
+      assert_equal(
+        base_attributes(user).merge('can_train' => ['Laser Cutting', 'Woodworking']),
+        UserAttributes.for(user)
+      )
+    end
+
+    test 'supplemental_sync_user_ids includes slack linked and training related users' do
+      slack_user = users(:two)
+      slack_users(:with_dept).update!(user_id: slack_user.id)
+
+      trainee = users(:one)
+      trainer = users(:two)
+      Training.create!(
+        trainee: trainee,
+        trainer: trainer,
+        training_topic: training_topics(:laser_cutting),
+        trained_at: Time.current
+      )
+      TrainerCapability.create!(user: trainer, training_topic: training_topics(:woodworking))
+
+      ids = UserAttributes.supplemental_sync_user_ids
+
+      assert_includes ids, slack_user.id
+      assert_includes ids, trainee.id
+      assert_includes ids, trainer.id
+    end
+
+    private
+
+    def base_attributes(user)
+      {
+        'member_manager_id' => user.id.to_s,
+        'slack_user_id' => '',
+        'slack_handle' => '',
+        'trained_on' => [],
+        'can_train' => []
+      }
     end
   end
 end

@@ -25,12 +25,16 @@ module Authentik
         sync_user_to_authentik(user, client, results)
       end
 
-      slack_linked_users = User.joins(:slack_user).where.not(authentik_id: [nil, '']).where(authentik_dirty: false)
+      supplemental_user_ids = Authentik::UserAttributes.supplemental_sync_user_ids
+      supplemental_users = User.where(id: supplemental_user_ids)
+                               .where.not(authentik_id: [nil, ''])
+                               .where(authentik_dirty: false)
       Rails.logger.info(
-        "[Authentik::FullSyncToAuthentik] Syncing Slack attributes for #{slack_linked_users.count} user(s)..."
+        '[Authentik::FullSyncToAuthentik] Syncing supplemental attributes ' \
+        "for #{supplemental_users.count} user(s)..."
       )
-      slack_linked_users.find_each do |user|
-        sync_slack_attributes_to_authentik(user, client, results)
+      supplemental_users.find_each do |user|
+        sync_supplemental_attributes_to_authentik(user, client, results)
       end
 
       # 2a. Ensure core groups (active, admins, unbanned, all, training) exist
@@ -145,18 +149,19 @@ module Authentik
       Rails.logger.error("[Authentik::FullSyncToAuthentik] Failed to sync user #{user.id}: #{e.message}")
     end
 
-    def sync_slack_attributes_to_authentik(user, client, results)
+    def sync_supplemental_attributes_to_authentik(user, client, results)
       client.update_user(user.authentik_id, attributes: Authentik::UserAttributes.for(user))
       user.update_columns(last_synced_at: Time.current)
       results[:users_synced] += 1
 
       Rails.logger.info(
-        "[Authentik::FullSyncToAuthentik] Synced Slack attributes for user #{user.id} (#{user.display_name})"
+        '[Authentik::FullSyncToAuthentik] Synced supplemental attributes ' \
+        "for user #{user.id} (#{user.display_name})"
       )
     rescue StandardError => e
       results[:users_errored] += 1
       Rails.logger.error(
-        '[Authentik::FullSyncToAuthentik] Failed to sync Slack attributes ' \
+        '[Authentik::FullSyncToAuthentik] Failed to sync supplemental attributes ' \
         "for user #{user.id}: #{e.message}"
       )
     end

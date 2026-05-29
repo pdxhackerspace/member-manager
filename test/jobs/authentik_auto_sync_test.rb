@@ -50,16 +50,20 @@ class AuthentikAutoSyncTest < ActiveJob::TestCase
     training = nil
 
     assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[trained_in]]) do
-      training = Training.create!(
-        trainee: users(:one),
-        trainer: users(:two),
-        training_topic: training_topics(:laser_cutting),
-        trained_at: Time.current
-      )
+      assert_enqueued_with(job: Authentik::UserSyncJob, args: [users(:one).id, %w[trained_on]]) do
+        training = Training.create!(
+          trainee: users(:one),
+          trainer: users(:two),
+          training_topic: training_topics(:laser_cutting),
+          trained_at: Time.current
+        )
+      end
     end
 
     assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[trained_in]]) do
-      training.destroy!
+      assert_enqueued_with(job: Authentik::UserSyncJob, args: [users(:one).id, %w[trained_on]]) do
+        training.destroy!
+      end
     end
   end
 
@@ -67,14 +71,18 @@ class AuthentikAutoSyncTest < ActiveJob::TestCase
     capability = nil
 
     assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[can_train]]) do
-      capability = TrainerCapability.create!(
-        user: users(:one),
-        training_topic: training_topics(:laser_cutting)
-      )
+      assert_enqueued_with(job: Authentik::UserSyncJob, args: [users(:one).id, %w[can_train]]) do
+        capability = TrainerCapability.create!(
+          user: users(:one),
+          training_topic: training_topics(:laser_cutting)
+        )
+      end
     end
 
     assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob, args: [%w[can_train]]) do
-      capability.destroy!
+      assert_enqueued_with(job: Authentik::UserSyncJob, args: [users(:one).id, %w[can_train]]) do
+        capability.destroy!
+      end
     end
   end
 

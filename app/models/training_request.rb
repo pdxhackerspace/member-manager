@@ -28,4 +28,10 @@ class TrainingRequest < ApplicationRecord
   def respond!(responder)
     update!(status: 'responded', responded_by: responder, responded_at: Time.current)
   end
+
+  def self.clear_pending_for!(user:, training_topic:, responded_by: nil)
+    pending.where(user: user, training_topic: training_topic).find_each do |request|
+      request.update!(status: 'responded', responded_by: responded_by, responded_at: Time.current)
+    end
+  end
 end

@@ -84,6 +84,34 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_equal member, qm.recipient
   end
 
+  test 'stale_pending includes pending applications older than one week' do
+    travel_to Time.zone.local(2026, 5, 28, 12, 0, 0) do
+      stale = MembershipApplication.create!(
+        email: 'stale-pending@example.com',
+        status: 'submitted',
+        submitted_at: 8.days.ago,
+        created_at: 8.days.ago
+      )
+      recent = MembershipApplication.create!(
+        email: 'recent-pending@example.com',
+        status: 'under_review',
+        submitted_at: 2.days.ago,
+        created_at: 2.days.ago
+      )
+      approved = MembershipApplication.create!(
+        email: 'old-approved@example.com',
+        status: 'approved',
+        submitted_at: 10.days.ago,
+        created_at: 10.days.ago
+      )
+
+      ids = MembershipApplication.stale_pending.pluck(:id)
+      assert_includes ids, stale.id
+      assert_not_includes ids, recent.id
+      assert_not_includes ids, approved.id
+    end
+  end
+
   test 'newest_first orders by submitted time (fallback created_at), then id desc' do
     travel_to Time.zone.local(2026, 4, 15, 12, 0, 0) do
       older = MembershipApplication.create!(

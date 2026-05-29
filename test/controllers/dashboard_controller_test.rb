@@ -92,6 +92,36 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'admin dashboard marks stale membership applications urgent' do
+    MembershipApplication.create!(
+      email: 'stale-dashboard@example.com',
+      status: 'submitted',
+      submitted_at: 8.days.ago,
+      created_at: 8.days.ago
+    )
+
+    with_urgent_snapshot(urgent_snapshot) { get root_path }
+
+    assert_response :success
+    assert_match(/1 over a week old/, response.body)
+    assert_match(/pending membership application/i, response.body)
+  end
+
+  test 'admin dashboard shows recent pending applications without stale warning' do
+    MembershipApplication.create!(
+      email: 'recent-dashboard@example.com',
+      status: 'submitted',
+      submitted_at: 2.days.ago,
+      created_at: 2.days.ago
+    )
+
+    with_urgent_snapshot(urgent_snapshot) { get root_path }
+
+    assert_response :success
+    assert_match(/pending membership application/i, response.body)
+    assert_no_match(/over a week old/, response.body)
+  end
+
   test 'admin dashboard urgent items come from shared urgent snapshot' do
     snapshot = AdminDashboard::UrgentItems::Snapshot.new(
       [],

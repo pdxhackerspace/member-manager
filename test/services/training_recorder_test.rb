@@ -43,6 +43,26 @@ class TrainingRecorderTest < ActiveSupport::TestCase
     assert_equal @trainer.display_name, journal.changes_json.dig('training', 'trainer')
   end
 
+  test 'clears pending training request when member is trained' do
+    request = TrainingRequest.create!(
+      user: @trainee,
+      training_topic: @topic,
+      share_contact_info: true,
+      status: 'pending'
+    )
+
+    TrainingRecorder.new(
+      current_user: @trainer,
+      training_topic: @topic,
+      trainee_ids: [@trainee.id.to_s],
+      trainer: @trainer,
+      trained_at: @trained_at
+    ).call
+
+    assert request.reload.responded?
+    assert_equal @trainer, request.responded_by
+  end
+
   test 'skips already trained inactive and missing trainees' do
     already_trained = users(:two)
     inactive = users(:three)

@@ -40,13 +40,13 @@ class MailerHealthCheckTest < ActiveSupport::TestCase
       yield self if block_given?
     end
 
-    def mailfrom(from_addr:)
+    def mailfrom(from_addr)
       raise self.class.transaction_error if self.class.transaction_error
 
       @mail_from = from_addr
     end
 
-    def rcptto(to_addr:)
+    def rcptto(to_addr)
       raise self.class.transaction_error if self.class.transaction_error
 
       @rcpt_to = to_addr

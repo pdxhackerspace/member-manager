@@ -86,6 +86,10 @@ class AuthentikAutoSyncTest < ActiveJob::TestCase
       def find_user_by_username(_username)
         { 'pk' => 12_345 }
       end
+
+      def update_user(_authentik_id, **_attrs)
+        { 'pk' => 12_345 }
+      end
     end
 
     original_client = Authentik.send(:remove_const, :Client)

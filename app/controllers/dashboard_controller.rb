@@ -60,8 +60,9 @@ class DashboardController < AdminController
     # Important: Member-suggested interests needing review
     @interests_needing_review_count = Interest.needs_review.count
 
-    # Important: Pending membership applications (open or under review)
+    # Pending membership applications (open or under review); stale ones (>1 week) are urgent on the dashboard
     @pending_applications_count = MembershipApplication.pending.count
+    @stale_applications_count = MembershipApplication.stale_pending.count
     @submitted_applications_count = MembershipApplication.submitted_apps.count
     @under_review_applications_count = MembershipApplication.under_review_apps.count
 
@@ -174,7 +175,11 @@ class DashboardController < AdminController
       { tier: :urgent, id: :mailer_health, ok: @mailer_health.healthy? },
       { tier: :urgent, id: :ai_ollama, ok: !@ai_ollama_urgent },
       { tier: :urgent, id: :printers, ok: @unhealthy_printers.empty? },
-      { tier: :important, id: :membership_applications, ok: @pending_applications_count.zero? },
+      {
+        tier: @stale_applications_count.positive? ? :urgent : :important,
+        id: :membership_applications,
+        ok: @pending_applications_count.zero?
+      },
       { tier: :important, id: :unlinked_recharge, ok: @unlinked_recharge_count.zero? },
       { tier: :important, id: :mail_queue, ok: @queued_mail_count.zero? },
       { tier: :important, id: :ai_ollama_unconfigured, ok: !@ai_ollama_unconfigured },

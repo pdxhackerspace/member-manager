@@ -37,13 +37,16 @@ class SlackUser < ApplicationRecord
     !deleted? && !inactive?
   end
 
+  after_commit :enqueue_authentik_sync_for_linked_users, if: :saved_change_to_user_id?
+
   private
 
-  def user_id_changed_to_present?
-    saved_change_to_user_id? && user_id.present?
-  end
+  def enqueue_authentik_sync_for_linked_users
+    return if Current.skip_authentik_sync
 
-  def notify_user_of_link
-    user.on_slack_user_linked(self)
+    previous_user_id, current_user_id = saved_change_to_user_id
+    [previous_user_id, current_user_id].compact.uniq.each do |linked_user_id|
+      Authentik::UserSyncJob.perform_later(linked_user_id)
+    end
   end
 end

@@ -59,6 +59,12 @@ module Authentik
 
     def update_user(user_pk, **attrs)
       validate_api_config!
+      if attrs.key?(:attributes)
+        existing = get_user(user_pk)
+        attrs = attrs.merge(
+          attributes: (existing['attributes'] || {}).merge(attrs[:attributes].stringify_keys)
+        )
+      end
       patch_json("#{API_PREFIX}/core/users/#{user_pk}/", attrs)
     end
 

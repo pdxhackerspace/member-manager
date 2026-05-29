@@ -25,6 +25,14 @@ module Authentik
         sync_user_to_authentik(user, client, results)
       end
 
+      slack_linked_users = User.joins(:slack_user).where.not(authentik_id: [nil, '']).where(authentik_dirty: false)
+      Rails.logger.info(
+        "[Authentik::FullSyncToAuthentik] Syncing Slack attributes for #{slack_linked_users.count} user(s)..."
+      )
+      slack_linked_users.find_each do |user|
+        sync_slack_attributes_to_authentik(user, client, results)
+      end
+
       # 2a. Ensure core groups (active, admins, unbanned, all, training) exist
       Rails.logger.info('[Authentik::FullSyncToAuthentik] Provisioning core groups...')
       provisioner = Authentik::CoreGroupProvisioner.new
@@ -79,9 +87,10 @@ module Authentik
       # Check if user already exists in Authentik by username
       existing = client.find_user_by_username(username)
       if existing
-        # Link the existing Authentik user
+        # Link the existing Authentik user and push current attributes (including Slack).
         authentik_id = existing['pk'].to_s
         user.update_columns(authentik_id: authentik_id, last_synced_at: Time.current, authentik_dirty: false)
+        client.update_user(authentik_id, attributes: Authentik::UserAttributes.for(user))
         results[:users_synced] += 1
         Rails.logger.info(
           '[Authentik::FullSyncToAuthentik] Linked existing Authentik user ' \
@@ -134,6 +143,22 @@ module Authentik
     rescue StandardError => e
       results[:users_errored] += 1
       Rails.logger.error("[Authentik::FullSyncToAuthentik] Failed to sync user #{user.id}: #{e.message}")
+    end
+
+    def sync_slack_attributes_to_authentik(user, client, results)
+      client.update_user(user.authentik_id, attributes: Authentik::UserAttributes.for(user))
+      user.update_columns(last_synced_at: Time.current)
+      results[:users_synced] += 1
+
+      Rails.logger.info(
+        "[Authentik::FullSyncToAuthentik] Synced Slack attributes for user #{user.id} (#{user.display_name})"
+      )
+    rescue StandardError => e
+      results[:users_errored] += 1
+      Rails.logger.error(
+        '[Authentik::FullSyncToAuthentik] Failed to sync Slack attributes ' \
+        "for user #{user.id}: #{e.message}"
+      )
     end
 
     def sync_application_group(app_group, client, results)

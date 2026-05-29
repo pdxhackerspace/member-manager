@@ -102,5 +102,26 @@ module Authentik
       assert_equal 'U999SLACK', captured_attrs[:attributes]['slack_user_id']
       assert_empty captured_attrs.except(:attributes)
     end
+
+    test 'sync_to_authentik includes slack fields from linked slack user' do
+      user = users(:two)
+      slack_user = slack_users(:with_dept)
+      user.update_columns(authentik_id: 'authentik-linked-slack-test', slack_id: nil, slack_handle: nil)
+      slack_user.update!(user_id: user.id)
+
+      captured_attrs = nil
+      client = Class.new do
+        define_method(:update_user) do |authentik_id, **attrs|
+          captured_attrs = attrs
+          { 'pk' => authentik_id }
+        end
+      end.new
+
+      result = Authentik::UserSync.new(user, client: client).sync_to_authentik!
+
+      assert_equal 'synced', result[:status]
+      assert_equal slack_user.slack_id, captured_attrs[:attributes]['slack_user_id']
+      assert_equal slack_user.username, captured_attrs[:attributes]['slack_handle']
+    end
   end
 end

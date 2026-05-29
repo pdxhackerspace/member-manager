@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class SlackUserTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   test 'display name falls back through fields' do
     user = SlackUser.new(slack_id: 'U123', display_name: '', real_name: '', username: 'tester')
     assert_equal 'tester', user.display_name
@@ -34,5 +36,24 @@ class SlackUserTest < ActiveSupport::TestCase
     assert_not_includes SlackUser.inactive, recent
     assert_includes SlackUser.inactive, old
     assert_includes SlackUser.inactive, unknown
+  end
+
+  test 'linking a member enqueues Authentik user sync' do
+    slack_user = slack_users(:with_dept)
+    user = users(:two)
+
+    assert_enqueued_with(job: Authentik::UserSyncJob, args: [user.id]) do
+      slack_user.update!(user_id: user.id)
+    end
+  end
+
+  test 'unlinking a member enqueues Authentik user sync for the previous member' do
+    slack_user = slack_users(:with_dept)
+    user = users(:two)
+    slack_user.update!(user_id: user.id)
+
+    assert_enqueued_with(job: Authentik::UserSyncJob, args: [user.id]) do
+      slack_user.update!(user_id: nil)
+    end
   end
 end

@@ -50,5 +50,33 @@ module Authentik
       assert_equal 'hydrateduser', member[:username]
       assert_equal ['123'], requested_ids
     end
+
+    test 'update_user merges attributes with existing Authentik user attributes' do
+      client = Authentik::Client.new(base_url: 'https://authentik.example.test', token: 'test-token')
+      captured_body = nil
+
+      client.define_singleton_method(:get_user) do |_authentik_id|
+        { 'attributes' => { 'rfid' => 'EXISTING-RFID', 'member_manager_id' => '99' } }
+      end
+      client.define_singleton_method(:patch_json) do |_path, body|
+        captured_body = body
+        { 'pk' => 123 }
+      end
+
+      client.update_user(
+        123,
+        attributes: { 'slack_user_id' => 'U123', 'slack_handle' => 'alice' }
+      )
+
+      assert_equal(
+        {
+          'rfid' => 'EXISTING-RFID',
+          'member_manager_id' => '99',
+          'slack_user_id' => 'U123',
+          'slack_handle' => 'alice'
+        },
+        captured_body[:attributes]
+      )
+    end
   end
 end

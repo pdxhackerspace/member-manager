@@ -53,8 +53,8 @@ class MailerHealthCheck
   end
 
   def verify_mail_transaction!(client)
-    client.mailfrom(from_addr: mail_from_address)
-    client.rcptto(to_addr: rcpt_probe_address)
+    client.mailfrom(mail_from_address)
+    client.rcptto(rcpt_probe_address)
     client.rset
   end
 

@@ -60,4 +60,9 @@ module UsersHelper
       end
     end
   end
+
+  # Lowercase haystack for client-side live-filter (name, email, username, Authentik ID).
+  def user_live_search_text(user)
+    [user.display_name, user.email, user.username, user.authentik_id].compact.join(' ').downcase
+  end
 end

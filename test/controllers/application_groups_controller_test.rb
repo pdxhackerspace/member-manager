@@ -18,6 +18,35 @@ class ApplicationGroupsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'add member modal uses live-filter stimulus instead of DOMContentLoaded script' do
+    get application_application_group_url(@application, @application_group)
+    assert_response :success
+
+    assert_select '#addUserModal[data-controller="live-filter"]'
+    assert_select '#addUserModal[data-action*="live-filter#clear"]'
+    assert_select '#userSearchInput[data-live-filter-target="input"][data-action*="live-filter#filter"]'
+    assert_select '#addUserModal tr[data-live-filter-target="item"][data-search-text]'
+    assert_select 'script', text: /DOMContentLoaded/, count: 0
+    assert_select 'script', text: /userSearchInput/, count: 0
+  end
+
+  test 'add member modal search haystack includes username' do
+    user = users(:three)
+    get application_application_group_url(@application, @application_group)
+    assert_response :success
+
+    assert_select "#addUserModal tr[data-search-text*='#{user.username.downcase}']"
+  end
+
+  test 'add member modal live-filter works on turbo visit' do
+    get application_application_group_url(@application, @application_group),
+        headers: { 'Accept' => 'text/vnd.turbo-stream.html, text/html' }
+    assert_response :success
+
+    assert_select '#addUserModal[data-controller="live-filter"]'
+    assert_select '#userSearchInput[data-action*="live-filter#filter"]'
+  end
+
   test 'should get new' do
     get new_application_application_group_url(@application)
     assert_response :success

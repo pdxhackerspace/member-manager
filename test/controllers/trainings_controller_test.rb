@@ -121,6 +121,62 @@ class TrainingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test 'admin sees trainer capabilities panel on record page' do
+    sign_in_as_admin
+
+    get record_training_path
+
+    assert_response :success
+    assert_match 'Trainer capabilities', response.body
+    assert_match 'Grant or revoke who can train others', response.body
+  end
+
+  test 'trainer does not see trainer capabilities panel on record page' do
+    trainer = sign_in_as_trainer
+    TrainerCapability.create!(user: trainer, training_topic: @laser_topic)
+
+    get record_training_path
+
+    assert_response :success
+    assert_no_match 'Trainer capabilities', response.body
+    assert_no_match 'trainer-capabilities-panel', response.body
+  end
+
+  test 'admin grant trainer capability redirects to record page with state' do
+    sign_in_as_admin
+    trainee = users(:no_email)
+
+    assert_difference 'TrainerCapability.count', 1 do
+      post add_trainer_capability_path(user_id: trainee.id, topic_id: @laser_topic.id),
+           params: {
+             return_topic_id: @laser_topic.id,
+             return_trainee_ids: "#{users(:one).id},#{trainee.id}"
+           }
+    end
+
+    assert_redirected_to record_training_path(
+      trainer_user_id: trainee.id,
+      topic_id: @laser_topic.id,
+      trainee_ids: "#{users(:one).id},#{trainee.id}"
+    )
+    follow_redirect!
+    assert_response :success
+    assert_match trainee.display_name, response.body
+  end
+
+  test 'admin grant trainer capability creates capability and training when not trained' do
+    sign_in_as_admin
+    trainee = users(:no_email)
+
+    assert_difference ['TrainerCapability.count', 'Training.count'], 1 do
+      post add_trainer_capability_path(user_id: trainee.id, topic_id: @laser_topic.id)
+    end
+
+    assert TrainerCapability.exists?(user: trainee, training_topic: @laser_topic)
+    assert Training.exists?(trainee: trainee, training_topic: @laser_topic)
+    assert_match 'can now train others', flash[:notice]
+  end
+
   private
 
   def sign_in_as_admin

@@ -1,6 +1,8 @@
 <div id="record-training-page"
      class="d-flex flex-column"
-     data-initial-trainee-ids="<%= @initial_trainee_ids.join(',') %>">
+     data-initial-trainee-ids="<%= @initial_trainee_ids.join(',') %>"
+     data-initial-topic-id="<%= @initial_topic_id %>"
+     data-is-admin="<%= current_user_admin? %>">
   <div class="text-12 text-secondary mb-2">
     <%= link_to "&lsaquo; Dashboard".html_safe, root_path, class: "text-decoration-none" %>
   </div>
@@ -126,6 +128,8 @@
       </div>
     <% end %>
   <% end %>
+
+  <%= render 'trainings/trainer_capabilities_panel' %>
 </div>
 
 <div class="modal fade" id="pasteListModal" tabindex="-1" aria-labelledby="pasteListModalLabel" aria-hidden="true">
@@ -185,6 +189,92 @@
       var backdateWarning = document.getElementById('record-backdate-warning');
       var pasteInput = document.getElementById('pasteListInput');
       var unresolvedEntries = document.getElementById('record-unresolved-entries');
+      var isAdmin = root.dataset.isAdmin === 'true';
+      var csrfToken = document.querySelector('meta[name="csrf-token"]');
+      csrfToken = csrfToken ? csrfToken.getAttribute('content') : '';
+
+      function currentTraineeIds() {
+        return Array.from(selectedMembers.keys()).join(',');
+      }
+
+      function syncTrainerReturnState() {
+        document.querySelectorAll('.trainer-capability-form').forEach(function(capabilityForm) {
+          var topicField = capabilityForm.querySelector('input[name="return_topic_id"]');
+          var traineeField = capabilityForm.querySelector('input[name="return_trainee_ids"]');
+          if (topicField) topicField.value = selectedTopicId || '';
+          if (traineeField) traineeField.value = currentTraineeIds();
+        });
+      }
+
+      function buildTrainerCapabilityForm(userId, topicId, action) {
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = '/train/' + userId + '/trainer/' + topicId;
+        form.className = 'd-inline trainer-capability-form ms-1';
+
+        var methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = action === 'delete' ? 'delete' : 'post';
+        form.appendChild(methodInput);
+
+        var tokenInput = document.createElement('input');
+        tokenInput.type = 'hidden';
+        tokenInput.name = 'authenticity_token';
+        tokenInput.value = csrfToken;
+        form.appendChild(tokenInput);
+
+        var topicField = document.createElement('input');
+        topicField.type = 'hidden';
+        topicField.name = 'return_topic_id';
+        topicField.value = selectedTopicId || '';
+        form.appendChild(topicField);
+
+        var traineeField = document.createElement('input');
+        traineeField.type = 'hidden';
+        traineeField.name = 'return_trainee_ids';
+        traineeField.value = currentTraineeIds();
+        form.appendChild(traineeField);
+
+        return form;
+      }
+
+      function userCanTrainTopic(user) {
+        return (user.can_train_topic_ids || []).map(String).indexOf(String(selectedTopicId)) !== -1;
+      }
+
+      function appendInlineTrainerAction(row, user) {
+        if (!isAdmin || !selectedTopicId) return;
+
+        if (userCanTrainTopic(user)) {
+          var label = document.createElement('span');
+          label.className = 'text-11 text-secondary ms-2';
+          label.textContent = 'Can train';
+          row.appendChild(label);
+
+          var revokeForm = buildTrainerCapabilityForm(user.id, selectedTopicId, 'delete');
+          var revokeButton = document.createElement('button');
+          revokeButton.type = 'submit';
+          revokeButton.className = 'btn btn-sm btn-outline-danger py-0 px-1 ms-1';
+          revokeButton.title = 'Revoke trainer capability';
+          revokeButton.innerHTML = '<i class="bi bi-x-lg"></i>';
+          revokeForm.addEventListener('submit', function(event) {
+            if (!confirm('Remove trainer capability for ' + selectedTopicName + ' from ' + user.name + '?')) {
+              event.preventDefault();
+            }
+          });
+          revokeForm.appendChild(revokeButton);
+          row.appendChild(revokeForm);
+        } else {
+          var grantForm = buildTrainerCapabilityForm(user.id, selectedTopicId, 'post');
+          var grantButton = document.createElement('button');
+          grantButton.type = 'submit';
+          grantButton.className = 'btn btn-sm btn-outline-secondary py-0 px-1 ms-2 text-11';
+          grantButton.textContent = 'Grant can train';
+          grantForm.appendChild(grantButton);
+          row.appendChild(grantForm);
+        }
+      }
 
       function userLabel(user) {
         var parts = [user.name];
@@ -219,6 +309,7 @@
         searchInput.disabled = false;
         searchInput.placeholder = 'Add by name, email, or username';
         renderMembers();
+        syncTrainerReturnState();
         searchInput.focus();
       }
 
@@ -233,6 +324,7 @@
         searchInput.placeholder = 'Pick a topic first';
         hideResults();
         renderMembers();
+        syncTrainerReturnState();
       }
 
       function addMember(user) {
@@ -291,6 +383,8 @@
           statusEl.textContent = status.text;
           row.appendChild(statusEl);
 
+          appendInlineTrainerAction(row, user);
+
           var removeButton = document.createElement('button');
           removeButton.type = 'button';
           removeButton.className = 'trainee-remove';
@@ -330,6 +424,8 @@
             detail.classList.add('d-none');
           }
         }
+
+        syncTrainerReturnState();
       }
 
       function renderSearchResults() {
@@ -418,8 +514,18 @@
       root.dataset.initialTraineeIds.split(',').filter(Boolean).forEach(function(id) {
         if (usersById[id]) selectedMembers.set(id, usersById[id]);
       });
+
+      var initialTopicId = root.dataset.initialTopicId;
+      if (initialTopicId) {
+        var topicButton = document.querySelector('.topic-chip[data-topic-id="' + initialTopicId + '"]');
+        if (topicButton) {
+          setTopic(topicButton.dataset.topicId, topicButton.dataset.topicName);
+        }
+      }
+
       renderMembers();
       updateBackdateWarning();
+      syncTrainerReturnState();
     }
 
     document.addEventListener('DOMContentLoaded', initRecordTraining);

@@ -282,7 +282,8 @@
   </div>
 <% end %>
 
-<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true"
+     data-controller="live-filter" data-action="hidden.bs.modal->live-filter#clear">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
@@ -291,7 +292,10 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <input type="search" id="userSearchInput" class="form-control" placeholder="Search by name, email, or Authentik ID..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <input type="search" id="userSearchInput" class="form-control"
+                 placeholder="Search by name, email, username, or Authentik ID..."
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                 data-live-filter-target="input" data-action="input->live-filter#filter">
         </div>
         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
           <table class="table table-sm mb-0" id="usersTable">
@@ -306,7 +310,7 @@
             <tbody>
               <% @all_users.each do |user| %>
                 <% next if @users.include?(user) %>
-                <tr class="user-row" data-name="<%= user.display_name.downcase %>" data-email="<%= (user.email || '').downcase %>" data-authentik-id="<%= (user.authentik_id || '').downcase %>">
+                <tr data-live-filter-target="item" data-search-text="<%= user_live_search_text(user) %>">
                   <td class="fw-semibold"><%= user.display_name %></td>
                   <td>
                     <% if user.email.present? %>
@@ -341,37 +345,3 @@
     </div>
   </div>
 </div>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const addUserModal = document.getElementById('addUserModal');
-    const searchInput = document.getElementById('userSearchInput');
-
-    if (addUserModal && searchInput) {
-      let userRows = [];
-
-      addUserModal.addEventListener('shown.bs.modal', function() {
-        userRows = Array.from(addUserModal.querySelectorAll('.user-row'));
-      });
-
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        if (userRows.length === 0) {
-          userRows = Array.from(addUserModal.querySelectorAll('.user-row'));
-        }
-        userRows.forEach(function(row) {
-          const name = row.getAttribute('data-name') || '';
-          const email = row.getAttribute('data-email') || '';
-          const authentikId = row.getAttribute('data-authentik-id') || '';
-          row.style.display = (searchTerm === '' || name.includes(searchTerm) || email.includes(searchTerm) || authentikId.includes(searchTerm)) ? '' : 'none';
-        });
-      });
-
-      addUserModal.addEventListener('hidden.bs.modal', function() {
-        searchInput.value = '';
-        userRows.forEach(function(row) { row.style.display = ''; });
-        userRows = [];
-      });
-    }
-  });
-</script>

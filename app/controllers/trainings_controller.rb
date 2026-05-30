@@ -1,10 +1,14 @@
 class TrainingsController < AuthenticatedController
+  include TrainerCapabilityActions
+
   before_action :require_trainer_or_admin
   before_action :prepare_record_training_form, only: :record
+  # rubocop:disable Rails/LexicallyScopedActionFilter -- trainer capability actions live in TrainerCapabilityActions
   before_action :set_trainee,
                 only: %i[add_training remove_training add_trainer_capability remove_trainer_capability]
   before_action :set_training_topic,
                 only: %i[add_training remove_training add_trainer_capability remove_trainer_capability]
+  # rubocop:enable Rails/LexicallyScopedActionFilter
 
   def index = redirect_to(record_training_path)
 
@@ -82,7 +86,7 @@ class TrainingsController < AuthenticatedController
 
   def remove_training
     unless can_train_topic?(@training_topic)
-      redirect_to train_member_path, alert: "You don't have permission to manage #{@training_topic.name} training."
+      redirect_to record_training_path, alert: "You don't have permission to manage #{@training_topic.name} training."
       return
     end
 
@@ -106,95 +110,11 @@ class TrainingsController < AuthenticatedController
         changed_at: Time.current,
         highlight: true
       )
-      redirect_to train_member_path(user_id: @trainee.id),
+      redirect_to redirect_back_path(user_id: @trainee.id),
                   notice: "Removed #{@training_topic.name} training from #{@trainee.display_name}."
     else
-      redirect_to train_member_path(user_id: @trainee.id),
+      redirect_to redirect_back_path(user_id: @trainee.id),
                   alert: "#{@trainee.display_name} was not trained in #{@training_topic.name}."
-    end
-  end
-
-  def add_trainer_capability
-    unless current_user_admin?
-      redirect_to train_member_path, alert: 'Only admins can manage trainer capabilities.'
-      return
-    end
-
-    existing = TrainerCapability.find_by(user: @trainee, training_topic: @training_topic)
-    if existing
-      redirect_to train_member_path(user_id: @trainee.id),
-                  notice: "#{@trainee.display_name} can already train #{@training_topic.name}."
-      return
-    end
-
-    capability = TrainerCapability.new(user: @trainee, training_topic: @training_topic)
-
-    if capability.save
-      # Also mark them as trained if not already
-      unless Training.exists?(trainee: @trainee, training_topic: @training_topic)
-        Training.create!(
-          trainee: @trainee,
-          trainer: current_user,
-          training_topic: @training_topic,
-          trained_at: Time.current
-        )
-      end
-
-      Journal.create!(
-        user: @trainee,
-        actor_user: current_user,
-        action: 'trainer_capability_added',
-        changes_json: {
-          'trainer_capability' => {
-            'topic' => @training_topic.name,
-            'granted_by' => current_user.display_name,
-            'granted_at' => Time.current.iso8601
-          }
-        },
-        changed_at: Time.current,
-        highlight: true
-      )
-      if @trainee.email.present?
-        QueuedMail.enqueue(:trainer_capability_granted, @trainee,
-                           reason: "Can now train #{@training_topic.name}",
-                           training_topic: @training_topic.name)
-      end
-      redirect_to train_member_path(user_id: @trainee.id),
-                  notice: "#{@trainee.display_name} can now train others in #{@training_topic.name}."
-    else
-      redirect_to train_member_path(user_id: @trainee.id),
-                  alert: "Failed to add trainer capability: #{capability.errors.full_messages.join(', ')}"
-    end
-  end
-
-  def remove_trainer_capability
-    unless current_user_admin?
-      redirect_to train_member_path, alert: 'Only admins can manage trainer capabilities.'
-      return
-    end
-
-    capability = TrainerCapability.find_by(user: @trainee, training_topic: @training_topic)
-
-    if capability&.destroy
-      Journal.create!(
-        user: @trainee,
-        actor_user: current_user,
-        action: 'trainer_capability_removed',
-        changes_json: {
-          'trainer_capability' => {
-            'topic' => @training_topic.name,
-            'revoked_by' => current_user.display_name,
-            'revoked_at' => Time.current.iso8601
-          }
-        },
-        changed_at: Time.current,
-        highlight: true
-      )
-      redirect_to train_member_path(user_id: @trainee.id),
-                  notice: "Removed #{@training_topic.name} trainer capability from #{@trainee.display_name}."
-    else
-      redirect_to train_member_path(user_id: @trainee.id),
-                  alert: "#{@trainee.display_name} did not have trainer capability for #{@training_topic.name}."
     end
   end
 
@@ -210,13 +130,13 @@ class TrainingsController < AuthenticatedController
   def set_trainee
     @trainee = User.find(params[:user_id])
   rescue ActiveRecord::RecordNotFound
-    redirect_to train_member_path, alert: 'Member not found.'
+    redirect_to record_training_path, alert: 'Member not found.'
   end
 
   def set_training_topic
     @training_topic = TrainingTopic.find(params[:topic_id])
   rescue ActiveRecord::RecordNotFound
-    redirect_to train_member_path, alert: 'Training topic not found.'
+    redirect_to record_training_path, alert: 'Training topic not found.'
   end
 
   def trainable_topics_for_current_user
@@ -233,7 +153,21 @@ class TrainingsController < AuthenticatedController
     @trainable_topics = trainable_topics_for_current_user
     @trainer_options = trainer_options_for_recording
     @recording_users = recording_user_options
-    @initial_trainee_ids = Array(params[:member].presence || params[:user_id].presence).compact_blank.map(&:to_s)
+    @initial_trainee_ids = initial_trainee_ids_from_params
+    @initial_topic_id = params[:topic_id].presence
+    return unless current_user_admin?
+
+    @trainer_manage_user = User.find_by(id: params[:trainer_user_id]) if params[:trainer_user_id].present?
+    @all_training_topics = TrainingTopic.order(:name)
+    @users_for_search = User.ordered_by_display_name
+  end
+
+  def initial_trainee_ids_from_params
+    if params[:trainee_ids].present?
+      params[:trainee_ids].to_s.split(',').map(&:strip).compact_blank
+    else
+      Array(params[:member].presence || params[:user_id].presence).compact_blank.map(&:to_s)
+    end
   end
 
   def trainer_options_for_recording
@@ -246,12 +180,20 @@ class TrainingsController < AuthenticatedController
 
   def recording_user_options
     users = User.ordered_by_display_name.to_a
-    trained_topic_ids_by_user = Training.where(trainee_id: users.map(&:id))
+    user_ids = users.map(&:id)
+    trained_topic_ids_by_user = Training.where(trainee_id: user_ids)
                                         .pluck(:trainee_id, :training_topic_id)
                                         .each_with_object(
                                           Hash.new { |hash, key| hash[key] = [] }
                                         ) do |(trainee_id, topic_id), grouped|
       grouped[trainee_id] << topic_id
+    end
+    can_train_topic_ids_by_user = TrainerCapability.where(user_id: user_ids)
+                                                   .pluck(:user_id, :training_topic_id)
+                                                   .each_with_object(
+                                                     Hash.new { |hash, key| hash[key] = [] }
+                                                   ) do |(user_id, topic_id), grouped|
+      grouped[user_id] << topic_id
     end
 
     users.map do |user|
@@ -262,7 +204,8 @@ class TrainingsController < AuthenticatedController
         username: user.username,
         active: user.active?,
         banned: user.banned?,
-        trained_topic_ids: trained_topic_ids_by_user[user.id]
+        trained_topic_ids: trained_topic_ids_by_user[user.id],
+        can_train_topic_ids: can_train_topic_ids_by_user[user.id]
       }
     end
   end
@@ -283,9 +226,9 @@ class TrainingsController < AuthenticatedController
     if params[:return_to] == 'topic' && @training_topic
       edit_training_topic_path(@training_topic)
     elsif user_id
-      train_member_path(user_id: user_id)
+      record_training_path(user_id: user_id)
     else
-      train_member_path
+      record_training_path
     end
   end
 end

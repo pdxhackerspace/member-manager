@@ -48,9 +48,9 @@
           </thead>
           <tbody>
             <% @training_topics.each do |topic| %>
-              <% trainer_count = @topic_trainer_counts[topic.id].to_i %>
-              <% trained_count = @topic_trained_counts[topic.id].to_i %>
-              <% needs_trainers = topic.offered_to_members? && trainer_count.zero? %>
+              <% trainer_counts = @topic_trainer_counts[topic.id] || { total: 0, active: 0, inactive: 0 } %>
+              <% trained_counts = @topic_trained_counts[topic.id] || { total: 0, active: 0, inactive: 0 } %>
+              <% needs_trainers = topic.offered_to_members? && trainer_counts[:active].zero? %>
               <tr onclick="if (!event.target.closest('a, button')) window.location='<%= training_catalog_topic_path(topic) %>'" style="cursor: pointer;">
                 <td>
                   <strong><%= link_to topic.name, training_catalog_topic_path(topic), class: 'text-decoration-none' %></strong>
@@ -67,12 +67,19 @@
                     <% end %>
                   </td>
                 <% end %>
-                <td class="num <%= needs_trainers ? 'text-warning' : (trainer_count.zero? ? 'muted-num' : '') %>">
-                  <%= trainer_count %>
-                </td>
-                <td class="num <%= trained_count.zero? ? 'muted-num' : ('fw-medium' if trained_count >= 50) %>">
-                  <%= trained_count %>
-                </td>
+                <% if current_user_admin? %>
+                  <%= render 'training_catalog/member_status_counts', counts: trainer_counts, highlight: needs_trainers %>
+                  <%= render 'training_catalog/member_status_counts',
+                             counts: trained_counts,
+                             highlight: false %>
+                <% else %>
+                  <td class="num <%= needs_trainers ? 'text-warning' : (trainer_counts[:active].zero? ? 'muted-num' : '') %>">
+                    <%= trainer_counts[:active] %>
+                  </td>
+                  <td class="num <%= trained_counts[:total].zero? ? 'muted-num' : ('fw-medium' if trained_counts[:total] >= 50) %>">
+                    <%= trained_counts[:total] %>
+                  </td>
+                <% end %>
                 <td class="text-end">
                   <div class="d-flex gap-2 justify-content-end">
                     <% if needs_trainers %>

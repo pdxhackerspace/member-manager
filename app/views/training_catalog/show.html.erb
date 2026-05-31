@@ -112,8 +112,13 @@
         <% if @trainees.any? %>
           <ul class="list-unstyled mb-0">
             <% @trainees.each do |trainee| %>
-              <li class="mb-2">
-                <%= link_to trainee.display_name, user_path(trainee), class: 'text-decoration-none' %>
+              <li class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                <%= link_to trainee.display_name,
+                            user_path(trainee),
+                            class: "text-decoration-none #{'text-secondary' unless trainee.active?}" %>
+                <% if current_user_admin? && !trainee.active? %>
+                  <span class="badge text-bg-secondary-subtle small fw-normal">Inactive</span>
+                <% end %>
               </li>
             <% end %>
           </ul>

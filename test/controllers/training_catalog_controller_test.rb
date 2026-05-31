@@ -203,6 +203,62 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/#{Regexp.escape(inactive_trainer.display_name)}/, response.body)
   end
 
+  test 'show marks inactive trained members for admins' do
+    trainer = users(:one)
+    inactive_trainee = users(:two)
+    inactive_trainee.update!(active: false)
+    TrainerCapability.find_or_create_by!(user: trainer, training_topic: @laser_topic)
+    Training.find_or_create_by!(trainee: inactive_trainee, training_topic: @laser_topic) do |t|
+      t.trainer = trainer
+      t.trained_at = Time.current
+    end
+
+    sign_in_as_admin
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_match inactive_trainee.display_name, response.body
+    assert_match 'Inactive', response.body
+  end
+
+  test 'admin index shows trainer and trained counts split by active status' do
+    active_trainer = users(:one)
+    inactive_trainer = users(:two)
+    inactive_trainer.update!(active: false)
+    inactive_trainee = users(:no_email)
+    inactive_trainee.update!(active: false)
+
+    TrainerCapability.find_or_create_by!(user: active_trainer, training_topic: @laser_topic)
+    TrainerCapability.find_or_create_by!(user: inactive_trainer, training_topic: @laser_topic)
+    Training.find_or_create_by!(trainee: inactive_trainee, training_topic: @laser_topic) do |t|
+      t.trainer = active_trainer
+      t.trained_at = Time.current
+    end
+
+    sign_in_as_admin
+    get training_catalog_path
+
+    assert_response :success
+    laser_link = css_select("a[href='#{training_catalog_topic_path(@laser_topic)}']").first
+    row_text = laser_link.ancestors('tr').first.text.squish
+    assert_includes row_text, '2'
+    assert_includes row_text, '1 active'
+    assert_includes row_text, '1 inactive'
+  end
+
+  test 'needs trainers filter ignores topics with only inactive trainers' do
+    inactive_trainer = users(:two)
+    inactive_trainer.update!(active: false)
+    TrainerCapability.where(training_topic: @laser_topic).delete_all
+    TrainerCapability.find_or_create_by!(user: inactive_trainer, training_topic: @laser_topic)
+
+    sign_in_as_admin
+    get training_catalog_path(training_filter: 'needs_trainers')
+
+    assert_response :success
+    assert_match @laser_topic.name, response.body
+  end
+
   test 'show does not display request training button when only trainers are inactive' do
     inactive_trainer = users(:two)
     inactive_trainer.update!(active: false)

@@ -1,0 +1,10 @@
+<% counts = local_assigns.fetch(:counts, { total: 0, active: 0, inactive: 0 }) %>
+<% highlight = local_assigns[:highlight] %>
+<td class="num <%= highlight ? 'text-warning' : (counts[:total].zero? ? 'muted-num' : '') %>">
+  <div><%= counts[:total] %></div>
+  <div class="text-12 text-secondary">
+    <span class="<%= counts[:active].positive? ? 'text-body' : '' %>"><%= counts[:active] %> active</span>
+    ·
+    <span class="<%= counts[:inactive].positive? ? 'fw-medium text-body' : '' %>"><%= counts[:inactive] %> inactive</span>
+  </div>
+</td>

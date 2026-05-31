@@ -41,18 +41,36 @@ class TrainingCatalogController < AuthenticatedController
   def prepare_training_catalog_counts(topics)
     topic_ids = topics.map(&:id)
     @all_topic_count = topics.size
-    @topic_trainer_counts = grouped_training_count(TrainerCapability, topic_ids, :user_id)
-    @topic_trained_counts = grouped_training_count(Training, topic_ids, :trainee_id)
+    @topic_trainer_counts = topic_member_status_counts(
+      TrainerCapability, topic_ids, user_association: :user, member_column: :user_id
+    )
+    @topic_trained_counts = topic_member_status_counts(
+      Training, topic_ids, user_association: :trainee, member_column: :trainee_id
+    )
     @trained_topic_ids = Training.where(trainee: current_user).pluck(:training_topic_id).to_set
     @needs_trainers_count = topics.count { |topic| needs_trainers?(topic) }
     @offered_topic_count = topics.count(&:offered_to_members?)
   end
 
-  def grouped_training_count(model, topic_ids, column)
-    model.where(training_topic_id: topic_ids)
-         .group(:training_topic_id)
-         .distinct
-         .count(column)
+  def topic_member_status_counts(model, topic_ids, user_association:, member_column:)
+    return {} if topic_ids.empty?
+
+    total_by_topic = model.where(training_topic_id: topic_ids)
+                          .group(:training_topic_id)
+                          .distinct
+                          .count(member_column)
+    active_by_topic = model.where(training_topic_id: topic_ids)
+                           .joins(user_association)
+                           .merge(User.active)
+                           .group(:training_topic_id)
+                           .distinct
+                           .count(member_column)
+
+    topic_ids.index_with do |topic_id|
+      total = total_by_topic[topic_id].to_i
+      active = active_by_topic[topic_id].to_i
+      { total: total, active: active, inactive: total - active }
+    end
   end
 
   def filtered_training_topics(topics)
@@ -67,7 +85,7 @@ class TrainingCatalogController < AuthenticatedController
   end
 
   def needs_trainers?(topic)
-    topic.offered_to_members? && @topic_trainer_counts[topic.id].to_i.zero?
+    topic.offered_to_members? && @topic_trainer_counts.dig(topic.id, :active).to_i.zero?
   end
 
   def set_training_topic

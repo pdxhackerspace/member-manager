@@ -88,8 +88,13 @@
         <% if @trainers.any? %>
           <ul class="list-unstyled mb-0">
             <% @trainers.each do |trainer| %>
-              <li class="mb-2">
-                <%= link_to trainer.display_name, user_path(trainer), class: 'text-decoration-none' %>
+              <li class="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                <%= link_to trainer.display_name,
+                            user_path(trainer),
+                            class: "text-decoration-none #{'text-secondary' unless trainer.active?}" %>
+                <% if current_user_admin? && !trainer.active? %>
+                  <span class="badge text-bg-secondary-subtle small fw-normal">Inactive</span>
+                <% end %>
               </li>
             <% end %>
           </ul>

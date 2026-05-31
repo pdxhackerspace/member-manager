@@ -26,7 +26,8 @@ class TrainingCatalogController < AuthenticatedController
   end
 
   def show
-    @trainers = @training_topic.trainers.active.order(:full_name, :email)
+    trainers_scope = @training_topic.trainers.order(:full_name, :email)
+    @trainers = current_user_admin? ? trainers_scope : trainers_scope.active
     @trainees = User.where(id: @training_topic.trainings.select(:trainee_id).distinct)
                     .order(:full_name, :email)
     @topic_links = @training_topic.links.order(:title)

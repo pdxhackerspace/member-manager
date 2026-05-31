@@ -180,7 +180,7 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/Request Training/i, response.body)
   end
 
-  test 'show does not list trainers whose membership is inactive' do
+  test 'show lists inactive trainers for admins but not for members' do
     active_trainer   = users(:one)
     inactive_trainer = users(:two)
     inactive_trainer.update!(active: false)
@@ -188,6 +188,14 @@ class TrainingCatalogControllerTest < ActionDispatch::IntegrationTest
     TrainerCapability.find_or_create_by!(user: inactive_trainer, training_topic: @laser_topic)
 
     sign_in_as_admin
+    get training_catalog_topic_path(@laser_topic)
+
+    assert_response :success
+    assert_match active_trainer.display_name, response.body
+    assert_match inactive_trainer.display_name, response.body
+    assert_match 'Inactive', response.body
+
+    sign_in_as_member
     get training_catalog_topic_path(@laser_topic)
 
     assert_response :success

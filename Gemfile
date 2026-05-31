@@ -79,7 +79,7 @@ gem 'tzinfo-data', platforms: %i[mswin mswin64 mingw x64_mingw jruby]
 gem 'bootsnap', require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem 'image_processing', '~> 1.2'
+gem 'image_processing', '~> 2.0'
 
 # csv is no longer a default gem starting in Ruby 3.4
 gem 'csv'
@@ -108,7 +108,7 @@ group :development do
   # gem "spring"
 
   # Code style checker
-  gem 'rubocop', '~> 1.86', require: false
+  gem 'rubocop', '~> 1.87', require: false
   gem 'rubocop-rails', '~> 2.35', require: false
 
   # Preview emails in browser instead of sending

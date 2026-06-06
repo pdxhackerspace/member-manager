@@ -303,7 +303,7 @@ Rails.application.routes.draw do
   
   resources :email_templates, only: [:index, :show, :edit, :update] do
     member do
-      get :preview
+      match :preview, via: %i[get post]
       post :toggle
       post :test_send
       post :rewrite_with_ai

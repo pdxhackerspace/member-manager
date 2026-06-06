@@ -19,6 +19,62 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
+  test 'preview shows saved template on get' do
+    get preview_email_template_path(@template)
+
+    assert_response :success
+    assert_includes response.body, 'Initial Subject'
+    assert_includes response.body, 'Initial HTML'
+    assert_includes response.body, 'Initial text'
+  end
+
+  test 'preview shows unsaved edits on post' do
+    post preview_email_template_path(@template), params: {
+      email_template: {
+        subject: 'Draft Subject',
+        body_html: '<p>Draft HTML</p>',
+        body_text: 'Draft text'
+      }
+    }
+
+    assert_response :success
+    assert_includes response.body, 'Draft Subject'
+    assert_includes response.body, 'Draft HTML'
+    assert_includes response.body, 'Draft text'
+    assert_not_includes response.body, 'Initial Subject'
+    @template.reload
+    assert_equal 'Initial Subject', @template.subject
+  end
+
+  test 'preview post syncs plain text from html when checkbox is checked' do
+    post preview_email_template_path(@template), params: {
+      sync_body_text: '1',
+      email_template: {
+        subject: 'Draft Subject',
+        body_html: '<h1>Welcome</h1><p>Hello {{member_name}}</p>',
+        body_text: 'Stale plain text'
+      }
+    }
+
+    assert_response :success
+    assert_includes response.body, 'Welcome'
+    assert_includes response.body, 'Hello John Doe'
+    assert_includes response.body, "Welcome\nHello John Doe"
+  end
+
+  test 'edit preview button posts draft content' do
+    get edit_email_template_path(@template)
+
+    assert_response :success
+    assert_select 'button[type=?]', 'button', text: 'Preview' do |buttons|
+      button = buttons.first
+      assert_equal 'email_template_form', button['data-email-template-rewrite-form-id-value']
+      assert_equal preview_email_template_path(@template), button['data-email-template-rewrite-preview-url-value']
+      assert_equal 'click->email-template-rewrite#preview', button['data-action']
+    end
+    assert_select 'form#email_template_form[data-controller=?]', 'email-template-rewrite'
+  end
+
   test 'rewrite_with_ai rewrites subject and body' do
     ai_ollama_profiles(:default).update!(base_url: 'http://ollama.test:11434', model: 'llama3.2')
     ai_ollama_profiles(:email_rewriting).update!(enabled: true, base_url: '', model: '', prompt: 'Rewrite template.')

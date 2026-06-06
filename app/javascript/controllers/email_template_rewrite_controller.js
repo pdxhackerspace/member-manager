@@ -13,7 +13,7 @@ export default class extends Controller {
     "sendImmediately",
     "blockSendImmediately"
   ]
-  static values = { url: String }
+  static values = { url: String, previewUrl: String, formId: String }
 
   connect() {
     this.previousState = null
@@ -94,6 +94,40 @@ export default class extends Controller {
 
   syncBodyTextBeforeSubmit() {
     this.syncBodyTextFromHtml()
+  }
+
+  preview(event) {
+    event.preventDefault()
+    if (!this.hasPreviewUrlValue) return
+
+    const editForm = this.editFormElement()
+    if (!editForm) return
+
+    const editor = this.editorControllerFor(editForm)
+    if (editor) editor.syncBodyTextFromHtml()
+
+    const previewForm = document.createElement("form")
+    previewForm.method = "POST"
+    previewForm.action = this.previewUrlValue
+    previewForm.target = "_blank"
+    previewForm.style.display = "none"
+
+    this.appendHiddenInput(previewForm, "authenticity_token", this.csrfToken())
+
+    const subject = editForm.querySelector('[name="email_template[subject]"]')
+    const bodyText = editForm.querySelector('[name="email_template[body_text]"]')
+    const syncBodyText = editForm.querySelector('[name="sync_body_text"]')
+
+    this.appendHiddenInput(previewForm, "email_template[subject]", subject?.value || "")
+    this.appendHiddenInput(previewForm, "email_template[body_html]", this.htmlBodyFrom(editForm))
+    this.appendHiddenInput(previewForm, "email_template[body_text]", bodyText?.value || "")
+    if (syncBodyText?.checked) {
+      this.appendHiddenInput(previewForm, "sync_body_text", "1")
+    }
+
+    document.body.appendChild(previewForm)
+    previewForm.submit()
+    previewForm.remove()
   }
 
   syncImmediateSendControls() {
@@ -194,5 +228,35 @@ export default class extends Controller {
   csrfToken() {
     const tag = document.querySelector("meta[name='csrf-token']")
     return tag ? tag.content : ""
+  }
+
+  editFormElement() {
+    if (this.hasFormIdValue) return document.getElementById(this.formIdValue)
+    if (this.element.tagName === "FORM") return this.element
+    return null
+  }
+
+  editorControllerFor(form) {
+    return this.application.getControllerForElementAndIdentifier(form, "email-template-rewrite")
+  }
+
+  htmlBodyFrom(form) {
+    const textarea = form.querySelector('[data-email-template-rewrite-target="bodyHtml"]')
+    if (!textarea) return ""
+
+    if (typeof tinymce !== "undefined") {
+      const editor = tinymce.get(textarea.id)
+      if (editor) return editor.getContent()
+    }
+
+    return textarea.value
+  }
+
+  appendHiddenInput(form, name, value) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = name
+    input.value = value
+    form.appendChild(input)
   }
 }

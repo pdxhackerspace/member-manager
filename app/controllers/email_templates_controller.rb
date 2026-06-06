@@ -45,6 +45,7 @@ class EmailTemplatesController < AdminController
   end
 
   def preview
+    apply_preview_attributes if preview_request?
     @rendered = @email_template.preview
     render layout: false
   end
@@ -173,6 +174,16 @@ class EmailTemplatesController < AdminController
 
   def rewrite_params
     params.expect(rewrite: %i[subject body_html body_text])
+  end
+
+  def preview_request?
+    request.post? && params[:email_template].present?
+  end
+
+  def apply_preview_attributes
+    attrs = email_template_params.to_h.slice('subject', 'body_html', 'body_text')
+    attrs['body_text'] = html_to_plain_text(attrs['body_html']) if sync_body_text?
+    @email_template.assign_attributes(attrs)
   end
 
   def build_variables_for_user(user, extra = {})

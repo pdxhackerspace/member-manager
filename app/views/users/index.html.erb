@@ -14,7 +14,12 @@
       <% end %>
     </p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 align-items-center">
+    <% settings = DefaultSetting.instance %>
+    <%= button_to toggle_authentik_sync_inactive_as_active_users_path, method: :post, class: "btn btn-sm #{settings.authentik_sync_inactive_as_active? ? 'btn-outline-secondary' : 'btn-warning'}", data: { turbo: false }, title: "When enabled, inactive members keep Authentik access" do %>
+      <i class="bi bi-<%= settings.authentik_sync_inactive_as_active? ? 'toggle-on' : 'toggle-off' %> me-1"></i>
+      Sync inactive as active
+    <% end %>
     <% if MemberSource.enabled?('member_manager') %>
       <%= button_to "Sync to Authentik", sync_all_to_authentik_users_path, method: :post, class: "btn btn-outline-secondary btn-sm", data: { turbo: false, turbo_confirm: "This will sync all members, groups, and the active members group to Authentik. Continue?" } %>
     <% else %>

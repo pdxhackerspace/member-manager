@@ -106,8 +106,10 @@ module Authentik
     end
 
     def build_update_payload(fields_to_sync)
-      attrs = fields_to_sync.index_with { |field| user.send(field) }
-                            .transform_keys { |field| FIELD_MAPPING[field] }
+      field_values = fields_to_sync.index_with do |field|
+        field == 'active' ? Authentik::ActiveStatus.for(user) : user.send(field)
+      end
+      attrs = field_values.transform_keys { |field| FIELD_MAPPING[field] }
       attrs[:attributes] = UserAttributes.for(user)
       attrs
     end

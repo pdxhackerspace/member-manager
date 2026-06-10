@@ -42,7 +42,7 @@ module Authentik
         username: username,
         name: name,
         email: user.email,
-        is_active: user.active?,
+        is_active: Authentik::ActiveStatus.for(user),
         attributes: Authentik::UserAttributes.for(user)
       )
 

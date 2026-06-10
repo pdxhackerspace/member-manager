@@ -352,6 +352,14 @@ class UsersController < AuthenticatedController
                         'All members, application groups, and the active members group will be synced.'
   end
 
+  def toggle_authentik_sync_inactive_as_active
+    settings = DefaultSetting.instance
+    settings.update!(authentik_sync_inactive_as_active: !settings.authentik_sync_inactive_as_active)
+    status = settings.authentik_sync_inactive_as_active? ? 'active in Authentik' : 'inactive in Authentik'
+    redirect_to users_path,
+                notice: "Authentik sync updated: inactive members will be synced as #{status}."
+  end
+
   def activate
     unless @user.service_account?
       redirect_to user_path(@user),

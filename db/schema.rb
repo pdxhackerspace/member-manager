@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_16_071100) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_10_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -274,20 +274,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_071100) do
     t.string "admins_group", null: false
     t.string "all_members_group", null: false
     t.string "app_prefix", null: false
+    t.boolean "authentik_sync_inactive_as_active", default: true, null: false
     t.string "can_train_prefix", null: false
     t.datetime "created_at", null: false
-    t.string "members_prefix", null: false
     t.decimal "map_center_latitude", precision: 10, scale: 6, default: "45.581678", null: false
     t.decimal "map_center_longitude", precision: 10, scale: 6, default: "-122.682156", null: false
     t.string "map_default_city", default: "Portland", null: false
     t.string "map_default_state", default: "Oregon", null: false
     t.decimal "map_radius_miles", precision: 5, scale: 2, default: "4.0", null: false
+    t.string "members_prefix", null: false
+    t.integer "rfid_facility_code", default: 127, null: false
     t.string "site_prefix", default: "ctrlh", null: false
     t.boolean "sync_inactive_members", default: false, null: false
     t.string "trained_on_prefix", null: false
     t.string "unbanned_members_group", null: false
     t.datetime "updated_at", null: false
-    t.integer "rfid_facility_code", default: 127, null: false
   end
 
   create_table "document_training_topics", force: :cascade do |t|
@@ -307,9 +308,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_071100) do
   end
 
   create_table "email_templates", force: :cascade do |t|
+    t.boolean "block_send_immediately", default: false, null: false
     t.text "body_html", null: false
     t.text "body_text", null: false
-    t.boolean "block_send_immediately", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description"
     t.boolean "enabled", default: true, null: false
@@ -536,7 +537,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_071100) do
 
   create_table "membership_applications", force: :cascade do |t|
     t.text "admin_notes"
-    t.datetime "application_nag_sent_at"
     t.boolean "ai_feedback_garbage", default: false, null: false
     t.text "ai_feedback_garbage_reason"
     t.text "ai_feedback_last_error"
@@ -545,6 +545,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_071100) do
     t.string "ai_feedback_recommendation"
     t.integer "ai_feedback_score"
     t.text "ai_feedback_score_rationale"
+    t.datetime "application_nag_sent_at"
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "reviewed_at"
@@ -1003,8 +1004,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_16_071100) do
     t.boolean "legacy", default: false, null: false
     t.string "login_token"
     t.datetime "login_token_expires_at"
-    t.datetime "mailing_geocoded_at"
     t.text "mailing_address"
+    t.datetime "mailing_geocoded_at"
     t.decimal "mailing_latitude", precision: 10, scale: 6
     t.decimal "mailing_longitude", precision: 10, scale: 6
     t.date "membership_ended_date"

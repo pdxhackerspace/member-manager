@@ -90,6 +90,7 @@ Rails.application.routes.draw do
     collection do
       post :sync
       post :sync_all_to_authentik
+      post :toggle_authentik_sync_inactive_as_active
     end
     resources :user_links, only: [:create, :update, :destroy]
   end

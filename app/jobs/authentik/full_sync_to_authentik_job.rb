@@ -108,7 +108,7 @@ module Authentik
         username: username,
         name: name,
         email: user.email,
-        is_active: user.active?,
+        is_active: Authentik::ActiveStatus.for(user),
         attributes: Authentik::UserAttributes.for(user)
       )
 
@@ -135,7 +135,7 @@ module Authentik
       attrs[:email] = user.email if user.email.present?
       attrs[:name] = user.full_name if user.full_name.present?
       attrs[:username] = user.username if user.username.present?
-      attrs[:is_active] = user.active?
+      attrs[:is_active] = Authentik::ActiveStatus.for(user)
 
       attrs[:attributes] = Authentik::UserAttributes.for(user)
 

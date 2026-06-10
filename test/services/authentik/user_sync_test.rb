@@ -126,6 +126,44 @@ module Authentik
       assert_equal slack_user.username, captured_attrs[:attributes]['slack_handle']
     end
 
+    test 'sync_to_authentik sends inactive users as active when setting enabled' do
+      DefaultSetting.instance.update!(authentik_sync_inactive_as_active: true)
+      user = users(:two)
+      user.update_columns(authentik_id: 'authentik-inactive-active-test', active: false)
+
+      captured_attrs = nil
+      client = Class.new do
+        define_method(:update_user) do |authentik_id, **attrs|
+          captured_attrs = attrs
+          { 'pk' => authentik_id }
+        end
+      end.new
+
+      result = Authentik::UserSync.new(user, client: client).sync_to_authentik!(changed_fields: %w[active])
+
+      assert_equal 'synced', result[:status]
+      assert_equal true, captured_attrs['is_active']
+    end
+
+    test 'sync_to_authentik sends inactive users as inactive when setting disabled' do
+      DefaultSetting.instance.update!(authentik_sync_inactive_as_active: false)
+      user = users(:two)
+      user.update_columns(authentik_id: 'authentik-inactive-inactive-test', active: false)
+
+      captured_attrs = nil
+      client = Class.new do
+        define_method(:update_user) do |authentik_id, **attrs|
+          captured_attrs = attrs
+          { 'pk' => authentik_id }
+        end
+      end.new
+
+      result = Authentik::UserSync.new(user, client: client).sync_to_authentik!(changed_fields: %w[active])
+
+      assert_equal 'synced', result[:status]
+      assert_equal false, captured_attrs['is_active']
+    end
+
     test 'sync_to_authentik includes training attributes' do
       user = users(:one)
       user.update_columns(authentik_id: 'authentik-training-sync-test')

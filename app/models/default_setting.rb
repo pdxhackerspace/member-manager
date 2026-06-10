@@ -11,6 +11,7 @@ class DefaultSetting < ApplicationRecord
   validates :trained_on_prefix, presence: true
   validates :can_train_prefix, presence: true
   validates :sync_inactive_members, inclusion: { in: [true, false] }
+  validates :authentik_sync_inactive_as_active, inclusion: { in: [true, false] }
   validates :rfid_facility_code, presence: true,
                                  numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :map_center_latitude, numericality: { greater_than_or_equal_to: -90, less_than_or_equal_to: 90 }

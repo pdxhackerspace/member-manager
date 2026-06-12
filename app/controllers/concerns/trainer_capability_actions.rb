@@ -102,6 +102,8 @@ module TrainerCapabilityActions
   end
 
   def trainer_capability_return_path(trainee)
+    return user_path(trainee, anchor: 'training-access-section') if params[:return_to] == 'profile'
+
     record_training_path(
       trainer_user_id: trainee.id,
       topic_id: params[:return_topic_id].presence,

@@ -177,6 +177,48 @@ class TrainingsControllerTest < ActionDispatch::IntegrationTest
     assert_match 'can now train others', flash[:notice]
   end
 
+  test 'add_training with return_to profile redirects to the member profile training section' do
+    sign_in_as_admin
+    trainee = users(:no_email)
+
+    assert_difference 'Training.count', 1 do
+      post add_training_path(user_id: trainee.id, topic_id: @laser_topic.id, return_to: 'profile')
+    end
+
+    assert_redirected_to user_path(trainee.id, anchor: 'training-access-section')
+  end
+
+  test 'remove_training with return_to profile redirects to the member profile training section' do
+    sign_in_as_admin
+    trainee = users(:no_email)
+    Training.create!(trainee: trainee, trainer: users(:one), training_topic: @laser_topic, trained_at: 1.day.ago)
+
+    assert_difference 'Training.count', -1 do
+      delete remove_training_path(user_id: trainee.id, topic_id: @laser_topic.id, return_to: 'profile')
+    end
+
+    assert_redirected_to user_path(trainee.id, anchor: 'training-access-section')
+  end
+
+  test 'add_trainer_capability with return_to profile redirects to the member profile training section' do
+    sign_in_as_admin
+    trainee = users(:no_email)
+
+    post add_trainer_capability_path(user_id: trainee.id, topic_id: @laser_topic.id, return_to: 'profile')
+
+    assert_redirected_to user_path(trainee, anchor: 'training-access-section')
+  end
+
+  test 'remove_trainer_capability with return_to profile redirects to the member profile training section' do
+    sign_in_as_admin
+    trainee = users(:no_email)
+    TrainerCapability.create!(user: trainee, training_topic: @laser_topic)
+
+    delete remove_trainer_capability_path(user_id: trainee.id, topic_id: @laser_topic.id, return_to: 'profile')
+
+    assert_redirected_to user_path(trainee, anchor: 'training-access-section')
+  end
+
   private
 
   def sign_in_as_admin

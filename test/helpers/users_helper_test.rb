@@ -20,4 +20,18 @@ class UsersHelperTest < ActionView::TestCase
     assert_includes text, user.display_name.downcase
     assert_no_match(/\s{2,}/, text)
   end
+
+  test 'membership_status_label renders an approved applicant as New Member' do
+    assert_equal 'New Member', membership_status_label('applicant')
+  end
+
+  test 'membership_status_label humanizes other statuses' do
+    assert_equal 'Paying', membership_status_label('paying')
+    assert_equal 'Cancelled', membership_status_label('cancelled')
+    assert_equal 'Unknown', membership_status_label('unknown')
+  end
+
+  test 'membership_status_label handles a blank status' do
+    assert_equal '', membership_status_label(nil)
+  end
 end

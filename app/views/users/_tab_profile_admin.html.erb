@@ -1,7 +1,12 @@
 <%# Admin Profile Tab %>
 <% visibility_label = { 'public' => 'Public', 'members' => 'Other members', 'private' => 'Private' }[user.profile_visibility] || user.profile_visibility.humanize %>
 <% trained_topics = user.trainings_as_trainee.map(&:training_topic).uniq.sort_by(&:name) %>
-<% documents = Document.ordered %>
+<% trained_topic_ids = trained_topics.map(&:id) %>
+<% can_train_topics = user.training_topics.order(:name).to_a %>
+<% can_train_topic_ids = can_train_topics.map(&:id) %>
+<% all_training_topics = TrainingTopic.order(:name).to_a %>
+<% untrained_topics = all_training_topics.reject { |topic| trained_topic_ids.include?(topic.id) } %>
+<% grantable_topics = all_training_topics.reject { |topic| can_train_topic_ids.include?(topic.id) } %>
 
 <div data-controller="sensitive-reveal">
 <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
@@ -165,28 +170,78 @@
       <div class="profile-field-group">
         <div class="profile-field-row">
           <span class="profile-field-label">Trained on</span>
-          <span class="profile-field-value">
+          <div class="d-flex align-items-center gap-1 flex-wrap">
             <% if trained_topics.any? %>
               <% trained_topics.each do |topic| %>
-                <span class="cert-pill me-1"><%= topic.name %></span>
+                <span class="cert-pill d-inline-flex align-items-center">
+                  <%= topic.name %>
+                  <%= button_to remove_training_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
+                      method: :delete,
+                      class: "btn-link-danger ms-1 p-0 border-0 bg-transparent lh-1",
+                      title: "Remove #{topic.name} training",
+                      form: { class: 'd-inline', data: { turbo: false, turbo_confirm: "Remove #{topic.name} training from #{user.display_name}?" } } do %>
+                    <i class="bi bi-x-lg"></i>
+                  <% end %>
+                </span>
               <% end %>
             <% else %>
-              <span class="empty">None recorded</span>
+              <span class="profile-field-value empty">None recorded</span>
             <% end %>
-          </span>
+            <% if untrained_topics.any? %>
+              <div class="dropdown d-inline-block ms-auto">
+                <button class="btn-link-add" type="button" data-bs-toggle="dropdown" aria-expanded="false">+ Add training</button>
+                <ul class="dropdown-menu dropdown-menu-end" style="max-height: 320px; overflow-y: auto;">
+                  <% untrained_topics.each do |topic| %>
+                    <li>
+                      <%= button_to topic.name,
+                          add_training_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
+                          method: :post,
+                          class: "dropdown-item text-13",
+                          form: { data: { turbo: false } } %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+          </div>
         </div>
 
         <div class="profile-field-row">
           <span class="profile-field-label">Can train</span>
-          <span class="profile-field-value">
-            <% if user.training_topics.any? %>
-              <% user.training_topics.order(:name).each do |topic| %>
-                <span class="cert-pill me-1"><%= topic.name %></span>
+          <div class="d-flex align-items-center gap-1 flex-wrap">
+            <% if can_train_topics.any? %>
+              <% can_train_topics.each do |topic| %>
+                <span class="cert-pill d-inline-flex align-items-center">
+                  <%= topic.name %>
+                  <%= button_to remove_trainer_capability_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
+                      method: :delete,
+                      class: "btn-link-danger ms-1 p-0 border-0 bg-transparent lh-1",
+                      title: "Revoke #{topic.name} trainer capability",
+                      form: { class: 'd-inline', data: { turbo: false, turbo_confirm: "Remove #{topic.name} trainer capability from #{user.display_name}?" } } do %>
+                    <i class="bi bi-x-lg"></i>
+                  <% end %>
+                </span>
               <% end %>
             <% else %>
-              <span class="empty">None</span>
+              <span class="profile-field-value empty">None</span>
             <% end %>
-          </span>
+            <% if grantable_topics.any? %>
+              <div class="dropdown d-inline-block ms-auto">
+                <button class="btn-link-add" type="button" data-bs-toggle="dropdown" aria-expanded="false">+ Grant can train</button>
+                <ul class="dropdown-menu dropdown-menu-end" style="max-height: 320px; overflow-y: auto;">
+                  <% grantable_topics.each do |topic| %>
+                    <li>
+                      <%= button_to topic.name,
+                          add_trainer_capability_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
+                          method: :post,
+                          class: "dropdown-item text-13",
+                          form: { data: { turbo: false } } %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+          </div>
         </div>
 
         <div class="profile-field-row">
@@ -314,22 +369,9 @@
   <div class="col-lg-4">
     <%= render 'users/member_membership_card', user: user %>
 
-    <div class="sidebar-card mb-2">
-      <div class="h-section-label mb-2">Documents</div>
-      <% if documents.any? %>
-        <div class="d-flex flex-column gap-1">
-          <% documents.each do |document| %>
-            <%= link_to download_document_path(document), class: "resource-link" do %>
-              &darr; <%= document.title %>
-            <% end %>
-          <% end %>
-        </div>
-      <% else %>
-        <div class="text-12 text-secondary">No documents published.</div>
-      <% end %>
-    </div>
-
     <%= render 'users/member_training_card', user: user, show_request_link: false %>
+
+    <%= render 'users/member_resources_card', user: user %>
   </div>
 </div>
 </div>

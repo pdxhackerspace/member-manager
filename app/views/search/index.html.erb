@@ -37,7 +37,7 @@
                   </td>
                   <td>
                     <span class="badge text-bg-<%= membership_status_badge_class(u.membership_status) %>">
-                      <%= u.membership_status.humanize %>
+                      <%= membership_status_label(u.membership_status) %>
                     </span>
                   </td>
                 </tr>

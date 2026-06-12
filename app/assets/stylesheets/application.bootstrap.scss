@@ -501,6 +501,22 @@
 }
 .btn-link-add:hover { text-decoration: underline; }
 
+// Outline-secondary is the app's default action button, but Bootstrap's dark-mode
+// rendering (muted gray text + dim border) is low-contrast on our dark panels. Brighten the
+// label and border so actions are legible and stand out, without adding any color meaning.
+.btn-outline-secondary {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-border-color: var(--bs-secondary-color);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: var(--bs-secondary-bg);
+  --bs-btn-hover-border-color: var(--bs-body-color);
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: var(--bs-secondary-bg);
+  --bs-btn-active-border-color: var(--bs-body-color);
+  --bs-btn-disabled-color: var(--bs-secondary-color);
+  --bs-btn-disabled-border-color: var(--bs-border-color);
+}
+
 .text-tertiary { color: var(--bs-secondary-color); opacity: 0.7; }
 
 .member-map-card {

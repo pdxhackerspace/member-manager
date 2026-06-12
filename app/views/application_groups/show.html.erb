@@ -178,7 +178,7 @@
                 </td>
                 <td>
                   <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
-                    <%= user.membership_status.humanize %>
+                    <%= membership_status_label(user.membership_status) %>
                   </span>
                   <% if user.active? %>
                     <span class="badge text-bg-success ms-1">Active</span>
@@ -244,7 +244,7 @@
                 </td>
                 <td>
                   <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
-                    <%= user.membership_status.humanize %>
+                    <%= membership_status_label(user.membership_status) %>
                   </span>
                   <% if user.active? %>
                     <span class="badge text-bg-success ms-1">Active</span>
@@ -321,7 +321,7 @@
                   </td>
                   <td>
                     <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
-                      <%= user.membership_status.humanize %>
+                      <%= membership_status_label(user.membership_status) %>
                     </span>
                     <% if user.active? %>
                       <span class="badge text-bg-success ms-1">Active</span>

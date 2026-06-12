@@ -5,13 +5,21 @@ class ParkingNotice < ApplicationRecord
   belongs_to :user, optional: true
   belongs_to :issued_by, class_name: 'User'
   belongs_to :cleared_by, class_name: 'User', optional: true
+  belongs_to :clearance_requested_by, class_name: 'User', optional: true
 
+  has_many :events, class_name: 'ParkingNoticeEvent', dependent: :destroy
   has_many_attached :photos
+
+  # Set by controllers so history events can record who triggered the change.
+  attr_accessor :event_actor
 
   validates :notice_type, presence: true, inclusion: { in: NOTICE_TYPES }
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :expires_at, presence: true
   validates :user, presence: true, if: :permit?
+
+  after_create :log_opened_event
+  after_update :log_renewal_event, if: :renewal_logged?
 
   scope :permits, -> { where(notice_type: 'permit') }
   scope :tickets, -> { where(notice_type: 'ticket') }
@@ -75,16 +83,47 @@ class ParkingNotice < ApplicationRecord
     parts.join(' — ')
   end
 
-  def clear!(admin)
-    update!(
-      status: 'cleared',
-      cleared_at: Time.current,
-      cleared_by: admin
-    )
+  # A member may clear their own active notice unless it has been flagged as
+  # requiring admin clearance. Admins can always clear any active notice.
+  def clearable_by?(actor)
+    return false unless active?
+    return true if actor&.admin?
+    return false if requires_admin_clearance?
+
+    actor.present? && user_id == actor.id
+  end
+
+  def clearance_requested?
+    clearance_requested_at.present? && !cleared?
+  end
+
+  def clear!(actor)
+    transaction do
+      update!(
+        status: 'cleared',
+        cleared_at: Time.current,
+        cleared_by: actor
+      )
+      log_event!('cleared', actor: actor)
+    end
   end
 
   def expire!
-    update!(status: 'expired')
+    transaction do
+      update!(status: 'expired')
+      log_event!('expired')
+    end
+  end
+
+  def request_clearance!(member)
+    transaction do
+      update!(clearance_requested_at: Time.current, clearance_requested_by: member)
+      log_event!('clearance_requested', actor: member)
+    end
+  end
+
+  def log_event!(event_type, actor: nil, note: nil)
+    events.create!(event_type: event_type, actor: actor, note: note.presence)
   end
 
   def record_journal_entry!(action_name, actor: nil)
@@ -121,5 +160,21 @@ class ParkingNotice < ApplicationRecord
       expires_at: expires_at.strftime('%B %d, %Y'),
       notice_type: notice_type_display
     )
+  end
+
+  private
+
+  def log_opened_event
+    log_event!('opened', actor: event_actor || issued_by)
+  end
+
+  def log_renewal_event
+    log_event!('renewed', actor: event_actor)
+  end
+
+  # Treat an expiration change (without a status change) as a renewal so it lands
+  # in the history. clear!/expire! change status, so they don't trip this.
+  def renewal_logged?
+    saved_change_to_expires_at? && !saved_change_to_status?
   end
 end

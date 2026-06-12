@@ -1,0 +1,43 @@
+<%# locals: events, note_url %>
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-header bg-transparent">
+    <span class="h-section-label">History</span>
+  </div>
+  <div class="card-body">
+    <% if events.any? %>
+      <ul class="list-unstyled mb-0">
+        <% events.each_with_index do |event, index| %>
+          <li class="d-flex gap-2 py-2 <%= 'border-bottom' unless index == events.size - 1 %>">
+            <i class="bi <%= event.icon %> text-secondary mt-1"></i>
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <span class="fw-medium"><%= event.label %></span>
+                <span class="text-12 text-secondary text-nowrap"
+                      title="<%= event.created_at.strftime('%B %d, %Y at %l:%M %p') %>">
+                  <%= event.created_at.strftime('%b %d, %Y') %>
+                </span>
+              </div>
+              <% if event.note.present? %>
+                <div class="text-13"><%= simple_format(event.note, {}, wrapper_tag: 'span') %></div>
+              <% end %>
+              <% if event.actor.present? %>
+                <div class="text-12 text-secondary">by <%= event.actor.display_name %></div>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-secondary text-13 mb-0">No history yet.</p>
+    <% end %>
+
+    <% if local_assigns[:note_url].present? %>
+      <%= form_with url: note_url, method: :post, local: true, class: 'mt-3' do %>
+        <div class="input-group">
+          <%= text_field_tag :note, nil, class: 'form-control', placeholder: 'Add a note to the history…' %>
+          <button type="submit" class="btn btn-outline-secondary">Add note</button>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

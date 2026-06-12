@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_12_100100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -618,7 +618,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_10_120000) do
     t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
+  create_table "parking_notice_events", force: :cascade do |t|
+    t.bigint "actor_id"
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.text "note"
+    t.bigint "parking_notice_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_parking_notice_events_on_actor_id"
+    t.index ["event_type"], name: "index_parking_notice_events_on_event_type"
+    t.index ["parking_notice_id", "created_at"], name: "idx_on_parking_notice_id_created_at_1c4803fe34"
+    t.index ["parking_notice_id"], name: "index_parking_notice_events_on_parking_notice_id"
+  end
+
   create_table "parking_notices", force: :cascade do |t|
+    t.datetime "clearance_requested_at"
+    t.bigint "clearance_requested_by_id"
     t.datetime "cleared_at"
     t.bigint "cleared_by_id"
     t.datetime "created_at", null: false
@@ -629,13 +644,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_10_120000) do
     t.string "location_detail"
     t.text "notes"
     t.string "notice_type", null: false
+    t.boolean "requires_admin_clearance", default: false, null: false
     t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["clearance_requested_at"], name: "index_parking_notices_on_clearance_requested_at"
+    t.index ["clearance_requested_by_id"], name: "index_parking_notices_on_clearance_requested_by_id"
     t.index ["cleared_by_id"], name: "index_parking_notices_on_cleared_by_id"
     t.index ["expires_at"], name: "index_parking_notices_on_expires_at"
     t.index ["issued_by_id"], name: "index_parking_notices_on_issued_by_id"
     t.index ["notice_type", "status"], name: "index_parking_notices_on_notice_type_and_status"
+    t.index ["requires_admin_clearance"], name: "index_parking_notices_on_requires_admin_clearance"
     t.index ["status"], name: "index_parking_notices_on_status"
     t.index ["user_id"], name: "index_parking_notices_on_user_id"
   end
@@ -1087,7 +1106,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_10_120000) do
   add_foreign_key "membership_plans", "users"
   add_foreign_key "messages", "users", column: "recipient_id"
   add_foreign_key "messages", "users", column: "sender_id"
+  add_foreign_key "parking_notice_events", "parking_notices"
+  add_foreign_key "parking_notice_events", "users", column: "actor_id"
   add_foreign_key "parking_notices", "users"
+  add_foreign_key "parking_notices", "users", column: "clearance_requested_by_id"
   add_foreign_key "parking_notices", "users", column: "cleared_by_id"
   add_foreign_key "parking_notices", "users", column: "issued_by_id"
   add_foreign_key "payment_events", "cash_payments"

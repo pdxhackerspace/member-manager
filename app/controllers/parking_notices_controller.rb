@@ -2,7 +2,7 @@ class ParkingNoticesController < AdminController
   include Pagy::Method
 
   before_action :set_parking_notice,
-                only: %i[show edit update clear download_pdf print_notice remove_photo download_photo]
+                only: %i[show edit update clear add_note download_pdf print_notice remove_photo download_photo]
 
   def index
     @parking_notices = ParkingNotice.includes(:user, :issued_by).newest_first
@@ -40,6 +40,7 @@ class ParkingNoticesController < AdminController
   def create
     @parking_notice = ParkingNotice.new(parking_notice_params)
     @parking_notice.issued_by = current_user
+    @parking_notice.event_actor = current_user
 
     if @parking_notice.save
       template_key = @parking_notice.permit? ? 'parking_permit_issued' : 'parking_ticket_issued'
@@ -68,6 +69,7 @@ class ParkingNoticesController < AdminController
   end
 
   def update
+    @parking_notice.event_actor = current_user
     if @parking_notice.update(parking_notice_params)
       redirect_to parking_notice_path(@parking_notice),
                   notice: "Parking #{@parking_notice.notice_type} updated successfully."
@@ -78,11 +80,24 @@ class ParkingNoticesController < AdminController
   end
 
   def clear
+    @parking_notice.event_actor = current_user
     @parking_notice.clear!(current_user)
     @parking_notice.record_journal_entry!('parking_notice_cleared', actor: current_user)
 
     redirect_to parking_notice_path(@parking_notice),
                 notice: "Parking #{@parking_notice.notice_type} marked as cleared."
+  end
+
+  def add_note
+    note = params[:note].to_s.strip
+
+    if note.blank?
+      redirect_to parking_notice_path(@parking_notice), alert: 'Note cannot be blank.'
+      return
+    end
+
+    @parking_notice.log_event!('note', actor: current_user, note: note)
+    redirect_to parking_notice_path(@parking_notice), notice: 'Note added.'
   end
 
   def download_pdf
@@ -165,7 +180,8 @@ class ParkingNoticesController < AdminController
   def parking_notice_params
     params.expect(
       parking_notice: [:notice_type, :user_id, :description, :location,
-                       :location_detail, :expires_at, :notes, { photos: [] }]
+                       :location_detail, :expires_at, :notes, :requires_admin_clearance,
+                       { photos: [] }]
     )
   end
 

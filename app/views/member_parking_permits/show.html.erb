@@ -4,15 +4,22 @@
     <span class="badge bg-<%= @parking_notice.status_badge_color %>"><%= @parking_notice.status_display %></span>
   </h1>
   <div class="d-flex gap-2">
-    <% if @parking_notice.permit? && !@parking_notice.cleared? %>
-      <%= link_to edit_member_parking_permit_path(@parking_notice), class: 'btn btn-outline-secondary' do %>
-        <i class="bi bi-pencil me-1"></i> Edit
+    <% unless @parking_notice.cleared? %>
+      <% if @parking_notice.permit? %>
+        <%= link_to edit_member_parking_permit_path(@parking_notice), class: 'btn btn-outline-secondary' do %>
+          <i class="bi bi-pencil me-1"></i> Edit
+        <% end %>
       <% end %>
-      <% if @parking_notice.active? %>
+      <% if @parking_notice.clearable_by?(current_user) %>
         <%= button_to close_member_parking_permit_path(@parking_notice), method: :patch,
             class: 'btn btn-outline-secondary',
-            form: { data: { turbo_confirm: "Clear this parking permit? This frees the spot and can't be undone." } } do %>
+            form: { data: { turbo_confirm: "Clear this parking notice? This frees the spot and can't be undone." } } do %>
           <i class="bi bi-check-circle me-1"></i> Clear
+        <% end %>
+      <% elsif @parking_notice.active? && @parking_notice.requires_admin_clearance? && !@parking_notice.clearance_requested? %>
+        <%= button_to request_clearance_member_parking_permit_path(@parking_notice), method: :post,
+            class: 'btn btn-outline-secondary' do %>
+          <i class="bi bi-hand-index me-1"></i> Request clearance
         <% end %>
       <% end %>
     <% end %>
@@ -24,6 +31,15 @@
 
 <% if @parking_notice.ticket? %>
   <p class="text-secondary mb-3">This parking ticket was issued by staff. Contact a member of the team if you have questions.</p>
+<% end %>
+
+<% if @parking_notice.clearance_requested? %>
+  <div class="alert alert-warning" role="alert">
+    <i class="bi bi-hand-index me-1"></i>
+    You've requested that an admin clear this notice. They'll review it soon.
+  </div>
+<% elsif @parking_notice.active? && @parking_notice.requires_admin_clearance? %>
+  <p class="text-secondary mb-3">This notice must be cleared by an admin. Use "Request clearance" to ask the team to clear it.</p>
 <% end %>
 
 <div class="card shadow-sm border-0 mb-4">
@@ -61,3 +77,7 @@
     </div>
   </div>
 <% end %>
+
+<%= render 'parking_notices/history',
+    events: @parking_notice.events.includes(:actor).chronological,
+    note_url: add_note_member_parking_permit_path(@parking_notice) %>

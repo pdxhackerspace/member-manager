@@ -37,7 +37,10 @@
               </td>
               <% if show_actions_column %>
                 <td class="text-end">
-                  <div class="d-flex gap-1 justify-content-end">
+                  <div class="d-flex gap-1 justify-content-end align-items-center">
+                    <% if notice.clearance_requested? %>
+                      <span class="badge text-bg-warning-subtle">Clearance requested</span>
+                    <% end %>
                     <% if actions == :admin %>
                       <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
                       <% unless notice.cleared? %>
@@ -48,12 +51,17 @@
                       <% end %>
                     <% elsif actions == :member %>
                       <%= link_to "View", member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
-                      <% if notice.permit? && !notice.cleared? %>
-                        <%= link_to "Edit", edit_member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
-                        <% if notice.active? %>
+                      <% unless notice.cleared? %>
+                        <% if notice.permit? %>
+                          <%= link_to "Edit", edit_member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                        <% end %>
+                        <% if notice.clearable_by?(current_user) %>
                           <%= button_to "Clear", close_member_parking_permit_path(notice), method: :patch,
                               class: "btn btn-sm btn-outline-secondary",
-                              form: { data: { turbo_confirm: "Clear this parking permit? This frees the spot and can't be undone." } } %>
+                              form: { data: { turbo_confirm: "Clear this parking notice? This frees the spot and can't be undone." } } %>
+                        <% elsif notice.active? && notice.requires_admin_clearance? && !notice.clearance_requested? %>
+                          <%= button_to "Request clearance", request_clearance_member_parking_permit_path(notice), method: :post,
+                              class: "btn btn-sm btn-outline-secondary" %>
                         <% end %>
                       <% end %>
                     <% end %>

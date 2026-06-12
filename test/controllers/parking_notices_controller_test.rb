@@ -321,12 +321,53 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'application/pdf', response.content_type
   end
 
+  test 'create saves a ticket that requires admin clearance' do
+    assert_difference 'ParkingNotice.count', 1 do
+      post parking_notices_url, params: {
+        parking_notice: {
+          notice_type: 'ticket',
+          description: 'Needs staff sign-off',
+          location: 'Main Area',
+          expires_at: 3.days.from_now,
+          requires_admin_clearance: '1'
+        }
+      }
+    end
+    assert ParkingNotice.last.requires_admin_clearance?
+  end
+
   # --- Clear ---
 
   test 'clear marks notice as cleared' do
     post clear_parking_notice_url(@active_permit)
     assert_redirected_to parking_notice_path(@active_permit)
     assert @active_permit.reload.cleared?
+  end
+
+  test 'clear logs a cleared history event' do
+    assert_difference -> { @active_permit.events.count }, 1 do
+      post clear_parking_notice_url(@active_permit)
+    end
+    assert_equal 'cleared', @active_permit.events.recent_first.first.event_type
+  end
+
+  # --- Notes / history ---
+
+  test 'add_note records a history note' do
+    assert_difference -> { @active_permit.events.count }, 1 do
+      post add_note_parking_notice_url(@active_permit), params: { note: 'Called the member' }
+    end
+    assert_redirected_to parking_notice_path(@active_permit)
+    event = @active_permit.events.recent_first.first
+    assert_equal 'note', event.event_type
+    assert_equal 'Called the member', event.note
+  end
+
+  test 'add_note rejects a blank note' do
+    assert_no_difference -> { @active_permit.events.count } do
+      post add_note_parking_notice_url(@active_permit), params: { note: '  ' }
+    end
+    assert_redirected_to parking_notice_path(@active_permit)
   end
 
   private

@@ -63,6 +63,24 @@
   </p>
 <% end %>
 
+<% if @parking_notice.clearance_requested? %>
+  <div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
+    <div>
+      <i class="bi bi-hand-index me-1"></i>
+      <span class="fw-medium">Clearance requested</span>
+      <% if @parking_notice.clearance_requested_by.present? %>
+        by <%= link_to @parking_notice.clearance_requested_by.display_name, user_path(@parking_notice.clearance_requested_by) %>
+      <% end %>
+      <span class="text-secondary">
+        on <%= @parking_notice.clearance_requested_at.strftime('%B %d, %Y at %l:%M %p') %>
+      </span>
+    </div>
+    <%= button_to 'Clear now', clear_parking_notice_path(@parking_notice), method: :post,
+        class: 'btn btn-sm btn-outline-secondary',
+        form: { data: { turbo_confirm: 'Mark this parking notice as cleared?' } } %>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-<%= @parking_notice.badge_color %> mb-4">
   <div class="card-body">
     <div class="row">
@@ -86,6 +104,18 @@
           <% if @parking_notice.notes.present? %>
             <dt>Admin Notes</dt>
             <dd><%= simple_format(@parking_notice.notes) %></dd>
+          <% end %>
+
+          <% if @parking_notice.ticket? %>
+            <dt>Admin clearance</dt>
+            <dd>
+              <% if @parking_notice.requires_admin_clearance? %>
+                <span class="badge text-bg-warning-subtle">Required</span>
+                <span class="text-12 text-secondary">Member cannot clear this ticket themselves.</span>
+              <% else %>
+                <span class="text-secondary">Not required</span>
+              <% end %>
+            </dd>
           <% end %>
         </dl>
       </div>
@@ -157,3 +187,7 @@
     </div>
   </div>
 <% end %>
+
+<%= render 'parking_notices/history',
+    events: @parking_notice.events.includes(:actor).chronological,
+    note_url: add_note_parking_notice_path(@parking_notice) %>

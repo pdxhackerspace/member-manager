@@ -171,4 +171,110 @@ class ParkingNoticeTest < ActiveSupport::TestCase
       notice.record_journal_entry!('parking_ticket_issued')
     end
   end
+
+  # --- Admin-clearance permissions ---
+
+  test 'clearable_by? lets the owner clear their own active notice' do
+    assert parking_notices(:active_permit).clearable_by?(@user)
+  end
+
+  test 'clearable_by? blocks a non-owner who is not an admin' do
+    other = users(:two)
+    assert_not parking_notices(:active_permit).clearable_by?(other)
+  end
+
+  test 'clearable_by? blocks the owner when admin clearance is required' do
+    notice = parking_notices(:active_permit)
+    notice.update!(requires_admin_clearance: true)
+    assert_not notice.clearable_by?(@user)
+  end
+
+  test 'clearable_by? always lets an admin clear, even when admin clearance is required' do
+    admin = users(:two)
+    admin.update!(is_admin: true)
+    notice = parking_notices(:active_permit)
+    notice.update!(requires_admin_clearance: true)
+    assert notice.clearable_by?(admin)
+  end
+
+  test 'clearable_by? blocks clearing a notice that is not active' do
+    assert_not parking_notices(:cleared_permit).clearable_by?(@user)
+  end
+
+  # --- History events ---
+
+  test 'creating a notice logs an opened event' do
+    notice = nil
+    assert_difference 'ParkingNoticeEvent.count', 1 do
+      notice = ParkingNotice.create!(
+        notice_type: 'permit', user: @user, issued_by: @admin, expires_at: 7.days.from_now
+      )
+    end
+    event = notice.events.last
+    assert_equal 'opened', event.event_type
+    assert_equal @admin, event.actor
+  end
+
+  test 'clear! logs a cleared event' do
+    notice = parking_notices(:active_permit)
+    assert_difference 'ParkingNoticeEvent.count', 1 do
+      notice.clear!(@admin)
+    end
+    assert_equal 'cleared', notice.events.last.event_type
+  end
+
+  test 'expire! logs an expired event' do
+    notice = parking_notices(:active_permit)
+    assert_difference 'ParkingNoticeEvent.count', 1 do
+      notice.expire!
+    end
+    assert_equal 'expired', notice.events.last.event_type
+  end
+
+  test 'changing the expiration logs a renewed event' do
+    notice = parking_notices(:active_permit)
+    assert_difference 'ParkingNoticeEvent.count', 1 do
+      notice.update!(expires_at: 30.days.from_now)
+    end
+    assert_equal 'renewed', notice.events.last.event_type
+  end
+
+  test 'updating without changing expiration does not log a renewed event' do
+    notice = parking_notices(:active_permit)
+    assert_no_difference 'ParkingNoticeEvent.count' do
+      notice.update!(description: 'Tweaked description')
+    end
+  end
+
+  test 'log_event! records a note with its text' do
+    notice = parking_notices(:active_permit)
+    notice.log_event!('note', actor: @admin, note: 'Spoke with the member')
+    event = notice.events.last
+    assert_equal 'note', event.event_type
+    assert_equal 'Spoke with the member', event.note
+    assert_equal @admin, event.actor
+  end
+
+  # --- Clearance requests ---
+
+  test 'request_clearance! records the request and logs an event' do
+    notice = parking_notices(:active_permit)
+    notice.update!(requires_admin_clearance: true)
+
+    assert_difference 'ParkingNoticeEvent.count', 1 do
+      notice.request_clearance!(@user)
+    end
+
+    assert notice.clearance_requested?
+    assert_equal @user, notice.clearance_requested_by
+    assert_equal 'clearance_requested', notice.events.last.event_type
+  end
+
+  test 'clearance_requested? is false once the notice is cleared' do
+    notice = parking_notices(:active_permit)
+    notice.update!(requires_admin_clearance: true)
+    notice.request_clearance!(@user)
+    notice.clear!(@admin)
+    assert_not notice.clearance_requested?
+  end
 end

@@ -63,18 +63,75 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_equal member.id, permit.cleared_by_id
   end
 
-  test 'member cannot close their own ticket' do
+  test 'member can close their own ticket when admin clearance is not required' do
     sign_in_as_member
-    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
-    ticket = ParkingNotice.create!(
-      notice_type: 'ticket', status: 'active', user: member, issued_by: member,
-      expires_at: 3.days.from_now, description: 'Enforcement', location: 'Main Area'
-    )
+    ticket = member_ticket
 
     patch close_member_parking_permit_path(ticket)
 
-    assert_redirected_to user_path(member, tab: :parking)
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_equal 'cleared', ticket.reload.status
+    assert_equal current_member.id, ticket.cleared_by_id
+  end
+
+  test 'member cannot close a ticket that requires admin clearance' do
+    sign_in_as_member
+    ticket = member_ticket
+    ticket.update!(requires_admin_clearance: true)
+
+    patch close_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
     assert_equal 'active', ticket.reload.status
+  end
+
+  test 'member can request clearance for a ticket that requires admin clearance' do
+    sign_in_as_member
+    ticket = member_ticket
+    ticket.update!(requires_admin_clearance: true)
+
+    assert_difference -> { ticket.events.count }, 1 do
+      post request_clearance_member_parking_permit_path(ticket)
+    end
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert ticket.reload.clearance_requested?
+    assert_equal current_member.id, ticket.clearance_requested_by_id
+  end
+
+  test 'member cannot request clearance when it is not required' do
+    sign_in_as_member
+    ticket = member_ticket
+
+    post request_clearance_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_not ticket.reload.clearance_requested?
+  end
+
+  test 'member can add a note to the history of their own notice' do
+    sign_in_as_member
+    permit = member_permit
+
+    assert_difference -> { permit.events.count }, 1 do
+      post add_note_member_parking_permit_path(permit), params: { note: 'Picked up tomorrow' }
+    end
+
+    assert_redirected_to member_parking_permit_path(permit)
+    event = permit.events.last
+    assert_equal 'note', event.event_type
+    assert_equal 'Picked up tomorrow', event.note
+  end
+
+  test 'member cannot add a blank note' do
+    sign_in_as_member
+    permit = member_permit
+
+    assert_no_difference -> { permit.events.count } do
+      post add_note_member_parking_permit_path(permit), params: { note: '   ' }
+    end
+
+    assert_redirected_to member_parking_permit_path(permit)
   end
 
   test "member cannot close another member's permit" do
@@ -116,7 +173,7 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'form[action=?]', close_member_parking_permit_path(permit)
   end
 
-  test 'member can view own ticket but gets no edit or clear actions' do
+  test 'member can view own ticket with a clear action but no edit action' do
     sign_in_as_member
     ticket = member_ticket
 
@@ -124,6 +181,18 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select 'a[href=?]', edit_member_parking_permit_path(ticket), false
+    assert_select 'form[action=?]', close_member_parking_permit_path(ticket)
+  end
+
+  test 'member sees a request-clearance action for a ticket needing admin clearance' do
+    sign_in_as_member
+    ticket = member_ticket
+    ticket.update!(requires_admin_clearance: true)
+
+    get member_parking_permit_path(ticket)
+
+    assert_response :success
+    assert_select 'form[action=?]', request_clearance_member_parking_permit_path(ticket)
     assert_select 'form[action=?]', close_member_parking_permit_path(ticket), false
   end
 

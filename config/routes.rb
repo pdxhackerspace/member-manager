@@ -71,6 +71,8 @@ Rails.application.routes.draw do
   resources :member_parking_permits, only: %i[new create show edit update] do
     member do
       patch :close
+      post :request_clearance
+      post :add_note
     end
   end
 
@@ -411,6 +413,7 @@ Rails.application.routes.draw do
   resources :parking_notices do
     member do
       post :clear
+      post :add_note
       get :download_pdf
       post :print_notice
       delete 'photos/:photo_id', action: :remove_photo, as: :remove_photo

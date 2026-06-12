@@ -74,6 +74,18 @@
         <%= f.text_area :notes, class: 'form-control', rows: 2,
             placeholder: 'Internal notes (not shown to members)...' %>
       </div>
+
+      <% if parking_notice.ticket? %>
+        <%# Require admin clearance %>
+        <div class="form-check mb-3">
+          <%= f.check_box :requires_admin_clearance, class: 'form-check-input' %>
+          <%= f.label :requires_admin_clearance, 'Require an admin to clear this ticket',
+              class: 'form-check-label' %>
+          <div class="form-text">
+            When enabled, the member can request clearance but cannot clear the ticket themselves.
+          </div>
+        </div>
+      <% end %>
     </div>
 
     <div class="col-md-6">

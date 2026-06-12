@@ -47,6 +47,54 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to login_path
   end
 
+  test 'member can close own active permit' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    permit = member.parking_notices.create!(
+      notice_type: 'permit', status: 'active', issued_by: member,
+      expires_at: 3.days.from_now, description: 'Done early', location: 'Woodshop'
+    )
+
+    patch close_member_parking_permit_path(permit)
+
+    assert_redirected_to user_path(member, tab: :parking)
+    permit.reload
+    assert_equal 'cleared', permit.status
+    assert_equal member.id, permit.cleared_by_id
+  end
+
+  test 'member cannot close their own ticket' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    ticket = ParkingNotice.create!(
+      notice_type: 'ticket', status: 'active', user: member, issued_by: member,
+      expires_at: 3.days.from_now, description: 'Enforcement', location: 'Main Area'
+    )
+
+    patch close_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(member, tab: :parking)
+    assert_equal 'active', ticket.reload.status
+  end
+
+  test "member cannot close another member's permit" do
+    sign_in_as_member
+    other_permit = parking_notices(:active_permit)
+
+    patch close_member_parking_permit_path(other_permit)
+
+    assert_equal 'active', other_permit.reload.status
+  end
+
+  test 'anonymous user cannot close a permit' do
+    permit = parking_notices(:active_permit)
+
+    patch close_member_parking_permit_path(permit)
+
+    assert_redirected_to login_path
+    assert_equal 'active', permit.reload.status
+  end
+
   private
 
   def sign_in_as_member

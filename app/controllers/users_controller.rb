@@ -355,9 +355,18 @@ class UsersController < AuthenticatedController
   def toggle_authentik_sync_inactive_as_active
     settings = DefaultSetting.instance
     settings.update!(authentik_sync_inactive_as_active: !settings.authentik_sync_inactive_as_active)
-    status = settings.authentik_sync_inactive_as_active? ? 'active in Authentik' : 'inactive in Authentik'
+
+    # Inactive members that already exist in Authentik aren't normally re-synced
+    # because their authentik_dirty flag was cleared after their last sync. Toggling
+    # this setting changes what their Authentik is_active value should be, so flag them
+    # dirty and run a sync to reconcile Authentik with the new setting.
+    affected = User.where(active: false).where.not(authentik_id: [nil, '']).update_all(authentik_dirty: true)
+    Authentik::FullSyncToAuthentikJob.perform_later if MemberSource.enabled?('member_manager')
+
+    status = settings.authentik_sync_inactive_as_active? ? 'active' : 'inactive'
     redirect_to users_path,
-                notice: "Authentik sync updated: inactive members will be synced as #{status}."
+                notice: "Inactive members will now be synced as #{status} in Authentik. " \
+                        "Syncing #{affected} inactive #{'member'.pluralize(affected)} now."
   end
 
   def activate

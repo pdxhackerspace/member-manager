@@ -402,7 +402,7 @@
     <% elsif @active_tab == :payments %>
       <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>
     <% elsif @active_tab == :parking %>
-      <%= render 'users/tab_parking', parking_notices: @parking_notices_list, show_actions: false %>
+      <%= render 'users/tab_parking', parking_notices: @parking_notices_list, show_actions: false, member_close: true %>
     <% elsif @active_tab == :messages %>
       <%= render 'users/tab_messages', messages: @messages, pagy: @pagy_messages, user: @user, show_send: false %>
     <% end %>

@@ -37,6 +37,7 @@
                  data-user-name="<%= [user.display_name, user.email, user.username].compact.join(' ').downcase %>"
                  data-user-display="<%= user.display_name %>"
                  data-has-building-access="<%= @trained_user_ids.include?(user.id) %>"
+                 data-key-access-paused="<%= user.key_access_paused? %>"
                  style="cursor: pointer;">
               <div class="fw-semibold"><%= user.display_name %></div>
               <% if user.email.present? %>
@@ -104,6 +105,28 @@
         <%= link_to "Cancel", root_path, class: "btn btn-outline-secondary" %>
       </div>
     <% end %>
+
+    <div id="key_access_controls" class="border-top pt-3 mt-3" style="display: none;">
+      <div class="text-muted small mb-2">
+        Need to suspend access without adding a key? Pausing keeps the member's existing keys but stops
+        syncing them to the access controllers.
+      </div>
+      <div id="pause_access_wrapper">
+        <%= button_to pause_key_access_user_path('__USER_ID__', return_to: 'add_key'),
+            method: :post, class: "btn btn-outline-warning",
+            form: { id: "pause_access_form", data: { turbo: false } } do %>
+          <i class="bi bi-pause-circle me-1"></i>Pause key access (no key added)
+        <% end %>
+      </div>
+      <div id="resume_access_wrapper" style="display: none;">
+        <span class="badge text-bg-warning-subtle me-2"><i class="bi bi-pause-circle me-1"></i>Access paused</span>
+        <%= button_to resume_key_access_user_path('__USER_ID__', return_to: 'add_key'),
+            method: :post, class: "btn btn-outline-secondary",
+            form: { id: "resume_access_form", data: { turbo: false } } do %>
+          <i class="bi bi-play-circle me-1"></i>Resume key access
+        <% end %>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -128,6 +151,32 @@
       // Prevent double-init
       if (memberSearch.dataset.initialized === 'true') return;
       memberSearch.dataset.initialized = 'true';
+
+      function updateKeyAccessControls(userId, paused) {
+        const controls = document.getElementById('key_access_controls');
+        const pauseWrapper = document.getElementById('pause_access_wrapper');
+        const resumeWrapper = document.getElementById('resume_access_wrapper');
+        const pauseForm = document.getElementById('pause_access_form');
+        const resumeForm = document.getElementById('resume_access_form');
+        if (!controls || !pauseForm || !resumeForm) return;
+
+        pauseForm.action = '/users/' + userId + '/pause_key_access?return_to=add_key';
+        resumeForm.action = '/users/' + userId + '/resume_key_access?return_to=add_key';
+
+        controls.style.display = '';
+        if (paused === 'true') {
+          pauseWrapper.style.display = 'none';
+          resumeWrapper.style.display = '';
+        } else {
+          pauseWrapper.style.display = '';
+          resumeWrapper.style.display = 'none';
+        }
+      }
+
+      function hideKeyAccessControls() {
+        const controls = document.getElementById('key_access_controls');
+        if (controls) controls.style.display = 'none';
+      }
 
       function filterMembers() {
         const searchTerm = memberSearch.value.toLowerCase().trim();
@@ -159,7 +208,7 @@
         }
       }
 
-      function selectMember(userId, displayName, hasBuildingAccess) {
+      function selectMember(userId, displayName, hasBuildingAccess, keyAccessPaused) {
         userIdInput.value = userId;
         selectedMemberName.textContent = displayName;
         selectedMember.style.display = 'block';
@@ -177,6 +226,7 @@
           hasTrainingNote.style.display = 'none';
         }
         addTrainingInput.value = '0';
+        updateKeyAccessControls(userId, keyAccessPaused);
       }
 
       function clearSelection() {
@@ -190,6 +240,7 @@
         buttonsWithoutTraining.style.display = 'flex';
         addTrainingInput.value = '0';
         hasTrainingNote.style.display = 'none';
+        hideKeyAccessControls();
       }
 
       memberSearch.addEventListener('input', filterMembers);
@@ -201,7 +252,8 @@
           const userId = this.getAttribute('data-user-id');
           const displayName = this.getAttribute('data-user-display');
           const hasBuildingAccess = this.getAttribute('data-has-building-access');
-          selectMember(userId, displayName, hasBuildingAccess);
+          const keyAccessPaused = this.getAttribute('data-key-access-paused');
+          selectMember(userId, displayName, hasBuildingAccess, keyAccessPaused);
         });
 
         result.addEventListener('mouseenter', function() {
@@ -245,6 +297,7 @@
         if (results[i].getAttribute('data-user-id') === userId) {
           const displayName = results[i].getAttribute('data-user-display');
           const hasBuildingAccess = results[i].getAttribute('data-has-building-access');
+          const keyAccessPaused = results[i].getAttribute('data-key-access-paused');
 
           var selectedMember = document.getElementById('selected_member');
           var selectedMemberName = document.getElementById('selected_member_name');
@@ -265,6 +318,24 @@
             buttonsWithTraining.style.display = 'flex';
             buttonsWithoutTraining.style.display = 'none';
             hasTrainingNote.style.display = 'none';
+          }
+
+          var keyAccessControls = document.getElementById('key_access_controls');
+          var pauseWrapper = document.getElementById('pause_access_wrapper');
+          var resumeWrapper = document.getElementById('resume_access_wrapper');
+          var pauseForm = document.getElementById('pause_access_form');
+          var resumeForm = document.getElementById('resume_access_form');
+          if (keyAccessControls && pauseForm && resumeForm) {
+            pauseForm.action = '/users/' + userId + '/pause_key_access?return_to=add_key';
+            resumeForm.action = '/users/' + userId + '/resume_key_access?return_to=add_key';
+            keyAccessControls.style.display = '';
+            if (keyAccessPaused === 'true') {
+              pauseWrapper.style.display = 'none';
+              resumeWrapper.style.display = '';
+            } else {
+              pauseWrapper.style.display = '';
+              resumeWrapper.style.display = 'none';
+            }
           }
           break;
         }

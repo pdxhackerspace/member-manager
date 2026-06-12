@@ -48,6 +48,38 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     assert_not_includes uids, @user_one.authentik_id
   end
 
+  # --- Paused key access filtering ---
+
+  test 'excludes members with paused key access even when active with RFIDs' do
+    @user_one.pause_key_access!
+
+    payload = parse_payload
+    uids = payload.pluck('uid')
+    assert_not_includes uids, @user_one.authentik_id
+    assert_includes uids, @user_two.authentik_id
+  end
+
+  test 'excludes paused members even when sync_inactive_members is enabled' do
+    DefaultSetting.instance.update!(sync_inactive_members: true)
+    @user_one.pause_key_access!
+
+    payload = parse_payload
+    uids = payload.pluck('uid')
+    assert_not_includes uids, @user_one.authentik_id
+  end
+
+  test 'includes a member again after their key access is resumed' do
+    # Keep the member eligible regardless of computed active status so the test
+    # isolates the pause/resume behavior.
+    DefaultSetting.instance.update!(sync_inactive_members: true)
+
+    @user_one.pause_key_access!
+    assert_not_includes parse_payload.pluck('uid'), @user_one.authentik_id
+
+    @user_one.resume_key_access!
+    assert_includes parse_payload.pluck('uid'), @user_one.authentik_id
+  end
+
   # --- Per-type training topic filtering ---
 
   test 'includes all users when no training topics required' do

@@ -92,6 +92,8 @@ Rails.application.routes.draw do
       post :unlink_authentik
       post :unlink_sheet
       post :mark_help_seen
+      post :pause_key_access
+      post :resume_key_access
     end
     collection do
       post :sync

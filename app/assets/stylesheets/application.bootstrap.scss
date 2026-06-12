@@ -501,6 +501,18 @@
 }
 .btn-link-add:hover { text-decoration: underline; }
 
+.btn-link-action {
+  background: none;
+  border: none;
+  color: var(--bs-secondary-color);
+  font-size: 11px;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn-link-action:hover { color: var(--bs-body-color); text-decoration: underline; }
+
 // Outline-secondary is the app's default action button, but Bootstrap's dark-mode
 // rendering (muted gray text + dim border) is low-contrast on our dark panels. Brighten the
 // label and border so actions are legible and stand out, without adding any color meaning.

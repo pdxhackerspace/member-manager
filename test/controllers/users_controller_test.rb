@@ -493,6 +493,57 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_match target.full_name, response.body
   end
 
+  test 'pause_key_access pauses the member and redirects to profile' do
+    assert_not @user.key_access_paused?
+
+    post pause_key_access_user_path(@user)
+
+    assert_redirected_to user_path(@user, tab: :profile)
+    assert @user.reload.key_access_paused?
+    follow_redirect!
+    assert_match(/Key access paused/i, response.body)
+  end
+
+  test 'resume_key_access resumes the member and redirects to profile' do
+    @user.pause_key_access!
+
+    post resume_key_access_user_path(@user)
+
+    assert_redirected_to user_path(@user, tab: :profile)
+    assert_not @user.reload.key_access_paused?
+    follow_redirect!
+    assert_match(/Key access resumed/i, response.body)
+  end
+
+  test 'pause_key_access redirects to the add key screen when return_to=add_key' do
+    post pause_key_access_user_path(@user, return_to: 'add_key')
+
+    assert_redirected_to new_rfid_path(rfid: { user_id: @user.id })
+    assert @user.reload.key_access_paused?
+  end
+
+  test 'pause_key_access is idempotent when already paused' do
+    @user.pause_key_access!
+
+    post pause_key_access_user_path(@user)
+
+    assert_redirected_to user_path(@user, tab: :profile)
+    follow_redirect!
+    assert_match(/already paused/i, response.body)
+  end
+
+  test 'admin profile shows pause access button and paused state' do
+    get user_path(@user, tab: :profile)
+    assert_response :success
+    assert_select 'form[action=?]', pause_key_access_user_path(@user)
+
+    @user.pause_key_access!
+    get user_path(@user, tab: :profile)
+    assert_response :success
+    assert_select 'form[action=?]', resume_key_access_user_path(@user)
+    assert_match(/Access paused/i, response.body)
+  end
+
   private
 
   def sign_in_as_local_admin

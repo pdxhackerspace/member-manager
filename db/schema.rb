@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_100100) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_12_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -1017,6 +1017,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_100100) do
     t.string "greeting_name"
     t.boolean "is_admin", default: false, null: false
     t.boolean "is_sponsored", default: false, null: false
+    t.boolean "key_access_paused", default: false, null: false
+    t.datetime "key_access_paused_at"
     t.datetime "last_login_at"
     t.date "last_payment_date"
     t.datetime "last_synced_at"
@@ -1053,6 +1055,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_100100) do
     t.index ["authentik_id"], name: "index_users_on_authentik_id", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true, where: "(email IS NOT NULL)"
     t.index ["is_sponsored"], name: "index_users_on_is_sponsored"
+    t.index ["key_access_paused"], name: "index_users_on_key_access_paused"
     t.index ["legacy"], name: "index_users_on_legacy"
     t.index ["login_token"], name: "index_users_on_login_token", unique: true
     t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"

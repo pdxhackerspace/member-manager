@@ -289,7 +289,7 @@
   <% elsif @active_tab == :payments %>
     <%= render 'users/tab_payments', payments: @home_payments, pagy: @pagy_payments, user: @home_user, show_payment_links: false, dashboard_mode: true %>
   <% elsif @active_tab == :parking %>
-    <%= render 'users/tab_parking', parking_notices: @home_parking_notices_list, show_actions: false %>
+    <%= render 'users/tab_parking', parking_notices: @home_parking_notices_list, actions: :member %>
   <% else %>
     <%= render 'users/tab_dashboard_self', user: @home_user %>
   <% end %>

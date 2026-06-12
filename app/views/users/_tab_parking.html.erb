@@ -1,6 +1,6 @@
-<% show_actions = local_assigns[:show_actions] %>
-<% member_close = local_assigns[:member_close] %>
-<% show_actions_column = show_actions || member_close %>
+<%# actions: :admin (view/edit/clear all), :member (own permits editable/clearable, tickets view-only), or nil %>
+<% actions = local_assigns[:actions] %>
+<% show_actions_column = actions.present? %>
 <% if parking_notices.any? %>
   <div class="card shadow-sm border-0">
     <div class="table-responsive">
@@ -37,15 +37,27 @@
               </td>
               <% if show_actions_column %>
                 <td class="text-end">
-                  <% if show_actions %>
-                    <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-primary" %>
-                  <% elsif member_close && notice.permit? && notice.active? %>
-                    <%= button_to "Close", close_member_parking_permit_path(notice), method: :patch,
-                        class: "btn btn-sm btn-outline-secondary",
-                        form: { data: { turbo_confirm: "Close this parking permit? This frees the spot and can't be undone." } } %>
-                  <% else %>
-                    <span class="text-muted">—</span>
-                  <% end %>
+                  <div class="d-flex gap-1 justify-content-end">
+                    <% if actions == :admin %>
+                      <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                      <% unless notice.cleared? %>
+                        <%= link_to "Edit", edit_parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                        <%= button_to "Clear", clear_parking_notice_path(notice), method: :post,
+                            class: "btn btn-sm btn-outline-secondary",
+                            form: { data: { turbo_confirm: "Mark this parking #{notice.notice_type_display.downcase} as cleared?" } } %>
+                      <% end %>
+                    <% elsif actions == :member %>
+                      <%= link_to "View", member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                      <% if notice.permit? && !notice.cleared? %>
+                        <%= link_to "Edit", edit_member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                        <% if notice.active? %>
+                          <%= button_to "Clear", close_member_parking_permit_path(notice), method: :patch,
+                              class: "btn btn-sm btn-outline-secondary",
+                              form: { data: { turbo_confirm: "Clear this parking permit? This frees the spot and can't be undone." } } %>
+                        <% end %>
+                      <% end %>
+                    <% end %>
+                  </div>
                 </td>
               <% end %>
             </tr>

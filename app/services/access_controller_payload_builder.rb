@@ -26,7 +26,9 @@ class AccessControllerPayloadBuilder
 
   def base_users
     scope = sync_inactive_members? ? User.all : User.active
-    scope.includes(:rfids, trainings_as_trainee: :training_topic)
+    # Members with paused key access are never synced to access controllers,
+    # even when active and otherwise eligible.
+    scope.key_access_active.includes(:rfids, trainings_as_trainee: :training_topic)
   end
 
   def sync_inactive_members?

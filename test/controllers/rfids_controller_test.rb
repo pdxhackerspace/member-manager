@@ -20,6 +20,24 @@ class RfidsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'input[name=?][value=?]', 'rfid[rfid]', '127,'
   end
 
+  test 'new key fob form includes pause and resume key access controls' do
+    get new_rfid_url
+
+    assert_response :success
+    assert_select '#key_access_controls'
+    assert_select 'form#pause_access_form'
+    assert_select 'form#resume_access_form'
+  end
+
+  test 'new key fob form marks members with paused key access' do
+    users(:one).pause_key_access!
+
+    get new_rfid_url
+
+    assert_response :success
+    assert_select ".member-result[data-user-id=?][data-key-access-paused='true']", users(:one).id.to_s
+  end
+
   private
 
   def sign_in_as_admin

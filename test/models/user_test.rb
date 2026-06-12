@@ -38,6 +38,66 @@ class UserTest < ActiveSupport::TestCase
     assert_equal ['user1@example.com'], results.pluck(:email)
   end
 
+  test 'pause_key_access! sets the flag and timestamp' do
+    user = users(:one)
+    assert_not user.key_access_paused?
+
+    freeze_time do
+      assert user.pause_key_access!
+      assert user.reload.key_access_paused?
+      assert_equal Time.current, user.key_access_paused_at
+    end
+  end
+
+  test 'pause_key_access! is a no-op when already paused' do
+    user = users(:one)
+    user.pause_key_access!
+    original_time = user.key_access_paused_at
+
+    travel 1.hour do
+      assert_not user.pause_key_access!
+      assert_equal original_time.to_i, user.reload.key_access_paused_at.to_i
+    end
+  end
+
+  test 'resume_key_access! clears the flag and timestamp' do
+    user = users(:one)
+    user.pause_key_access!
+
+    assert user.resume_key_access!
+    user.reload
+    assert_not user.key_access_paused?
+    assert_nil user.key_access_paused_at
+  end
+
+  test 'resume_key_access! is a no-op when not paused' do
+    user = users(:one)
+    assert_not user.resume_key_access!
+  end
+
+  test 'key_access_paused and key_access_active scopes' do
+    paused = users(:one)
+    active = users(:two)
+    paused.pause_key_access!
+    active.resume_key_access!
+
+    assert_includes User.key_access_paused, paused
+    assert_not_includes User.key_access_paused, active
+    assert_includes User.key_access_active, active
+    assert_not_includes User.key_access_active, paused
+  end
+
+  test 'pausing key access does not mark the user dirty for authentik sync' do
+    # cash_payer is paying + current, so its computed active status stays stable across saves
+    user = users(:cash_payer)
+    user.update!(authentik_dirty: false)
+    assert_not user.reload.authentik_dirty?
+
+    user.pause_key_access!
+
+    assert_not user.reload.authentik_dirty?
+  end
+
   test 'by_name_or_alias matches single-word full_name exactly' do
     user = User.create!(
       authentik_id: 'single-word-test',

@@ -273,7 +273,23 @@
             <% else %>
               <span class="profile-field-value empty">None</span>
             <% end %>
-            <%= link_to "+ Add key", new_rfid_path(rfid: { user_id: user.id }), class: "btn-link-add ms-auto" %>
+            <% if user.key_access_paused? %>
+              <span class="badge text-bg-warning-subtle" title="<%= user.key_access_paused_at&.strftime('Paused %b %-d, %Y at %-l:%M %p') %>">
+                <i class="bi bi-pause-circle me-1"></i>Access paused
+              </span>
+            <% end %>
+            <span class="d-inline-flex align-items-center gap-3 ms-auto">
+              <%= link_to "+ Add key", new_rfid_path(rfid: { user_id: user.id }), class: "btn-link-add" %>
+              <% if user.key_access_paused? %>
+                <%= button_to "Resume access", resume_key_access_user_path(user), method: :post,
+                    class: "btn-link-action", form: { class: "d-inline" },
+                    data: { turbo: false } %>
+              <% else %>
+                <%= button_to "Pause access", pause_key_access_user_path(user), method: :post,
+                    class: "btn-link-action", form: { class: "d-inline" },
+                    data: { turbo: false, turbo_confirm: "Pause RFID key access for #{user.display_name}? Their keys are kept but stop syncing to the access controllers." } %>
+              <% end %>
+            </span>
           </div>
         </div>
       </div>

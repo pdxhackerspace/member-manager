@@ -89,6 +89,8 @@ class User < ApplicationRecord
   }
 
   scope :active, -> { where(active: true) }
+  scope :key_access_paused, -> { where(key_access_paused: true) }
+  scope :key_access_active, -> { where(key_access_paused: false) }
   scope :admin, -> { where(is_admin: true) }
   scope :service_accounts, -> { where(service_account: true) }
   scope :non_service_accounts, -> { where(service_account: false) }
@@ -130,6 +132,20 @@ class User < ApplicationRecord
 
   def active?
     active
+  end
+
+  # Pause this member's RFID key access without removing or deactivating their keys.
+  # Paused members are excluded from access controller syncs (see AccessControllerPayloadBuilder).
+  def pause_key_access!
+    return false if key_access_paused?
+
+    update!(key_access_paused: true, key_access_paused_at: Time.current)
+  end
+
+  def resume_key_access!
+    return false unless key_access_paused?
+
+    update!(key_access_paused: false, key_access_paused_at: nil)
   end
 
   def username

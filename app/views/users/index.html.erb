@@ -47,6 +47,7 @@
     filter_labels << (params[:active] == 'true' ? 'Active only' : 'Inactive only') if params[:active].present?
     filter_labels << 'Active override' if params[:emergency_active_override] == '1'
     filter_labels << "Missing: #{params[:missing] == 'rfid' ? 'No RFID' : 'No Email'}" if params[:missing].present?
+    filter_labels << 'Key access paused' if params[:key_access] == 'paused'
     if params[:account_type].present?
       filter_labels << (params[:account_type] == 'service' ? 'Service Accounts' : 'Members Only')
     end
@@ -176,6 +177,9 @@
       <% end %>
       <%= link_to stacking_filter_path(:emergency_active_override, '1'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:emergency_active_override] == '1'}" do %>
         <i class="bi bi-lightning-charge me-1"></i>Active override: <strong><%= @emergency_active_override_count %></strong>
+      <% end %>
+      <%= link_to stacking_filter_path(:key_access, 'paused'), class: "badge text-bg-warning text-decoration-none #{'border border-dark border-2' if params[:key_access] == 'paused'}" do %>
+        <i class="bi bi-pause-circle me-1"></i>Key paused: <strong><%= @key_paused_count %></strong>
       <% end %>
     </div>
     </div>

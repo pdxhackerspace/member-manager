@@ -8,7 +8,7 @@ class UsersController < AuthenticatedController
                          unmark_sponsored destroy
                          sync_to_authentik sync_from_authentik
                          unlink_slack unlink_authentik unlink_sheet
-                         mark_help_seen]
+                         mark_help_seen pause_key_access resume_key_access]
   before_action :require_admin!, except: %i[show edit update mark_help_seen]
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: %i[edit update]
@@ -37,6 +37,7 @@ class UsersController < AuthenticatedController
     @filter_params[:membership_plan_id] = params[:membership_plan_id] if params[:membership_plan_id].present?
     @filter_params[:missing] = params[:missing] if params[:missing].present?
     @filter_params[:account_type] = params[:account_type] if params[:account_type].present?
+    @filter_params[:key_access] = params[:key_access] if params[:key_access].present?
     if params[:emergency_active_override].present?
       @filter_params[:emergency_active_override] = params[:emergency_active_override]
     end
@@ -88,6 +89,8 @@ class UsersController < AuthenticatedController
       @users = @users.non_service_accounts.where("email IS NULL OR email = ''")
     end
 
+    @users = @users.non_service_accounts.where(key_access_paused: true) if params[:key_access] == 'paused'
+
     # Total count always from the full (non-legacy-adjusted) set for the "X of Y" message
     @user_count = default_users.count
 
@@ -125,6 +128,7 @@ class UsersController < AuthenticatedController
 
     @no_rfid_count = filtered_members.where.missing(:rfids).count
     @no_email_count = filtered_members.where("email IS NULL OR email = ''").count
+    @key_paused_count = filtered_members.where(key_access_paused: true).count
 
     @service_account_count = @users.service_accounts.count
     @member_account_count = @users.non_service_accounts.count
@@ -142,7 +146,7 @@ class UsersController < AuthenticatedController
                      params[:dues_status].present? || params[:active].present? ||
                      params[:missing].present? || params[:account_type].present? ||
                      params[:membership_plan_id].present? || params[:q].present? ||
-                     params[:emergency_active_override].present?
+                     params[:emergency_active_override].present? || params[:key_access].present?
     @filtered_count = @users.count if @filter_active || @include_legacy
 
     # Store filter/sort params for passing to user profile links
@@ -241,6 +245,7 @@ class UsersController < AuthenticatedController
       if params[:emergency_active_override] == '1'
         nav_query = nav_query.where(service_account: false, emergency_active_override: true)
       end
+      nav_query = nav_query.where(service_account: false, key_access_paused: true) if params[:key_access] == 'paused'
 
       # Apply sorting — use Arel nodes to avoid string interpolation (CodeQL SQL injection rule)
       sort_column = SORTABLE_COLUMNS.include?(params[:sort]) ? params[:sort] : 'full_name'
@@ -269,6 +274,7 @@ class UsersController < AuthenticatedController
       if params[:emergency_active_override].present?
         @nav_params[:emergency_active_override] = params[:emergency_active_override]
       end
+      @nav_params[:key_access] = params[:key_access] if params[:key_access].present?
       @nav_params[:sort] = params[:sort] if params[:sort].present?
       @nav_params[:direction] = params[:direction] if params[:direction].present?
     end
@@ -387,6 +393,30 @@ class UsersController < AuthenticatedController
     end
     @user.update!(active: false)
     redirect_to user_path(@user), notice: 'Account deactivated.'
+  end
+
+  def pause_key_access
+    if @user.key_access_paused?
+      redirect_to key_access_redirect_path, notice: "Key access is already paused for #{@user.display_name}."
+      return
+    end
+
+    @user.pause_key_access!
+    redirect_to key_access_redirect_path,
+                notice: "Key access paused for #{@user.display_name}. " \
+                        'Their keys are kept but will not be synced to the access controllers.'
+  end
+
+  def resume_key_access
+    unless @user.key_access_paused?
+      redirect_to key_access_redirect_path, notice: "Key access is not paused for #{@user.display_name}."
+      return
+    end
+
+    @user.resume_key_access!
+    redirect_to key_access_redirect_path,
+                notice: "Key access resumed for #{@user.display_name}. " \
+                        'Sync the access controllers to restore their access.'
   end
 
   def enable_emergency_active_override
@@ -557,6 +587,16 @@ class UsersController < AuthenticatedController
   end
 
   private
+
+  # Pause/resume can be triggered from the member profile or the Add Key Fob screen.
+  # Return to the originating screen so the toggled button stays in context.
+  def key_access_redirect_path
+    if params[:return_to] == 'add_key'
+      new_rfid_path(rfid: { user_id: @user.id })
+    else
+      user_path(@user, tab: :profile)
+    end
+  end
 
   def set_user_for_show
     @user = User.includes(

@@ -139,6 +139,31 @@ class UsersIndexFiltersTest < ActionDispatch::IntegrationTest
     assert_match users(:one).display_name, response.body
   end
 
+  # ─── Key access paused filtering ───────────────────────────────────
+
+  test 'index shows key paused filter badge' do
+    get users_path
+    assert_response :success
+    assert_match(/Key paused/i, response.body)
+    assert_select 'a[href*="key_access=paused"]'
+  end
+
+  test 'filtering by key_access=paused returns only paused members' do
+    users(:one).pause_key_access!
+    users(:two).resume_key_access!
+
+    get users_path(key_access: 'paused')
+    assert_response :success
+    assert_match users(:one).display_name, response.body
+    assert_no_match(/#{Regexp.escape(users(:two).display_name)}/, response.body)
+  end
+
+  test 'key access paused filter shows in the active filter summary' do
+    get users_path(key_access: 'paused')
+    assert_response :success
+    assert_match 'Key access paused', response.body
+  end
+
   # ─── Combined / stacking filters ──────────────────────────────────
 
   test 'clear all filters link is shown when filter active' do

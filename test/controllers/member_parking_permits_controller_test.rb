@@ -95,7 +95,132 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'active', permit.reload.status
   end
 
+  test 'member cannot close an already-cleared permit' do
+    sign_in_as_member
+    permit = member_permit(status: 'cleared')
+
+    patch close_member_parking_permit_path(permit)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_equal 'cleared', permit.reload.status
+  end
+
+  test 'member can view own permit with edit and clear actions' do
+    sign_in_as_member
+    permit = member_permit
+
+    get member_parking_permit_path(permit)
+
+    assert_response :success
+    assert_select 'a[href=?]', edit_member_parking_permit_path(permit)
+    assert_select 'form[action=?]', close_member_parking_permit_path(permit)
+  end
+
+  test 'member can view own ticket but gets no edit or clear actions' do
+    sign_in_as_member
+    ticket = member_ticket
+
+    get member_parking_permit_path(ticket)
+
+    assert_response :success
+    assert_select 'a[href=?]', edit_member_parking_permit_path(ticket), false
+    assert_select 'form[action=?]', close_member_parking_permit_path(ticket), false
+  end
+
+  test 'member can open edit form for own permit' do
+    sign_in_as_member
+    permit = member_permit
+
+    get edit_member_parking_permit_path(permit)
+
+    assert_response :success
+    assert_match(/Edit Parking Permit/i, response.body)
+  end
+
+  test 'member cannot edit their own ticket' do
+    sign_in_as_member
+    ticket = member_ticket
+
+    get edit_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+  end
+
+  test 'member can update own permit' do
+    sign_in_as_member
+    permit = member_permit
+
+    patch member_parking_permit_path(permit), params: {
+      parking_notice: { description: 'Updated description', location: 'Metal Shop' }
+    }
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    permit.reload
+    assert_equal 'Updated description', permit.description
+    assert_equal 'Metal Shop', permit.location
+  end
+
+  test 'member cannot update their own ticket' do
+    sign_in_as_member
+    ticket = member_ticket
+
+    patch member_parking_permit_path(ticket), params: {
+      parking_notice: { description: 'Tampered' }
+    }
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_not_equal 'Tampered', ticket.reload.description
+  end
+
+  test "member cannot view another member's notice" do
+    sign_in_as_member
+    other = parking_notices(:active_permit)
+
+    get member_parking_permit_path(other)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+  end
+
+  test "member cannot update another member's permit" do
+    sign_in_as_member
+    other = parking_notices(:active_permit)
+    original = other.description
+
+    patch member_parking_permit_path(other), params: {
+      parking_notice: { description: 'Hijacked' }
+    }
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_equal original, other.reload.description
+  end
+
+  test 'anonymous user cannot view a permit' do
+    permit = parking_notices(:active_permit)
+
+    get member_parking_permit_path(permit)
+
+    assert_redirected_to login_path
+  end
+
   private
+
+  def current_member
+    User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+  end
+
+  def member_permit(status: 'active')
+    current_member.parking_notices.create!(
+      notice_type: 'permit', status: status, issued_by: current_member,
+      expires_at: 3.days.from_now, description: 'My item', location: 'Woodshop'
+    )
+  end
+
+  def member_ticket
+    ParkingNotice.create!(
+      notice_type: 'ticket', status: 'active', user: current_member, issued_by: current_member,
+      expires_at: 3.days.from_now, description: 'Enforcement', location: 'Main Area'
+    )
+  end
 
   def sign_in_as_member
     post local_login_path, params: {

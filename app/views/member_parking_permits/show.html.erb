@@ -1,0 +1,63 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">
+    Parking <%= @parking_notice.notice_type_display %>
+    <span class="badge bg-<%= @parking_notice.status_badge_color %>"><%= @parking_notice.status_display %></span>
+  </h1>
+  <div class="d-flex gap-2">
+    <% if @parking_notice.permit? && !@parking_notice.cleared? %>
+      <%= link_to edit_member_parking_permit_path(@parking_notice), class: 'btn btn-outline-secondary' do %>
+        <i class="bi bi-pencil me-1"></i> Edit
+      <% end %>
+      <% if @parking_notice.active? %>
+        <%= button_to close_member_parking_permit_path(@parking_notice), method: :patch,
+            class: 'btn btn-outline-secondary',
+            form: { data: { turbo_confirm: "Clear this parking permit? This frees the spot and can't be undone." } } do %>
+          <i class="bi bi-check-circle me-1"></i> Clear
+        <% end %>
+      <% end %>
+    <% end %>
+    <%= link_to user_path(current_user, tab: :parking), class: 'btn btn-outline-secondary' do %>
+      <i class="bi bi-arrow-left me-1"></i> Back
+    <% end %>
+  </div>
+</div>
+
+<% if @parking_notice.ticket? %>
+  <p class="text-secondary mb-3">This parking ticket was issued by staff. Contact a member of the team if you have questions.</p>
+<% end %>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Location</dt>
+      <dd class="col-sm-9"><%= @parking_notice.location_display.presence || '—' %></dd>
+
+      <dt class="col-sm-3">Description</dt>
+      <dd class="col-sm-9"><%= simple_format(@parking_notice.description.to_s.presence || '—') %></dd>
+
+      <dt class="col-sm-3">Expires</dt>
+      <dd class="col-sm-9">
+        <% if @parking_notice.active? && @parking_notice.past_expiration? %>
+          <span class="text-danger fw-bold"><%= @parking_notice.expires_at.strftime('%B %d, %Y at %l:%M %p') %></span>
+        <% else %>
+          <%= @parking_notice.expires_at.strftime('%B %d, %Y at %l:%M %p') %>
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<% if @parking_notice.photos.attached? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header"><h5 class="mb-0">Photos</h5></div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-3">
+        <% @parking_notice.photos.each do |photo| %>
+          <%= link_to url_for(photo), target: '_blank' do %>
+            <%= image_tag url_for(photo), class: 'rounded shadow-sm', style: 'width: 150px; height: 150px; object-fit: cover;' %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

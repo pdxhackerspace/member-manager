@@ -1,4 +1,11 @@
 module UsersHelper
+  # Overrides humanize where an enum key reads poorly (an approved applicant is now a member).
+  MEMBERSHIP_STATUS_LABELS = { 'applicant' => 'New Member' }.freeze
+
+  def membership_status_label(status)
+    MEMBERSHIP_STATUS_LABELS.fetch(status.to_s, status.to_s.humanize)
+  end
+
   # Build a URL that toggles one filter while preserving all other active filters.
   # If the filter is already active with the same value, clicking removes it.
   # Passing nil as filter_value always removes that filter key.

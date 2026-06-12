@@ -225,6 +225,8 @@ class TrainingsController < AuthenticatedController
   def redirect_back_path(user_id: nil)
     if params[:return_to] == 'topic' && @training_topic
       edit_training_topic_path(@training_topic)
+    elsif params[:return_to] == 'profile' && (user_id || @trainee)
+      user_path(user_id || @trainee, anchor: 'training-access-section')
     elsif user_id
       record_training_path(user_id: user_id)
     else

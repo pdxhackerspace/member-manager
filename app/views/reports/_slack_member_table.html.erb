@@ -33,7 +33,7 @@
             <% end %>
           </td>
           <td>
-            <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status.humanize %></span>
+            <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
             <% if user.legacy? %>
               <span class="badge text-bg-secondary">Legacy</span>
             <% end %>

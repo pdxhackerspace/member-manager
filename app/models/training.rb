@@ -10,8 +10,18 @@ class Training < ApplicationRecord
   after_create :sync_trained_in_group, :clear_pending_training_requests
   after_destroy :sync_trained_in_group
   after_commit :enqueue_trainee_authentik_sync, on: %i[create destroy]
+  after_commit :sync_required_access_controllers, on: %i[create destroy]
 
   private
+
+  # When a topic is required by an access controller type, a training change alters who
+  # is authorized, so re-sync every controller of that type.
+  def sync_required_access_controllers
+    return if training_topic_id.blank?
+    return unless AccessControllerTypeTrainingTopic.exists?(training_topic_id: training_topic_id)
+
+    AccessControllerTrainingSyncJob.perform_later(training_topic_id)
+  end
 
   def enqueue_trainee_authentik_sync
     return if Current.skip_authentik_sync

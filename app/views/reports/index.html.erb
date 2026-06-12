@@ -330,7 +330,7 @@
                       <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                     </td>
                     <td>
-                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status.humanize %></span>
+                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
                     </td>
                     <td>
                       <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
@@ -544,7 +544,7 @@
                       <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
                     </td>
                     <td>
-                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= user.membership_status.humanize %></span>
+                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
                     </td>
                     <td><span class="badge text-bg-secondary"><%= user.payment_type.humanize %></span></td>
                     <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
@@ -821,7 +821,7 @@
                 <% @active_no_email.each do |user| %>
                   <tr>
                     <td><%= link_to user.display_name, user_path(user), class: "text-decoration-none" %></td>
-                    <td><span class="badge text-bg-secondary"><%= user.membership_status.humanize %></span></td>
+                    <td><span class="badge text-bg-secondary"><%= membership_status_label(user.membership_status) %></span></td>
                     <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
                   </tr>
                 <% end %>

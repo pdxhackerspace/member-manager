@@ -1,3 +1,6 @@
+<% show_actions = local_assigns[:show_actions] %>
+<% member_close = local_assigns[:member_close] %>
+<% show_actions_column = show_actions || member_close %>
 <% if parking_notices.any? %>
   <div class="card shadow-sm border-0">
     <div class="table-responsive">
@@ -9,7 +12,7 @@
             <th>Description</th>
             <th>Expires</th>
             <th>Status</th>
-            <% if defined?(show_actions) && show_actions %>
+            <% if show_actions_column %>
               <th class="text-end">Actions</th>
             <% end %>
           </tr>
@@ -32,9 +35,17 @@
               <td>
                 <span class="badge bg-<%= notice.status_badge_color %>"><%= notice.status_display %></span>
               </td>
-              <% if defined?(show_actions) && show_actions %>
+              <% if show_actions_column %>
                 <td class="text-end">
-                  <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-primary" %>
+                  <% if show_actions %>
+                    <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-primary" %>
+                  <% elsif member_close && notice.permit? && notice.active? %>
+                    <%= button_to "Close", close_member_parking_permit_path(notice), method: :patch,
+                        class: "btn btn-sm btn-outline-secondary",
+                        form: { data: { turbo_confirm: "Close this parking permit? This frees the spot and can't be undone." } } %>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
                 </td>
               <% end %>
             </tr>

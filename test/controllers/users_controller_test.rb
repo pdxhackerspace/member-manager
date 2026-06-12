@@ -368,6 +368,30 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Member Manager source is disabled.', flash[:alert]
   end
 
+  test 'toggle_authentik_sync_inactive_as_active flips the setting, flags inactive members, and syncs' do
+    DefaultSetting.instance.update!(authentik_sync_inactive_as_active: true)
+    inactive = users(:one)
+    inactive.update_columns(active: false, authentik_dirty: false)
+
+    assert_enqueued_with(job: Authentik::FullSyncToAuthentikJob) do
+      post toggle_authentik_sync_inactive_as_active_users_path
+    end
+
+    assert_redirected_to users_path
+    assert_not DefaultSetting.instance.authentik_sync_inactive_as_active
+    assert inactive.reload.authentik_dirty, 'inactive member with an Authentik ID should be flagged for re-sync'
+  end
+
+  test 'toggle_authentik_sync_inactive_as_active does not flag active members for re-sync' do
+    active_member = users(:two)
+    active_member.update_columns(active: true, authentik_dirty: false)
+
+    post toggle_authentik_sync_inactive_as_active_users_path
+
+    assert_redirected_to users_path
+    assert_not active_member.reload.authentik_dirty, 'active members should not be flagged by the toggle'
+  end
+
   test 'per-user sync_from_authentik redirects with alert when authentik source is disabled' do
     member_sources(:authentik).update!(enabled: false)
 

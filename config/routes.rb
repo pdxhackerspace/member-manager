@@ -68,7 +68,11 @@ Rails.application.routes.draw do
   get '/training/record', to: 'trainings#record', as: :record_training
   post '/training/record', to: 'trainings#create_bulk'
   get '/training/:id',  to: 'training_catalog#show',  as: :training_catalog_topic, constraints: { id: /\d+/ }
-  resources :member_parking_permits, only: %i[new create]
+  resources :member_parking_permits, only: %i[new create] do
+    member do
+      patch :close
+    end
+  end
 
   resources :users, only: [:index, :show, :new, :create, :edit, :update, :destroy], constraints: { id: /[^\/]+/ } do
     member do

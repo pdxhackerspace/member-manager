@@ -16,9 +16,13 @@
   </div>
   <div class="d-flex gap-2 align-items-center">
     <% settings = DefaultSetting.instance %>
-    <%= button_to toggle_authentik_sync_inactive_as_active_users_path, method: :post, class: "btn btn-sm #{settings.authentik_sync_inactive_as_active? ? 'btn-outline-secondary' : 'btn-warning'}", data: { turbo: false }, title: "When enabled, inactive members keep Authentik access" do %>
-      <i class="bi bi-<%= settings.authentik_sync_inactive_as_active? ? 'toggle-on' : 'toggle-off' %> me-1"></i>
-      Sync inactive as active
+    <% sync_inactive_as_active = settings.authentik_sync_inactive_as_active? %>
+    <%= button_to toggle_authentik_sync_inactive_as_active_users_path, method: :post,
+        class: "btn btn-sm #{sync_inactive_as_active ? 'btn-outline-success' : 'btn-outline-secondary'}",
+        data: { turbo: false, turbo_confirm: sync_inactive_as_active ? 'Stop keeping inactive members active in Authentik? They will be set inactive there.' : 'Keep inactive members active in Authentik? They will be re-synced as active.' },
+        title: sync_inactive_as_active ? 'On — inactive members are kept active in Authentik. Click to turn off.' : 'Off — inactive members are set inactive in Authentik. Click to turn on.' do %>
+      <i class="bi bi-<%= sync_inactive_as_active ? 'check-circle-fill' : 'x-circle' %> me-1"></i>
+      Inactive synced as active: <span class="fw-medium"><%= sync_inactive_as_active ? 'On' : 'Off' %></span>
     <% end %>
     <% if MemberSource.enabled?('member_manager') %>
       <%= button_to "Sync to Authentik", sync_all_to_authentik_users_path, method: :post, class: "btn btn-outline-secondary btn-sm", data: { turbo: false, turbo_confirm: "This will sync all members, groups, and the active members group to Authentik. Continue?" } %>
@@ -32,7 +36,7 @@
   <%
     filter_labels = []
     filter_labels << "Including legacy" if @include_legacy
-    filter_labels << "Membership: #{params[:membership_status].humanize}" if params[:membership_status].present?
+    filter_labels << "Membership: #{membership_status_label(params[:membership_status])}" if params[:membership_status].present?
     filter_labels << "Payment: #{params[:payment_type].humanize}" if params[:payment_type].present?
     filter_labels << "Dues: #{params[:dues_status].humanize}" if params[:dues_status].present?
     filter_labels << "Search: #{params[:q]}" if params[:q].present?
@@ -94,7 +98,7 @@
         <%= '✓ ' if params[:membership_status] == 'paying' %>Paying <span class="count"><%= @membership_status_paying %></span>
       <% end %>
       <%= link_to stacking_filter_path(:membership_status, 'applicant'), class: "filter-chip warning text-decoration-none #{'active' if params[:membership_status] == 'applicant'} #{'muted' if @membership_status_applicant.zero?}" do %>
-        <%= '✓ ' if params[:membership_status] == 'applicant' %>Applicant <span class="count"><%= @membership_status_applicant %></span>
+        <%= '✓ ' if params[:membership_status] == 'applicant' %>New Member <span class="count"><%= @membership_status_applicant %></span>
       <% end %>
       <%= link_to stacking_filter_path(:membership_status, 'banned'), class: "filter-chip danger text-decoration-none #{'active' if params[:membership_status] == 'banned'} #{'muted' if @membership_status_banned.zero?}" do %>
         <%= '✓ ' if params[:membership_status] == 'banned' %>Banned <span class="count"><%= @membership_status_banned %></span>
@@ -245,7 +249,7 @@
                   <% end %>
                 </td>
                 <td>
-                  <span class="badge <%= membership_status_badge_subtle_class(user.membership_status) %>"><%= user.membership_status&.humanize %></span>
+                  <span class="badge <%= membership_status_badge_subtle_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
                 </td>
                 <td class="text-muted small"><%= time_ago_in_words(user.created_at) %> ago</td>
               </tr>
@@ -305,7 +309,7 @@
                 <span class="text-muted">–</span>
               <% else %>
                 <span class="badge <%= membership_status_badge_subtle_class(user.membership_status) %>">
-                  <%= user.membership_status.humanize %>
+                  <%= membership_status_label(user.membership_status) %>
                 </span>
                 <% if user.active? %>
                   <span class="badge text-bg-success-subtle ms-1">Active</span>

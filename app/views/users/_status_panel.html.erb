@@ -198,7 +198,7 @@
 
         <div class="mb-3">
           <small class="text-muted d-block">Membership Status</small>
-          <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %> fs-6"><%= user.membership_status.humanize %></span>
+          <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %> fs-6"><%= membership_status_label(user.membership_status) %></span>
         </div>
 
         <% manage_membership_content = TextFragment.content_for('manage_your_membership') %>

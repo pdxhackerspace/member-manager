@@ -223,7 +223,7 @@
                             data: { turbo_frame: '_top' } %>
               </td>
               <td>
-                <span class="badge bg-<%= app.status_badge_color %><%= ' text-dark' if app.under_review? %>"><%= app.status_display %></span>
+                <span class="badge bg-<%= app.status_badge_color %><%= ' text-dark' if app.in_review? %>"><%= app.status_display %></span>
               </td>
               <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
               <td class="text-nowrap">

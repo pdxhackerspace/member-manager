@@ -442,6 +442,7 @@ Rails.application.routes.draw do
       post :approve
       post :reject
       post :delay_for_review
+      post :mark_needs_review
       post :link_user
       post :unlink_user
       post :vote_ai_feedback

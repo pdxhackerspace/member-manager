@@ -33,6 +33,7 @@ class Journal < ApplicationRecord
     application_approved
     application_rejected
     application_delayed_for_review
+    application_marked_needs_review
   ].freeze
 
   # Fields whose changes should trigger a highlight

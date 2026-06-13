@@ -159,6 +159,26 @@ module MembershipApplications
       assert_nil application.reload.application_nag_sent_at
     end
 
+    test 'does not email applications parked as needs review' do
+      now = Time.zone.local(2026, 5, 1, 9, 0, 0)
+      train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+      application = stale_application(
+        now: now,
+        email: 'parked-needs-review@example.com',
+        status: 'needs_review'
+      )
+
+      travel_to now do
+        assert_no_difference 'ActionMailer::Base.deliveries.size' do
+          perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
+            NotifyDirectorsOfStaleApplications.call(now: now)
+          end
+        end
+      end
+
+      assert_nil application.reload.application_nag_sent_at
+    end
+
     private
 
     def stale_application(now:, email:, status: 'submitted', application_nag_sent_at: nil)

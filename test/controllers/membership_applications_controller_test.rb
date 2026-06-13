@@ -380,6 +380,69 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/open applications/i, flash[:alert].to_s)
   end
 
+  test 'mark_needs_review blocked when executive director topic exists and admin lacks training' do
+    TrainingTopic.create!(name: 'Executive Director')
+    app = MembershipApplication.create!(
+      email: 'needs-review-gate@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    assert_no_changes -> { app.reload.status } do
+      post mark_needs_review_membership_application_path(app), params: { admin_notes: 'Later' }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_match(/Executive Director/i, flash[:alert].to_s)
+  end
+
+  test 'mark_needs_review sets needs_review when executive director' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(
+      email: 'needs-review-ok@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    assert_difference -> { Journal.where(action: 'application_marked_needs_review').count }, 1 do
+      post mark_needs_review_membership_application_path(app), params: { admin_notes: 'Parked' }
+    end
+    assert_redirected_to membership_application_path(app)
+    assert_match(/needs review/i, flash[:notice].to_s)
+    assert_equal 'needs_review', app.reload.status
+    assert_equal 'Parked', app.admin_notes
+  end
+
+  test 'mark_needs_review redirects when application already parked' do
+    topic = TrainingTopic.create!(name: 'Executive Director')
+    admin = User.find(session[:user_id])
+    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    app = MembershipApplication.create!(
+      email: 'needs-review-twice@example.com',
+      status: 'needs_review',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    post mark_needs_review_membership_application_path(app), params: { admin_notes: 'x' }
+    assert_redirected_to membership_application_path(app)
+    assert_match(/open applications/i, flash[:alert].to_s)
+  end
+
+  test 'under review tab includes needs_review applications' do
+    app = MembershipApplication.create!(
+      email: 'needs-review-index@example.com',
+      status: 'needs_review',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'under_review')
+    assert_response :success
+    assert_includes response.body, app.email
+    assert_includes response.body, 'Needs review'
+  end
+
   test 'reject redirects to edit queued mail when executive director' do
     topic = TrainingTopic.create!(name: 'Executive Director')
     admin = User.find(session[:user_id])

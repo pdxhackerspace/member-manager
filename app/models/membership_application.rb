@@ -1,5 +1,7 @@
 class MembershipApplication < ApplicationRecord
-  STATUSES = %w[draft submitted under_review approved rejected].freeze
+  STATUSES = %w[draft submitted under_review needs_review approved rejected].freeze
+  IN_REVIEW_STATUSES = %w[under_review needs_review].freeze
+  NAGGABLE_PENDING_STATUSES = %w[submitted under_review].freeze
 
   # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
   EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
@@ -41,13 +43,14 @@ class MembershipApplication < ApplicationRecord
     where.not(status: 'draft').where(ai_feedback_processed_at: nil)
   }
   scope :submitted_apps, -> { where(status: 'submitted') }
-  scope :under_review_apps, -> { where(status: 'under_review') }
+  scope :under_review_apps, -> { where(status: IN_REVIEW_STATUSES) }
   scope :approved, -> { where(status: 'approved') }
   scope :rejected, -> { where(status: 'rejected') }
-  # Applications awaiting a final decision (Open or Under Review).
-  scope :pending, -> { where(status: %w[submitted under_review]) }
+  # Applications awaiting a final decision (Open, Under Review, or parked Needs Review).
+  scope :pending, -> { where(status: %w[submitted] + IN_REVIEW_STATUSES) }
+  scope :naggable_pending, -> { where(status: NAGGABLE_PENDING_STATUSES) }
   scope :stale_pending, lambda { |stale_cutoff = 1.week.ago|
-    pending
+    naggable_pending
       .where('COALESCE(membership_applications.submitted_at, membership_applications.created_at) <= ?', stale_cutoff)
   }
   scope :awaiting_admin_nag, lambda { |stale_cutoff = 1.week.ago, repeat_cutoff = 3.days.ago|
@@ -107,6 +110,14 @@ class MembershipApplication < ApplicationRecord
     status == 'under_review'
   end
 
+  def needs_review?
+    status == 'needs_review'
+  end
+
+  def in_review?
+    under_review? || needs_review?
+  end
+
   def approved?
     status == 'approved'
   end
@@ -116,7 +127,7 @@ class MembershipApplication < ApplicationRecord
   end
 
   def pending?
-    submitted? || under_review?
+    submitted? || in_review?
   end
 
   def submit!
@@ -168,10 +179,23 @@ class MembershipApplication < ApplicationRecord
     Journal.record_application_event!(application: self, action: 'application_delayed_for_review', actor: admin)
   end
 
+  # Parks the application indefinitely: no staff nags, no acceptance votes, no applicant email.
+  def mark_needs_review!(admin, notes: nil)
+    raise ArgumentError, 'Only open applications can be marked needs review' unless submitted?
+
+    update!(
+      status: 'needs_review',
+      reviewed_by: admin,
+      reviewed_at: Time.current,
+      admin_notes: notes
+    )
+    Journal.record_application_event!(application: self, action: 'application_marked_needs_review', actor: admin)
+  end
+
   def status_display
     return 'Open' if submitted?
-
-    return 'Under Review' if under_review?
+    return 'Under review' if under_review?
+    return 'Needs review' if needs_review?
 
     status&.titleize
   end
@@ -179,7 +203,7 @@ class MembershipApplication < ApplicationRecord
   def status_badge_color
     case status
     when 'submitted' then 'primary'
-    when 'under_review' then 'warning'
+    when 'under_review', 'needs_review' then 'warning'
     when 'approved' then 'success'
     when 'rejected' then 'danger'
     else 'secondary'
@@ -244,7 +268,7 @@ class MembershipApplication < ApplicationRecord
   end
 
   def acceptance_vote_open?
-    !approved? && !rejected?
+    !approved? && !rejected? && !needs_review?
   end
 
   AI_FEEDBACK_REC_BADGES = {

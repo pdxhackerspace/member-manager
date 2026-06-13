@@ -53,6 +53,57 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     end
   end
 
+  test 'mark_needs_review! moves open application to needs_review and journals' do
+    app = MembershipApplication.create!(email: 'needs-review@example.com', status: 'submitted')
+    admin = users(:one)
+
+    assert_difference -> { Journal.where(action: 'application_marked_needs_review').count }, 1 do
+      app.mark_needs_review!(admin, notes: 'Not now')
+    end
+
+    app.reload
+    assert_equal 'needs_review', app.status
+    assert_equal admin, app.reviewed_by
+    assert app.reviewed_at.present?
+    assert_equal 'Not now', app.admin_notes
+    assert_not app.acceptance_vote_open?
+  end
+
+  test 'mark_needs_review! raises when not open' do
+    app = MembershipApplication.create!(email: 'needs-review-bad@example.com', status: 'approved',
+                                        submitted_at: Time.current, reviewed_at: Time.current)
+
+    assert_raises(ArgumentError) do
+      app.mark_needs_review!(users(:one))
+    end
+  end
+
+  test 'stale_pending excludes needs_review applications' do
+    travel_to Time.zone.local(2026, 5, 28, 12, 0, 0) do
+      parked = MembershipApplication.create!(
+        email: 'parked-needs-review@example.com',
+        status: 'needs_review',
+        submitted_at: 8.days.ago,
+        created_at: 8.days.ago,
+        reviewed_at: Time.current
+      )
+
+      ids = MembershipApplication.stale_pending.pluck(:id)
+      assert_not_includes ids, parked.id
+    end
+  end
+
+  test 'under_review_apps includes needs_review status' do
+    parked = MembershipApplication.create!(
+      email: 'in-review-tab@example.com',
+      status: 'needs_review',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    assert_includes MembershipApplication.under_review_apps.pluck(:id), parked.id
+  end
+
   test 'reject! creates pending queued rejection mail' do
     app = MembershipApplication.create!(email: 'reject-mail-test@example.com', status: 'submitted')
     admin = users(:one)

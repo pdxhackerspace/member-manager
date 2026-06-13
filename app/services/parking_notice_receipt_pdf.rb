@@ -92,16 +92,16 @@ class ParkingNoticeReceiptPdf
     @theme ||= if thermal?
                  s = thermal_font_scale
                  {
-                   org: (8 * s).round, title: (18 * s).round, subhead: (10 * s).round,
-                   section: (8 * s).round, body: (9 * s).round,
-                   field: (8 * s).round,
-                   header_gap: 4, block_gap: 2, sep_pad: 4
+                   org: (11 * s).round, title: (18 * s).round, subhead: (10 * s).round,
+                   section: (11 * s).round, body: (12 * s).round,
+                   field: (11 * s).round,
+                   header_gap: 4, block_gap: 3, sep_pad: 4
                  }
                else
                  {
-                   org: 16, title: 48, subhead: 24, section: 14, body: 17,
-                   field: 17,
-                   header_gap: 14, block_gap: 6, sep_pad: 12
+                   org: 20, title: 48, subhead: 24, section: 18, body: 21,
+                   field: 21,
+                   header_gap: 14, block_gap: 8, sep_pad: 12
                  }
                end
   end

@@ -59,6 +59,9 @@
   </div>
 <% end %>
 
+<% if @profile_hidden %>
+  <%= render 'users/profile_hidden', user: @user, view_level: @view_level %>
+<% else %>
 <% if @view_level == :admin && @user.emergency_active_override? %>
   <div class="override-banner mb-3">
     <div class="d-flex align-items-center gap-2 small">
@@ -414,15 +417,8 @@
 
 <% else %>
   <%# ===== PUBLIC VIEW - NO TABS ===== %>
-  <% if @user.profile_visibility != 'public' %>
-    <div class="text-center py-5">
-      <h1 class="display-6 fw-bold text-muted">404</h1>
-      <p class="lead text-muted mb-1">Page not found</p>
-      <p class="text-muted small">This profile is not visible to the public.</p>
-    </div>
-  <% else %>
-    <%= render 'users/tab_profile_public', user: @user %>
-  <% end %>
+  <%= render 'users/tab_profile_public', user: @user %>
+<% end %>
 <% end %>
 
 <%# Member Help Modal - only for profile owner %>

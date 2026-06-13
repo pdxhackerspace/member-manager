@@ -163,6 +163,7 @@ class UsersController < AuthenticatedController
     # Determine view level based on viewer and profile settings
     @natural_view_level = determine_view_level
     @view_level = determine_effective_view_level
+    @profile_hidden = profile_hidden_for_view?(@view_level)
 
     # Set up view preview options for admins and profile owners
     setup_view_preview_options
@@ -638,20 +639,26 @@ class UsersController < AuthenticatedController
     return if user_signed_in? && @user == current_user
 
     # Check profile visibility settings
+    # Anyone can view a public profile. For members-only and private profiles,
+    # only anonymous visitors are redirected to sign in. Signed-in members fall
+    # through to the show action, which renders the profile or, for a private
+    # profile, a "this profile is private" notice at the same URL.
+    return if @user.profile_visibility == 'public'
+
+    redirect_to login_path, alert: 'Please sign in to view this profile.' unless user_signed_in?
+  end
+
+  # Whether the profile body should be replaced with a "not available" notice
+  # for the given view level, based on the profile's visibility setting.
+  # Admin and self view levels always see the full profile.
+  def profile_hidden_for_view?(view_level)
     case @user.profile_visibility
-    when 'public'
-      # Anyone can view
-      true
     when 'members'
-      # Must be logged in
-      redirect_to login_path, alert: 'Please sign in to view this profile.' unless user_signed_in?
+      view_level == :public
     when 'private'
-      # Only admin or self (already checked above)
-      if user_signed_in?
-        redirect_to user_path(current_user), alert: 'This profile is private.'
-      else
-        redirect_to login_path, alert: 'Please sign in to view this profile.'
-      end
+      view_level.in?(%i[public members])
+    else
+      false
     end
   end
 

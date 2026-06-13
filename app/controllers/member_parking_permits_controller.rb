@@ -1,4 +1,6 @@
 class MemberParkingPermitsController < AuthenticatedController
+  MAX_MEMBER_PERMIT_DURATION = 2.weeks
+
   before_action :set_owned_notice, only: %i[show edit update close request_clearance add_note]
   before_action :require_owned_permit, only: %i[edit update]
 
@@ -20,8 +22,9 @@ class MemberParkingPermitsController < AuthenticatedController
     @parking_notice.notice_type = 'permit'
     @parking_notice.issued_by = current_user
     @parking_notice.status = 'active'
+    validate_member_permit_duration
 
-    if @parking_notice.save
+    if @parking_notice.errors.empty? && @parking_notice.save
       @parking_notice.record_journal_entry!('parking_permit_issued', actor: current_user)
       redirect_to user_path(current_user, tab: :parking), notice: 'Parking permit created successfully.'
     else
@@ -31,7 +34,10 @@ class MemberParkingPermitsController < AuthenticatedController
 
   def update
     @parking_notice.event_actor = current_user
-    if @parking_notice.update(member_parking_permit_params)
+    @parking_notice.assign_attributes(member_parking_permit_params)
+    validate_member_permit_duration
+
+    if @parking_notice.errors.empty? && @parking_notice.save
       redirect_to user_path(current_user, tab: :parking), notice: 'Parking permit updated.'
     else
       render :edit, status: :unprocessable_content
@@ -110,5 +116,14 @@ class MemberParkingPermitsController < AuthenticatedController
     params.expect(
       parking_notice: %i[description location location_detail expires_at]
     )
+  end
+
+  def validate_member_permit_duration
+    return if @parking_notice.expires_at.blank?
+
+    max_expires_at = Time.current + MAX_MEMBER_PERMIT_DURATION
+    return if @parking_notice.expires_at <= max_expires_at
+
+    @parking_notice.errors.add(:expires_at, 'must be within 2 weeks')
   end
 end

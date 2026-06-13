@@ -41,7 +41,7 @@ module MembershipApplications
     end
 
     def naggable?(application)
-      application.pending? &&
+      application.status.in?(MembershipApplication::NAGGABLE_PENDING_STATUSES) &&
         application_age_start(application) <= @now - INITIAL_DELAY &&
         next_nag_due?(application)
     end

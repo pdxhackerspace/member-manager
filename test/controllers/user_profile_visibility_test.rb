@@ -68,11 +68,18 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
     assert_match @public_user.display_name, response.body
   end
 
-  test 'logged in member cannot view private profile of another user' do
+  test 'logged in member sees a private notice on a private profile at its own URL' do
     sign_in_as_member
     get user_path(@private_user)
-    # Should redirect to their own profile
-    assert_redirected_to user_path(@member_with_account)
+
+    # Stays on the private profile's URL (no redirect) and shows the notice
+    assert_response :success
+    assert_match(/This profile is private/i, response.body)
+
+    # Must not leak the hidden profile's contents
+    assert_no_match(@private_user.bio, response.body) if @private_user.bio.present?
+    assert_no_match(/Trained on/i, response.body)
+    assert_no_match(/nav-tabs/, response.body)
   end
 
   test 'logged in member sees training info but not status panel on other profiles' do
@@ -335,6 +342,42 @@ class UserProfileVisibilityTest < ActionDispatch::IntegrationTest
 
     # Should not see preview selector (they're not admin or owner)
     assert_no_match(/View as:/i, response.body)
+  end
+
+  test 'owner previewing own private profile as other members sees the private notice' do
+    @member_with_account.update!(profile_visibility: 'private')
+
+    sign_in_as_member
+    get user_path(@member_with_account, view_as: :members)
+    assert_response :success
+
+    # Preview controls remain so the owner can switch back
+    assert_match(/View as:/i, response.body)
+    assert_match(/This profile is private/i, response.body)
+
+    # The owner's own profile contents are hidden in this preview
+    assert_no_match(@member_with_account.bio, response.body) if @member_with_account.bio.present?
+  end
+
+  test 'owner viewing own private profile normally sees their full profile' do
+    @member_with_account.update!(profile_visibility: 'private')
+
+    sign_in_as_member
+    get user_path(@member_with_account)
+    assert_response :success
+
+    # Self view is never hidden by the visibility setting
+    assert_no_match(/This profile is private/i, response.body)
+    assert_match(/nav-tabs/, response.body)
+  end
+
+  test 'admin viewing a private profile sees the full profile, not the private notice' do
+    sign_in_as_admin
+    get user_path(@private_user)
+    assert_response :success
+
+    assert_no_match(/This profile is private/i, response.body)
+    assert_match @private_user.display_name, response.body
   end
 
   private

@@ -92,7 +92,7 @@ module MembershipApplications
       # Blank Timestamp leaves submitted_at unchanged (nil does not overwrite).
       attrs[:submitted_at] = submitted_at if submitted_at.present?
 
-      if app.submitted? || app.under_review?
+      if app.submitted? || app.in_review?
         attrs[:status] = status
         if status.in?(%w[approved rejected])
           attrs[:reviewed_at] = reviewed_at

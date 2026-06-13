@@ -6,21 +6,20 @@ class MembershipApplicationsController < ApplicationController
   include MembershipApplicationWizard::Actions
 
   ADMIN_ACTIONS = %i[
-    index show import approve reject delay_for_review link_user unlink_user vote_ai_feedback
+    index show import approve reject delay_for_review mark_needs_review link_user unlink_user vote_ai_feedback
     save_tour_feedback vote_acceptance extend_initiated_application
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
-    show approve reject delay_for_review link_user unlink_user vote_ai_feedback
+    show approve reject delay_for_review mark_needs_review link_user unlink_user vote_ai_feedback
     save_tour_feedback vote_acceptance
   ].freeze
 
   before_action :require_admin!, only: ADMIN_ACTIONS
   before_action :set_application_admin, only: APPLICATION_MEMBER_ACTIONS
-  before_action :require_executive_director_for_final_decision!, only: %i[approve reject delay_for_review]
-  before_action :require_submitted_for_delay!, only: :delay_for_review
+  before_action :require_executive_director_for_final_decision!,
+                only: %i[approve reject delay_for_review mark_needs_review]
+  before_action :require_submitted_for_review_parking!, only: %i[delay_for_review mark_needs_review]
   before_action :require_pending_application_for_acceptance_vote!, only: :vote_acceptance
-
-  # --- Admin actions ---
 
   def import
     if params[:file].blank?
@@ -56,11 +55,12 @@ class MembershipApplicationsController < ApplicationController
                       @applications
                     when 'unlinked'
                       @applications.where(user_id: nil).where(status: 'approved')
+                    when 'under_review'
+                      @applications.where(status: MembershipApplication::IN_REVIEW_STATUSES)
                     else
                       @applications.where(status: @current_status)
                     end
     @applications = @applications.admin_search(params[:q])
-    # Ensure stable newest-first order after search/includes (PostgreSQL + AR can otherwise return arbitrary order).
     @applications = @applications.newest_first
 
     @pagy, @applications = pagy(@applications, limit: 25)
@@ -93,8 +93,7 @@ class MembershipApplicationsController < ApplicationController
     tf = @application.tour_feedbacks.detect { |f| f.user_id == current_user.id }
     @current_tour_feedback = tf || @application.tour_feedbacks.build(user: current_user)
     av = @application.acceptance_votes.detect { |v| v.user_id == current_user.id }
-    # Use `new` not `build` so we do not add a blank vote to the association (nil decision
-    # was shown as "Reject" in the tally list and could confuse the form).
+    # Use `new` not `build` — a blank vote was shown as "Reject" in the tally list.
     @current_acceptance_vote = av || MembershipApplicationAcceptanceVote.new(
       membership_application: @application,
       user: current_user
@@ -188,12 +187,9 @@ class MembershipApplicationsController < ApplicationController
     end
   end
 
-  def delay_for_review
-    notes = params[:admin_notes]
-    @application.delay_for_review!(current_user, notes: notes)
-    redirect_to membership_application_path(@application),
-                notice: 'Application marked as under review.'
-  end
+  def delay_for_review = review_parking!(:delay_for_review!, 'Application marked as under review.')
+
+  def mark_needs_review = review_parking!(:mark_needs_review!, 'Application marked as needs review.')
 
   def vote_ai_feedback
     unless @application.ai_feedback_processed?
@@ -253,18 +249,23 @@ class MembershipApplicationsController < ApplicationController
     end
   end
 
+  def review_parking!(method, notice)
+    @application.public_send(method, current_user, notes: params[:admin_notes])
+    redirect_to membership_application_path(@application), notice: notice
+  end
+
   def require_executive_director_for_final_decision!
     return if true_user&.can_finalize_membership_application?
 
     redirect_to membership_application_path(@application),
-                alert: 'Only members trained as Executive Director may approve, reject, or delay applications.'
+                alert: 'Only members trained as Executive Director may approve, reject, or park applications.'
   end
 
-  def require_submitted_for_delay!
+  def require_submitted_for_review_parking!
     return if @application.submitted?
 
     redirect_to membership_application_path(@application),
-                alert: 'Only open applications can be marked for delayed review.'
+                alert: 'Only open applications can be parked for review.'
   end
 
   def require_pending_application_for_acceptance_vote!
@@ -279,7 +280,7 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def acceptance_vote_params
-    params.expect(acceptance_vote: [:decision])
+    params.expect(acceptance_vote: %i[decision comment])
   end
 
   def ai_feedback_vote_params

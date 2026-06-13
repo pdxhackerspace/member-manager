@@ -42,6 +42,57 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_path(member, tab: :parking)
   end
 
+  test 'member can create permit expiring in exactly 2 weeks' do
+    sign_in_as_member
+
+    assert_difference 'ParkingNotice.count', 1 do
+      post member_parking_permits_path, params: {
+        parking_notice: {
+          description: 'Two week project',
+          location: 'Woodshop',
+          expires_at: 2.weeks.from_now.strftime('%Y-%m-%dT%H:%M')
+        }
+      }
+    end
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+  end
+
+  test 'member cannot create permit longer than 2 weeks' do
+    sign_in_as_member
+
+    assert_no_difference 'ParkingNotice.count' do
+      post member_parking_permits_path, params: {
+        parking_notice: {
+          description: 'Long project',
+          location: 'Woodshop',
+          expires_at: 3.weeks.from_now.strftime('%Y-%m-%dT%H:%M')
+        }
+      }
+    end
+
+    assert_response :unprocessable_content
+    assert_match(/must be within 2 weeks/i, response.body)
+  end
+
+  test 'member cannot extend permit beyond 2 weeks' do
+    sign_in_as_member
+    permit = member_permit
+
+    assert_no_changes -> { permit.reload.expires_at } do
+      patch member_parking_permit_path(permit), params: {
+        parking_notice: {
+          description: permit.description,
+          location: permit.location,
+          expires_at: 1.month.from_now.strftime('%Y-%m-%dT%H:%M')
+        }
+      }
+    end
+
+    assert_response :unprocessable_content
+    assert_match(/must be within 2 weeks/i, response.body)
+  end
+
   test 'anonymous user cannot access member permit form' do
     get new_member_parking_permit_path
     assert_redirected_to login_path
@@ -298,13 +349,11 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def assert_expiration_quick_buttons
-    assert_select '.quick-expire', 7
+    assert_select '.quick-expire', 4
     assert_select '.quick-expire[data-days="1"]', text: '1 day'
     assert_select '.quick-expire[data-days="3"]', text: '3 days'
     assert_select '.quick-expire[data-days="7"]', text: '1 week'
     assert_select '.quick-expire[data-days="14"]', text: '2 weeks'
-    assert_select '.quick-expire[data-days="30"]', text: '30 days'
-    assert_select '.quick-expire[data-days="180"]', text: '180 days'
-    assert_select '.quick-expire[data-years="1"]', text: '1 year'
+    assert_select 'input[name="parking_notice[expires_at]"][max]'
   end
 end

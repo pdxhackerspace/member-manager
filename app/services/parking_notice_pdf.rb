@@ -38,7 +38,7 @@ class ParkingNoticePdf
     move_down 10
     stroke_horizontal_rule
     move_down 10
-    text "Notice ##{@notice.id}", size: 10, color: '666666', align: :center
+    text "Notice ##{@notice.id}", size: 12, color: '666666', align: :center
   end
 
   def metadata_section
@@ -60,6 +60,7 @@ class ParkingNoticePdf
     table(data, column_widths: [100, 412]) do |t|
       t.cells.borders = []
       t.cells.padding = [4, 8]
+      t.cells.size = 14
       t.column(0).font_style = :bold
       t.column(0).text_color = '444444'
     end
@@ -68,7 +69,7 @@ class ParkingNoticePdf
   def description_section
     section_header('Description')
     move_down 8
-    text @notice.description, size: 11, leading: 4
+    text @notice.description, size: 14, leading: 4
   end
 
   def notes_section
@@ -77,11 +78,11 @@ class ParkingNoticePdf
 
     bounding_box([0, cursor], width: bounds.width) do
       fill_color 'FFF8E1'
-      fill_rectangle([0, cursor], bounds.width, height_of(@notice.notes, size: 11) + 20)
+      fill_rectangle([0, cursor], bounds.width, height_of(@notice.notes, size: 14) + 20)
       fill_color '000000'
       move_down 10
       indent(10) do
-        text @notice.notes, size: 11, leading: 4
+        text @notice.notes, size: 14, leading: 4
       end
     end
     move_down 10
@@ -130,7 +131,7 @@ class ParkingNoticePdf
   end
 
   def section_header(title)
-    text title, size: 14, style: :bold
+    text title, size: 16, style: :bold
     stroke_horizontal_rule
   end
 
@@ -141,7 +142,7 @@ class ParkingNoticePdf
       bounding_box([0, 30], width: bounds.width, height: 30) do
         stroke_horizontal_rule
         move_down 5
-        font_size 8 do
+        font_size 10 do
           text_box "#{org} — Generated: #{Time.current.strftime('%B %d, %Y at %I:%M %p')}",
                    at: [0, cursor],
                    width: bounds.width / 2,

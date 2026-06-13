@@ -28,12 +28,15 @@
     </div>
   </div>
 
+  <% max_expires_at = MemberParkingPermitsController::MAX_MEMBER_PERMIT_DURATION.from_now %>
   <div class="mt-3 mb-4">
     <%= f.label :expires_at, 'Expiration', class: 'form-label' %>
-    <%= render 'parking_notices/expiration_quick_buttons' %>
+    <div class="text-12 text-secondary mb-2">Self-service permits cannot exceed 2 weeks.</div>
+    <%= render 'expiration_quick_buttons' %>
     <%= f.datetime_local_field :expires_at,
                                class: 'form-control',
                                required: true,
+                               max: max_expires_at.strftime('%Y-%m-%dT%H:%M'),
                                value: parking_notice.expires_at&.strftime('%Y-%m-%dT%H:%M') %>
   </div>
 

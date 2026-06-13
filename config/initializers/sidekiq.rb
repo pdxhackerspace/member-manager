@@ -102,6 +102,14 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
+  # Membership Application AI Feedback Retry - Every 30 minutes
+  Sidekiq::Cron::Job.create(
+    name: 'Membership Application AI Feedback Retry - Every 30 minutes',
+    cron: '*/30 * * * *',
+    class: 'MembershipApplicationAiFeedbackRetryJob',
+    active_job: true
+  )
+
   # Message Trash Cleanup - Daily at 5am
   Sidekiq::Cron::Job.create(
     name: 'Message Trash Cleanup - Daily at 5am',

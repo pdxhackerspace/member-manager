@@ -504,10 +504,36 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       submitted_at: Time.current
     )
     post vote_acceptance_membership_application_path(app), params: {
-      acceptance_vote: { decision: 'accept' }
+      acceptance_vote: { decision: 'accept', comment: 'Strong fit for the shop' }
     }
     assert_redirected_to membership_application_path(app)
     assert_equal({ 'accept' => 1 }, app.reload.acceptance_vote_counts)
+    vote = app.acceptance_votes.sole
+    assert_equal 'Strong fit for the shop', vote.comment
+  end
+
+  test 'vote_acceptance updates existing vote and comment for same admin' do
+    sign_in_as_admin
+    admin = User.find(session[:user_id])
+    app = MembershipApplication.create!(
+      email: 'vote-accept-update@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    MembershipApplicationAcceptanceVote.create!(
+      membership_application: app,
+      user: admin,
+      decision: 'accept',
+      comment: 'First take'
+    )
+    assert_no_difference -> { app.reload.acceptance_votes.count } do
+      post vote_acceptance_membership_application_path(app), params: {
+        acceptance_vote: { decision: 'reject', comment: 'Changed after tour' }
+      }
+    end
+    vote = app.reload.acceptance_votes.sole
+    assert_equal 'reject', vote.decision
+    assert_equal 'Changed after tour', vote.comment
   end
 
   test 'vote_acceptance rejected when application finalized' do

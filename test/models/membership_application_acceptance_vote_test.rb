@@ -16,10 +16,23 @@ class MembershipApplicationAcceptanceVoteTest < ActiveSupport::TestCase
     v = MembershipApplicationAcceptanceVote.new(
       membership_application: @app,
       user: @user,
-      decision: 'accept'
+      decision: 'accept',
+      comment: 'Great energy on the tour'
     )
     assert v.valid?
     assert v.save
+    assert_equal 'Great energy on the tour', v.comment
+  end
+
+  test 'comment is optional' do
+    v = MembershipApplicationAcceptanceVote.new(
+      membership_application: @app,
+      user: @user,
+      decision: 'reject'
+    )
+    assert v.valid?
+    assert v.save
+    assert_nil v.comment
   end
 
   test 'one vote per user per application' do

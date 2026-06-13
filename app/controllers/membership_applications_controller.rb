@@ -280,7 +280,7 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def acceptance_vote_params
-    params.expect(acceptance_vote: [:decision])
+    params.expect(acceptance_vote: %i[decision comment])
   end
 
   def ai_feedback_vote_params

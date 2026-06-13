@@ -42,6 +42,14 @@
                 <%= av.label :decision, 'Reject', value: 'reject', class: 'form-check-label' %>
               </div>
             </div>
+            <div class="mt-3">
+              <%= av.label :comment, 'Explain your vote', class: 'form-label' %>
+              <span class="text-muted small">(optional)</span>
+              <%= av.text_area :comment,
+                               class: 'form-control',
+                               rows: 3,
+                               placeholder: 'Why accept or reject this applicant?' %>
+            </div>
           </fieldset>
         <% end %>
         <%= submit_tag 'Save vote', class: 'btn btn-outline-primary mt-3' %>
@@ -56,14 +64,21 @@
       <h6 class="small text-uppercase text-muted fw-semibold mb-2">Votes</h6>
       <ul class="list-unstyled small mb-0">
         <% persisted_votes.sort_by { |v| [v.user.display_name, v.id] }.each do |v| %>
-          <li class="mb-1">
-            <%= link_to v.user.display_name, user_path(v.user), class: 'text-decoration-none' %>:
-            <% if v.decision == 'accept' %>
-              <span class="badge bg-success">Accept</span>
-            <% elsif v.decision == 'reject' %>
-              <span class="badge bg-danger">Reject</span>
+          <li class="mb-3 pb-3 border-bottom border-secondary-subtle">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <%= link_to v.user.display_name, user_path(v.user), class: 'fw-semibold text-decoration-none' %>
+              <% if v.decision == 'accept' %>
+                <span class="badge bg-success">Accept</span>
+              <% elsif v.decision == 'reject' %>
+                <span class="badge bg-danger">Reject</span>
+              <% else %>
+                <span class="badge bg-secondary">—</span>
+              <% end %>
+            </div>
+            <% if v.comment.present? %>
+              <div class="text-body-secondary"><%= simple_format v.comment, class: 'mb-0' %></div>
             <% else %>
-              <span class="badge bg-secondary">—</span>
+              <p class="text-muted fst-italic mb-0">No explanation given</p>
             <% end %>
           </li>
         <% end %>

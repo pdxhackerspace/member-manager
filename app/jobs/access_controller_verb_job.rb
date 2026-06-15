@@ -88,12 +88,20 @@ class AccessControllerVerbJob < ApplicationJob
       user = User.find_by(id: user_id)
       if user
         env['MM_USER_ID'] = user.id.to_s
-        env['MM_USER_NAME'] = user.full_name.presence || user.display_name
+        if (name = normalize_user_text(user.full_name.presence || user.display_name))
+          env['MM_USER_NAME'] = name
+        end
         env['MM_USER_EMAIL'] = user.email if user.email.present?
-        env['MM_USER_USERNAME'] = user.username if user.username.present?
+        if (username = normalize_user_text(user.username))
+          env['MM_USER_USERNAME'] = username
+        end
       end
     end
 
     env
+  end
+
+  def normalize_user_text(value)
+    AccessControllerTextNormalizer.call(value).presence
   end
 end

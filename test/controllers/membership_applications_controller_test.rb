@@ -2,8 +2,11 @@
 
 # Also see MembershipApplicationTest for admin_search scope tests and index?q tests below.
 require 'test_helper'
+require 'active_job/test_helper'
 
 class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
+  include ActiveJob::TestHelper
+
   setup do
     @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
     Rails.application.config.x.local_auth.enabled = true
@@ -613,6 +616,42 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to membership_applications_path(status: 'initiated')
     assert_in_delta original_expiry + 1.week, verification.reload.expires_at, 1.second
+  end
+
+  test 'resend initiated application confirmation link' do
+    verification = ApplicationVerification.create!(email: 'resend@example.com')
+
+    assert_enqueued_emails 1 do
+      post resend_initiated_membership_applications_path(verification)
+    end
+
+    assert_redirected_to membership_applications_path(status: 'initiated')
+    assert_match 'Re-sent the confirmation link', flash[:notice]
+  end
+
+  test 'resend initiated application rejects verified open applications' do
+    verification = ApplicationVerification.create!(email: 'open@example.com')
+    verification.verify_email!
+
+    assert_no_enqueued_emails do
+      post resend_initiated_membership_applications_path(verification)
+    end
+
+    assert_redirected_to membership_applications_path(status: 'initiated')
+    assert_match 'already open', flash[:alert]
+  end
+
+  test 'index initiated tab hides actions for verified open applications' do
+    ApplicationVerification.create!(email: 'pending@example.com')
+    open_verification = ApplicationVerification.create!(email: 'open@example.com')
+    open_verification.verify_email!
+
+    get membership_applications_path(status: 'initiated')
+
+    assert_response :success
+    pending_verification = ApplicationVerification.find_by!(email: 'pending@example.com')
+    assert_select 'form[action=?]', resend_initiated_membership_applications_path(pending_verification)
+    assert_select 'form[action=?]', resend_initiated_membership_applications_path(open_verification), count: 0
   end
 
   private

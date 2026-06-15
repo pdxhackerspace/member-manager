@@ -170,16 +170,23 @@
                   <% end %>
                 </td>
                 <td class="text-end text-nowrap">
-                  <%= button_to "+1 day",
-                      extend_initiated_membership_applications_path(verification, duration: 'day'),
-                      method: :post,
-                      class: "btn btn-sm btn-outline-secondary",
-                      form: { class: 'd-inline-block' } %>
-                  <%= button_to "+1 week",
-                      extend_initiated_membership_applications_path(verification, duration: 'week'),
-                      method: :post,
-                      class: "btn btn-sm btn-outline-secondary",
-                      form: { class: 'd-inline-block' } %>
+                  <% unless verification.verified? %>
+                    <%= button_to "Re-send",
+                        resend_initiated_membership_applications_path(verification),
+                        method: :post,
+                        class: "btn btn-sm btn-outline-secondary",
+                        form: { class: 'd-inline-block' } %>
+                    <%= button_to "+1 day",
+                        extend_initiated_membership_applications_path(verification, duration: 'day'),
+                        method: :post,
+                        class: "btn btn-sm btn-outline-secondary",
+                        form: { class: 'd-inline-block' } %>
+                    <%= button_to "+1 week",
+                        extend_initiated_membership_applications_path(verification, duration: 'week'),
+                        method: :post,
+                        class: "btn btn-sm btn-outline-secondary",
+                        form: { class: 'd-inline-block' } %>
+                  <% end %>
                 </td>
               </tr>
             <% end %>

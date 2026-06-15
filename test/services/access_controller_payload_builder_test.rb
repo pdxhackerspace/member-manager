@@ -143,6 +143,32 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
     assert_includes user_entry['permissions'], 'Woodworking'
   end
 
+  test 'payload converts user names to ASCII' do
+    ensure_user_one_in_payload!
+    @user_one.update!(full_name: 'José García', username: 'josé', greeting_name: 'José',
+                      use_full_name_for_greeting: false, use_username_for_greeting: false)
+    Training.create!(trainee: @user_one, training_topic: @laser_topic, trained_at: 1.day.ago)
+
+    payload = parse_payload
+    user_entry = payload.find { |u| u['uid'] == @user_one.authentik_id }
+
+    assert user_entry, 'Expected user_one in payload'
+    assert_equal 'Jose Garcia', user_entry['name']
+    assert_equal 'Jose', user_entry['greeting_name']
+  end
+
+  test 'payload omits greeting_name when it cannot be represented in ASCII' do
+    ensure_user_one_in_payload!
+    @user_one.update!(full_name: 'Example User One', greeting_name: '用户', use_full_name_for_greeting: false,
+                      use_username_for_greeting: false)
+
+    payload = parse_payload
+    user_entry = payload.find { |u| u['uid'] == @user_one.authentik_id }
+
+    assert user_entry, 'Expected user_one in payload'
+    assert_nil user_entry['greeting_name']
+  end
+
   # --- Model method tests ---
 
   test 'user_meets_training_requirements? returns true when no topics required' do
@@ -159,6 +185,19 @@ class AccessControllerPayloadBuilderTest < ActiveSupport::TestCase
   end
 
   private
+
+  def ensure_user_one_in_payload!
+    DefaultSetting.instance.update!(sync_inactive_members: false)
+    @user_one.update_columns(
+      active: true,
+      key_access_paused: false,
+      membership_status: 'paying',
+      dues_status: 'current'
+    )
+    return if @user_one.rfids.exists?
+
+    @user_one.rfids.create!(rfid: 'RFID001')
+  end
 
   def parse_payload(access_controller_type: nil)
     json = AccessControllerPayloadBuilder.call(access_controller_type: access_controller_type)

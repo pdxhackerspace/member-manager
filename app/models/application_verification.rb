@@ -33,6 +33,21 @@ class ApplicationVerification < ApplicationRecord
     update!(expires_at: [expires_at, Time.current].max + duration)
   end
 
+  def deliver_verification_email!
+    url_options = Rails.application.config.action_mailer.default_url_options
+    verification_url = Rails.application.routes.url_helpers.apply_verify_email_url(
+      token: token,
+      **url_options
+    )
+    expiry_hours = MembershipSetting.application_verification_expiry_hours
+
+    MemberMailer.application_email_verification(
+      email,
+      verification_url: verification_url,
+      expires_in: "#{expiry_hours} #{'hour'.pluralize(expiry_hours)}"
+    ).deliver_later
+  end
+
   def status_display
     return 'Expired' if expired?
     return 'Verified' if email_verified?

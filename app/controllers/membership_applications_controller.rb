@@ -4,10 +4,11 @@ class MembershipApplicationsController < ApplicationController
   include Pagy::Method
   include MembershipApplicationWizard
   include MembershipApplicationWizard::Actions
+  include InitiatedApplicationActions
 
   ADMIN_ACTIONS = %i[
     index show import approve reject delay_for_review mark_needs_review link_user unlink_user vote_ai_feedback
-    save_tour_feedback vote_acceptance extend_initiated_application
+    save_tour_feedback vote_acceptance extend_initiated_application resend_initiated_application
   ].freeze
   APPLICATION_MEMBER_ACTIONS = %i[
     show approve reject delay_for_review mark_needs_review link_user unlink_user vote_ai_feedback
@@ -69,20 +70,6 @@ class MembershipApplicationsController < ApplicationController
     @applicant_name_question_id = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
 
     @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
-  end
-
-  def extend_initiated_application
-    verification = ApplicationVerification.find(params[:id])
-    duration = initiated_application_extension_duration
-
-    if duration.nil?
-      redirect_to membership_applications_path(status: 'initiated'), alert: 'Choose one day or one week.'
-      return
-    end
-
-    verification.extend_expiration_by!(duration)
-    redirect_to membership_applications_path(status: 'initiated'),
-                notice: "Extended #{verification.email}'s verification link."
   end
 
   def show
@@ -240,13 +227,6 @@ class MembershipApplicationsController < ApplicationController
                                        .where('LOWER(delivery_to) IN (?)', emails.presence || [''])
                                        .newest_first
                                        .group_by { |entry| entry.delivery_to.downcase }
-  end
-
-  def initiated_application_extension_duration
-    case params[:duration]
-    when 'day' then 1.day
-    when 'week' then 1.week
-    end
   end
 
   def review_parking!(method, notice)

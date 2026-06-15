@@ -97,14 +97,7 @@ class ApplicationVerificationsController < ApplicationController
     )
   end
 
-  def deliver_verification_mailer(email, verification)
-    verification_url = apply_verify_email_url(token: verification.token)
-    expiry_hours = MembershipSetting.application_verification_expiry_hours
-
-    MemberMailer.application_email_verification(
-      email,
-      verification_url: verification_url,
-      expires_in: "#{expiry_hours} #{'hour'.pluralize(expiry_hours)}"
-    ).deliver_later
+  def deliver_verification_mailer(_email, verification)
+    verification.deliver_verification_email!
   end
 end

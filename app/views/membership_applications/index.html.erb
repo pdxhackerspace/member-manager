@@ -170,7 +170,7 @@
                   <% end %>
                 </td>
                 <td class="text-end text-nowrap">
-                  <% unless verification.verified? %>
+                  <% if verification.awaiting_application? %>
                     <%= button_to "Re-send",
                         resend_initiated_membership_applications_path(verification),
                         method: :post,

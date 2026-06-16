@@ -3,6 +3,8 @@ module InitiatedApplicationActions
 
   def extend_initiated_application
     verification = ApplicationVerification.find(params[:id])
+    return if reject_initiated_action_when_application_received!(verification)
+
     duration = initiated_application_extension_duration
 
     if duration.nil?
@@ -16,11 +18,7 @@ module InitiatedApplicationActions
 
   def resend_initiated_application
     verification = ApplicationVerification.find(params[:id])
-
-    if verification.verified?
-      redirect_to_initiated_applications alert: 'This application is already open; no confirmation email is needed.'
-      return
-    end
+    return if reject_initiated_action_when_application_received!(verification)
 
     verification.deliver_verification_email!
     redirect_to_initiated_applications notice: "Re-sent the confirmation link to #{verification.email}."
@@ -37,5 +35,12 @@ module InitiatedApplicationActions
     when 'day' then 1.day
     when 'week' then 1.week
     end
+  end
+
+  def reject_initiated_action_when_application_received!(verification)
+    return false if verification.awaiting_application?
+
+    redirect_to_initiated_applications alert: 'An application has already been received for this email.'
+    true
   end
 end

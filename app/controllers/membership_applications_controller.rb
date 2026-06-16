@@ -66,15 +66,12 @@ class MembershipApplicationsController < ApplicationController
 
     @pagy, @applications = pagy(@applications, limit: 25)
 
-    name_q_scope = ApplicationFormQuestion.joins(:application_form_page)
-    @applicant_name_question_id = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
-
-    @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
+    load_applications_index_metadata
   end
 
   def show
     @pages_with_answers = @application.answers_by_page
-    @users_for_application_link = User.non_service_accounts.ordered_by_display_name.to_a
+    @users_for_application_link = linkable_users_for_show
     vote = @application.ai_feedback_votes.detect { |v| v.user_id == current_user.id }
     @current_ai_feedback_vote = vote || @application.ai_feedback_votes.build(user: current_user)
     tf = @application.tour_feedbacks.detect { |f| f.user_id == current_user.id }
@@ -88,6 +85,12 @@ class MembershipApplicationsController < ApplicationController
   end
 
   def link_user
+    unless @application.linkable_to_member?
+      redirect_to membership_application_path(@application),
+                  alert: 'Open and under-review applications cannot be linked to member accounts.'
+      return
+    end
+
     user = User.non_service_accounts.find(params[:user_id])
     @application.update!(user: user)
     redirect_to membership_application_path(@application),
@@ -227,6 +230,24 @@ class MembershipApplicationsController < ApplicationController
                                        .where('LOWER(delivery_to) IN (?)', emails.presence || [''])
                                        .newest_first
                                        .group_by { |entry| entry.delivery_to.downcase }
+  end
+
+  def load_applications_index_metadata
+    name_q_scope = ApplicationFormQuestion.joins(:application_form_page)
+    @applicant_name_question_id = name_q_scope.where(application_form_pages: { position: 1 }, label: 'Name').pick(:id)
+    @users_for_application_link = linkable_users_for_index
+  end
+
+  def linkable_users_for_index
+    return [] if %w[submitted under_review].include?(@current_status)
+
+    User.non_service_accounts.ordered_by_display_name.to_a
+  end
+
+  def linkable_users_for_show
+    return [] unless @application.linkable_to_member?
+
+    User.non_service_accounts.ordered_by_display_name.to_a
   end
 
   def review_parking!(method, notice)

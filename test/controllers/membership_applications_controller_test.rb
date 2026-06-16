@@ -63,8 +63,9 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   test 'link_user associates member with application' do
     app = MembershipApplication.create!(
       email: 'link-app-test@example.com',
-      status: 'submitted',
-      submitted_at: Time.current
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
     )
     member = users(:member_with_local_account)
 
@@ -73,6 +74,62 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to membership_application_path(app)
     assert_match(/linked/i, flash[:notice])
     assert_equal member.id, app.reload.user_id
+  end
+
+  test 'link_user rejects open and under-review applications' do
+    app = MembershipApplication.create!(
+      email: 'link-pending@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    member = users(:member_with_local_account)
+
+    post link_user_membership_application_path(app), params: { user_id: member.id }
+
+    assert_redirected_to membership_application_path(app)
+    assert_match(/cannot be linked/i, flash[:alert])
+    assert_nil app.reload.user_id
+  end
+
+  test 'index open tab does not offer link member action' do
+    MembershipApplication.create!(
+      email: 'open-no-link@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    get membership_applications_path(status: 'submitted')
+
+    assert_response :success
+    assert_select 'button', text: 'Link member', count: 0
+  end
+
+  test 'index under review tab does not offer link member action' do
+    MembershipApplication.create!(
+      email: 'review-no-link@example.com',
+      status: 'under_review',
+      submitted_at: Time.current
+    )
+
+    get membership_applications_path(status: 'under_review')
+
+    assert_response :success
+    assert_select 'button', text: 'Link member', count: 0
+  end
+
+  test 'index unlinked tab offers link member action' do
+    app = MembershipApplication.create!(
+      email: 'unlinked-linkable@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'unlinked')
+
+    assert_response :success
+    assert_select 'button', text: 'Link member'
+    assert_select 'button[data-ma-link-action=?]', link_user_membership_application_path(app)
   end
 
   test 'index search filters by query param' do
@@ -442,7 +499,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     get membership_applications_path(status: 'under_review')
     assert_response :success
-    assert_includes response.body, app.email
+    assert_select 'a[href=?]', membership_application_path(app)
     assert_includes response.body, 'Needs review'
   end
 

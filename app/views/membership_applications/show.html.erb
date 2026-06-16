@@ -60,7 +60,7 @@
                               form: { data: { turbo_confirm: 'Remove the member link from this application?' } } %>
               <% else %>
                 <span class="text-muted">Not linked</span>
-                <% if @users_for_application_link.any? %>
+                <% if @application.linkable_to_member? && @users_for_application_link.any? %>
                   <button type="button" class="btn btn-sm btn-primary"
                           data-bs-toggle="modal" data-bs-target="#maLinkMemberModal">
                     Link member
@@ -104,7 +104,7 @@
   <%= render 'tour_feedback_card', application: @application, current_tour_feedback: @current_tour_feedback %>
 <% end %>
 
-<% if @application.user.nil? && @users_for_application_link.any? %>
+<% if @application.linkable_to_member? && @users_for_application_link.any? %>
   <%= render 'link_member_modal',
              users: @users_for_application_link,
              form_url: link_user_membership_application_path(@application),

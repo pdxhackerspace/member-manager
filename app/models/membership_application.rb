@@ -130,6 +130,10 @@ class MembershipApplication < ApplicationRecord
     submitted? || in_review?
   end
 
+  def linkable_to_member?
+    user.nil? && !pending?
+  end
+
   def submit!
     update!(status: 'submitted', submitted_at: Time.current)
     Journal.record_application_event!(application: self, action: 'application_submitted')

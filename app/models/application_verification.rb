@@ -33,6 +33,15 @@ class ApplicationVerification < ApplicationRecord
     update!(expires_at: [expires_at, Time.current].max + duration)
   end
 
+  def received_application?
+    MembershipApplication.where.not(status: 'draft')
+                         .exists?(['LOWER(email) = ?', email.downcase])
+  end
+
+  def awaiting_application?
+    !received_application?
+  end
+
   def deliver_verification_email!
     url_options = Rails.application.config.action_mailer.default_url_options
     verification_url = Rails.application.routes.url_helpers.apply_verify_email_url(

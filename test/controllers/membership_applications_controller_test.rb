@@ -686,29 +686,46 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_match 'Re-sent the confirmation link', flash[:notice]
   end
 
-  test 'resend initiated application rejects verified open applications' do
-    verification = ApplicationVerification.create!(email: 'open@example.com')
-    verification.verify_email!
+  test 'resend initiated application rejects when application already received' do
+    verification = ApplicationVerification.create!(email: 'received@example.com')
+    MembershipApplication.create!(
+      email: verification.email,
+      status: 'submitted',
+      submitted_at: Time.current
+    )
 
     assert_no_enqueued_emails do
       post resend_initiated_membership_applications_path(verification)
     end
 
     assert_redirected_to membership_applications_path(status: 'initiated')
-    assert_match 'already open', flash[:alert]
+    assert_match 'already been received', flash[:alert]
   end
 
-  test 'index initiated tab hides actions for verified open applications' do
-    ApplicationVerification.create!(email: 'pending@example.com')
-    open_verification = ApplicationVerification.create!(email: 'open@example.com')
-    open_verification.verify_email!
+  test 'index initiated tab hides actions when application already received' do
+    awaiting_verification = ApplicationVerification.create!(email: 'awaiting@example.com')
+    received_verification = ApplicationVerification.create!(email: 'received@example.com')
+    MembershipApplication.create!(
+      email: received_verification.email,
+      status: 'submitted',
+      submitted_at: Time.current
+    )
 
     get membership_applications_path(status: 'initiated')
 
     assert_response :success
-    pending_verification = ApplicationVerification.find_by!(email: 'pending@example.com')
-    assert_select 'form[action=?]', resend_initiated_membership_applications_path(pending_verification)
-    assert_select 'form[action=?]', resend_initiated_membership_applications_path(open_verification), count: 0
+    assert_select 'form[action=?]', resend_initiated_membership_applications_path(awaiting_verification)
+    assert_select 'form[action=?]', resend_initiated_membership_applications_path(received_verification), count: 0
+  end
+
+  test 'index initiated tab shows actions for verified email without received application' do
+    verification = ApplicationVerification.create!(email: 'verified-awaiting@example.com')
+    verification.verify_email!
+
+    get membership_applications_path(status: 'initiated')
+
+    assert_response :success
+    assert_select 'form[action=?]', resend_initiated_membership_applications_path(verification)
   end
 
   private

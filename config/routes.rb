@@ -437,6 +437,8 @@ Rails.application.routes.draw do
       post :import
       post 'initiated/:id/extend/:duration', to: 'membership_applications#extend_initiated_application',
                                              as: :extend_initiated
+      post 'initiated/:id/resend', to: 'membership_applications#resend_initiated_application',
+                                   as: :resend_initiated
     end
     member do
       post :approve

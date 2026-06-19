@@ -5,11 +5,11 @@
     <h1 class="h-page-title mb-0">Membership Applications</h1>
     <div class="text-13 text-secondary mt-1">
       <% if @processing_time_stats[:count].positive? %>
-        Average processing time (last 2 months):
+        Average processing time (last month):
         <span class="text-body"><%= @processing_time_stats[:average_label] %></span>
         <span class="text-secondary"> · <%= @processing_time_stats[:count] %> approved or rejected</span>
       <% else %>
-        <span class="text-secondary">No applications approved or rejected in the last 2 months</span>
+        <span class="text-secondary">No applications approved or rejected in the last month</span>
       <% end %>
     </div>
   </div>

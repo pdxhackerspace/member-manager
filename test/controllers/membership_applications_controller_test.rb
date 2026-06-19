@@ -106,7 +106,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
 
   test 'index shows average processing time for finalized applications' do
     travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-      since = 2.months.ago
+      since = 1.month.ago
       MembershipApplication.create!(
         email: 'index-stats@example.com',
         status: 'approved',
@@ -117,7 +117,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       get membership_applications_path
 
       assert_response :success
-      assert_select '.text-13', text: /Average processing time \(last 2 months\):/
+      assert_select '.text-13', text: /Average processing time \(last month\):/
       assert_select '.text-13', text: /2 days/
       assert_select '.text-13', text: /1 approved or rejected/
     end

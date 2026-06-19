@@ -42,7 +42,7 @@ module MembershipApplications
 
     test 'applicant_estimate multiplies average by one point two five' do
       travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-        opened_at = Time.zone.local(2026, 4, 21, 12, 0, 0)
+        opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
         MembershipApplication.create!(
           email: 'estimate-base@example.com',
           status: 'approved',
@@ -55,6 +55,30 @@ module MembershipApplications
         assert_equal 1, stats[:count]
         assert_in_delta 2.5.days.to_i, stats[:estimated_seconds], 1.0
         assert_equal '3 days', stats[:estimated_label]
+      end
+    end
+
+    test 'default window excludes finalized applications older than one month' do
+      travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+        recent_opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
+        old_opened_at = Time.zone.local(2026, 4, 21, 12, 0, 0)
+        MembershipApplication.create!(
+          email: 'recent-stats@example.com',
+          status: 'approved',
+          submitted_at: recent_opened_at,
+          reviewed_at: recent_opened_at + 2.days
+        )
+        MembershipApplication.create!(
+          email: 'old-stats@example.com',
+          status: 'approved',
+          submitted_at: old_opened_at,
+          reviewed_at: old_opened_at + 10.days
+        )
+
+        stats = ProcessingTimeStats.call
+
+        assert_equal 1, stats[:count]
+        assert_equal '2 days', stats[:average_label]
       end
     end
 

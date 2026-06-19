@@ -1,8 +1,9 @@
 module MembershipApplications
   class ProcessingTimeStats
+    RECENT_WINDOW = 1.month
     APPLICANT_ESTIMATE_MULTIPLIER = 1.25
 
-    def self.call(since: 2.months.ago)
+    def self.call(since: RECENT_WINDOW.ago)
       new(since: since).call
     end
 
@@ -24,7 +25,7 @@ module MembershipApplications
       end
     end
 
-    def self.applicant_estimate(since: 2.months.ago, multiplier: APPLICANT_ESTIMATE_MULTIPLIER)
+    def self.applicant_estimate(since: RECENT_WINDOW.ago, multiplier: APPLICANT_ESTIMATE_MULTIPLIER)
       stats = call(since: since)
       average_seconds = stats[:average_seconds]
       return stats.merge(estimated_seconds: nil, estimated_label: nil) unless average_seconds

@@ -88,5 +88,44 @@ module MembershipApplications
       assert_equal '2 hours', ProcessingTimeStats.format_duration(7200)
       assert_equal '4 days', ProcessingTimeStats.format_duration(4.days.to_i)
     end
+
+    test 'applicant_estimate caps reported time at membership setting' do
+      travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+        MembershipSetting.instance.update!(application_review_time_cap_days: 15)
+        opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
+        MembershipApplication.create!(
+          email: 'slow-review@example.com',
+          status: 'approved',
+          submitted_at: opened_at,
+          reviewed_at: opened_at + 14.days
+        )
+
+        estimate = ProcessingTimeStats.applicant_estimate
+        admin_stats = ProcessingTimeStats.call
+
+        assert_equal '14 days', admin_stats[:average_label]
+        assert_equal 15.days.to_i, estimate[:estimated_seconds]
+        assert_equal '15 days', estimate[:estimated_label]
+        assert_in_delta 14.days.to_i, estimate[:average_seconds], 1.0
+      end
+    end
+
+    test 'applicant_estimate leaves estimate unchanged when below cap' do
+      travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+        MembershipSetting.instance.update!(application_review_time_cap_days: 15)
+        opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
+        MembershipApplication.create!(
+          email: 'fast-review@example.com',
+          status: 'approved',
+          submitted_at: opened_at,
+          reviewed_at: opened_at + 2.days
+        )
+
+        estimate = ProcessingTimeStats.applicant_estimate
+
+        assert_in_delta 2.5.days.to_i, estimate[:estimated_seconds], 1.0
+        assert_equal '3 days', estimate[:estimated_label]
+      end
+    end
   end
 end

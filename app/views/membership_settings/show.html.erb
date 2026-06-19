@@ -66,6 +66,12 @@
             <% end %>
             <div class="form-text">How long application email verification links remain valid.</div>
           </dd>
+
+          <dt class="col-sm-6 mt-3">Application review time cap</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.application_review_time_cap_days %></strong> <%= 'day'.pluralize(@membership_setting.application_review_time_cap_days) %>
+            <div class="form-text">Maximum review time shown to applicants on the status page. Admins still see the actual average.</div>
+          </dd>
         </dl>
       </div>
     </div>
@@ -103,6 +109,10 @@
         <p class="small text-muted mb-0">
           <strong>Application Email Verification:</strong> When someone starts a membership application,
           they must verify their email address. The verification link expires after this many hours.
+        </p>
+        <p class="small text-muted mb-0 mt-2">
+          <strong>Application review time cap:</strong> The estimated review time on the applicant status page
+          never exceeds this many days, even when recent reviews took longer.
         </p>
       </div>
     </div>

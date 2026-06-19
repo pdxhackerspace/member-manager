@@ -3,7 +3,7 @@ class QueuedMail < ApplicationRecord
 
   # Stand-in for +MemberMailer.build_template_variables+ when the applicant has no User yet
   ApplicantMailRecipient = Data.define(:display_name, :email, :username)
-  ImmediateDelivery = Data.define(:to, :subject, :email_template)
+  ImmediateDelivery = Data.define(:to, :subject, :body_html, :body_text, :email_template)
 
   belongs_to :email_template, optional: true
   belongs_to :recipient, class_name: 'User', optional: true
@@ -123,7 +123,13 @@ class QueuedMail < ApplicationRecord
       body_text: rendered[:body_text] || ''
     ).deliver_now
 
-    ImmediateDelivery.new(to: dest, subject: rendered[:subject], email_template: template)
+    ImmediateDelivery.new(
+      to: dest,
+      subject: rendered[:subject],
+      body_html: rendered[:body_html],
+      body_text: rendered[:body_text] || '',
+      email_template: template
+    )
   end
 
   def self.queued_mail_attrs(dest, reason, recipient, action, args)

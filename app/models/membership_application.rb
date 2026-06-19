@@ -25,6 +25,7 @@ class MembershipApplication < ApplicationRecord
 
   belongs_to :reviewed_by, class_name: 'User', optional: true
   belongs_to :user, optional: true
+  belongs_to :outcome_queued_mail, class_name: 'QueuedMail', optional: true
   has_many :application_answers, dependent: :destroy
   has_many :ai_feedback_votes, -> { order(created_at: :asc) },
            class_name: 'MembershipApplicationAiFeedbackVote', dependent: :destroy
@@ -46,6 +47,7 @@ class MembershipApplication < ApplicationRecord
   scope :under_review_apps, -> { where(status: IN_REVIEW_STATUSES) }
   scope :approved, -> { where(status: 'approved') }
   scope :rejected, -> { where(status: 'rejected') }
+  scope :finalized, -> { where(status: %w[approved rejected]) }
   # Applications awaiting a final decision (Open, Under Review, or parked Needs Review).
   scope :pending, -> { where(status: %w[submitted] + IN_REVIEW_STATUSES) }
   scope :naggable_pending, -> { where(status: NAGGABLE_PENDING_STATUSES) }
@@ -166,6 +168,7 @@ class MembershipApplication < ApplicationRecord
       )
       Journal.record_application_event!(application: self, action: 'application_rejected', actor: admin)
       queued_mail = QueuedMail.enqueue_application_rejected(self, reason: notes.presence)
+      MembershipApplications::OutcomeEmailRecorder.assign!(self, queued_mail)
     end
     queued_mail
   end
@@ -285,6 +288,16 @@ class MembershipApplication < ApplicationRecord
   def ai_feedback_recommendation_badge_color
     key = ai_feedback_recommendation.to_s.downcase.strip.tr(' ', '_')
     AI_FEEDBACK_REC_BADGES.fetch(key, 'secondary')
+  end
+
+  def applicant_status
+    MembershipApplications::ApplicantStatus.for(self)
+  end
+
+  def status_page_verification
+    return nil if draft?
+
+    ApplicationVerification.where('LOWER(email) = ?', email.downcase).newest_first.first
   end
 
   private

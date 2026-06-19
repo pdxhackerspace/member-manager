@@ -1,5 +1,6 @@
 class ApplicationVerificationsController < ApplicationController
-  before_action :redirect_builtin_only_requests_when_external, only: %i[send_verification verify_email check_email]
+  before_action :redirect_builtin_only_requests_when_external,
+                only: %i[send_verification verify_email check_email status]
 
   def gate
     unless MembershipSetting.use_builtin_membership_application?
@@ -37,10 +38,13 @@ class ApplicationVerificationsController < ApplicationController
   end
 
   def verify_email
-    verification = ApplicationVerification.find_by(token: params[:token])
+    verification = find_verification_for_token
+    return unless verification
 
-    if verification.nil?
-      redirect_to apply_new_path, alert: 'Invalid verification link.'
+    application = verification.submitted_application
+    if application
+      verification.verify_email! unless verification.email_verified?
+      redirect_to apply_application_status_path(token: verification.token)
       return
     end
 
@@ -53,6 +57,22 @@ class ApplicationVerificationsController < ApplicationController
     session[:verified_application_token] = verification.token
 
     redirect_to apply_start_path
+  end
+
+  def status
+    verification = find_verification_for_token
+    return unless verification
+
+    @application = verification.submitted_application
+    unless @application
+      redirect_to apply_new_path, alert: 'No submitted application was found for this link.'
+      return
+    end
+
+    verification.verify_email! unless verification.email_verified?
+    @status = @application.applicant_status
+    @outcome_email = MembershipApplications::OutcomeEmailRecorder.for_display(@application)
+    @timing = MembershipApplications::ApplicantStatusTiming.for(@application)
   end
 
   def check_email; end
@@ -99,5 +119,15 @@ class ApplicationVerificationsController < ApplicationController
 
   def deliver_verification_mailer(_email, verification)
     verification.deliver_verification_email!
+  end
+
+  def find_verification_for_token
+    verification = ApplicationVerification.find_by(token: params[:token])
+    if verification.nil?
+      redirect_to apply_new_path, alert: 'Invalid verification link.'
+      return nil
+    end
+
+    verification
   end
 end

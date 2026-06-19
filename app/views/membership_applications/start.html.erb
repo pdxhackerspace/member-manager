@@ -21,31 +21,19 @@
           <div class="form-text">This is the email you verified. It will be used for your application.</div>
         </div>
 
-        <% if @existing_application %>
-          <div class="alert alert-<%= @existing_application.status_badge_color %> mb-3">
+        <% if @application %>
+          <div class="alert alert-info mb-3">
             <i class="bi bi-info-circle me-1"></i>
-            You already have an application that was submitted on
-            <strong><%= @existing_application.submitted_at&.strftime('%B %-d, %Y') || 'a previous date' %></strong>.
-            Its current status is <strong><%= @existing_application.status_display %></strong>.
+            You have a draft application in progress. Click Continue to resume where you left off.
           </div>
+        <% end %>
+
+        <%= form_with url: apply_start_path, method: :post, local: true do |f| %>
+          <input type="hidden" name="page_number" value="0">
           <div class="d-flex justify-content-between">
             <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary" %>
+            <button type="submit" class="btn btn-primary btn-lg">Continue →</button>
           </div>
-        <% else %>
-          <% if @application %>
-            <div class="alert alert-info mb-3">
-              <i class="bi bi-info-circle me-1"></i>
-              You have a draft application in progress. Click Continue to resume where you left off.
-            </div>
-          <% end %>
-
-          <%= form_with url: apply_start_path, method: :post, local: true do |f| %>
-            <input type="hidden" name="page_number" value="0">
-            <div class="d-flex justify-content-between">
-              <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary" %>
-              <button type="submit" class="btn btn-primary btn-lg">Continue →</button>
-            </div>
-          <% end %>
         <% end %>
       </div>
     </div>

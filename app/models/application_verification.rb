@@ -42,6 +42,17 @@ class ApplicationVerification < ApplicationRecord
     !received_application?
   end
 
+  def submitted_application
+    MembershipApplication.where.not(status: 'draft')
+                         .where('LOWER(email) = ?', email.downcase)
+                         .newest_first
+                         .first
+  end
+
+  def status_link?
+    submitted_application.present?
+  end
+
   def deliver_verification_email!
     url_options = Rails.application.config.action_mailer.default_url_options
     verification_url = Rails.application.routes.url_helpers.apply_verify_email_url(

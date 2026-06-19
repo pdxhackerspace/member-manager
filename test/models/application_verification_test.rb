@@ -113,4 +113,47 @@ class ApplicationVerificationTest < ActiveSupport::TestCase
 
     assert_in_delta 1.week.from_now, verification.expires_at, 5.seconds
   end
+
+  test 'submitted_application returns newest non-draft application for email' do
+    verification = ApplicationVerification.create!(email: 'status-lookup@example.com')
+    draft = MembershipApplication.create!(email: 'status-lookup@example.com', status: 'draft')
+    submitted = MembershipApplication.create!(
+      email: 'status-lookup@example.com',
+      status: 'submitted',
+      submitted_at: 1.day.ago
+    )
+
+    assert_equal submitted.id, verification.submitted_application.id
+    assert_not_equal draft.id, verification.submitted_application.id
+  end
+
+  test 'status_link? is true when a submitted application exists' do
+    verification = ApplicationVerification.create!(email: 'has-status@example.com')
+    assert_not verification.status_link?
+
+    MembershipApplication.create!(
+      email: 'has-status@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    assert verification.status_link?
+  end
+
+  test 'received_application? and awaiting_application? reflect submitted apps' do
+    verification = ApplicationVerification.create!(email: 'awaiting@example.com')
+
+    assert verification.awaiting_application?
+    assert_not verification.received_application?
+
+    MembershipApplication.create!(
+      email: 'awaiting@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    assert verification.received_application?
+    assert_not verification.awaiting_application?
+  end
 end

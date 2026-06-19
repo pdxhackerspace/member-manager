@@ -1,0 +1,25 @@
+<%# locals: (status:) %>
+<div class="application-status-progress mb-4">
+  <div class="progress application-status-progress-track" role="progressbar"
+       aria-valuenow="<%= status.progress_percent %>"
+       aria-valuemin="0"
+       aria-valuemax="100"
+       aria-label="Application progress">
+    <div class="progress-bar bg-success" style="width: <%= status.progress_percent %>%"></div>
+    <% remaining = 100 - status.progress_percent %>
+    <% if remaining.positive? %>
+      <div class="progress-bar bg-warning" style="width: <%= remaining %>%"></div>
+    <% end %>
+  </div>
+  <div class="d-flex text-12 mt-2 gap-1">
+    <% status.step_labels.each_with_index do |step, index| %>
+      <% align_class = index.zero? ? 'text-start' : (index == status.step_labels.length - 1 ? 'text-end' : 'text-center') %>
+      <div class="flex-fill <%= align_class %>">
+        <span class="<%= status.step_active?(step[:key]) ? 'text-body fw-medium' : 'text-secondary' %>">
+          <%= step[:label] %>
+        </span>
+        <span class="text-secondary"> (<%= step[:step] %>)</span>
+      </div>
+    <% end %>
+  </div>
+</div>

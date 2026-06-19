@@ -1,8 +1,19 @@
 <% ma_nav = { q: params[:q].presence }.compact %>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0">Membership Applications</h1>
-  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importApplicationsCsvModal">Import CSV</button>
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Membership Applications</h1>
+    <div class="text-13 text-secondary mt-1">
+      <% if @processing_time_stats[:count].positive? %>
+        Average processing time (last 2 months):
+        <span class="text-body"><%= @processing_time_stats[:average_label] %></span>
+        <span class="text-secondary"> · <%= @processing_time_stats[:count] %> approved or rejected</span>
+      <% else %>
+        <span class="text-secondary">No applications approved or rejected in the last 2 months</span>
+      <% end %>
+    </div>
+  </div>
+  <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importApplicationsCsvModal">Import CSV</button>
 </div>
 
 <div class="modal fade" id="importApplicationsCsvModal" tabindex="-1" aria-labelledby="importApplicationsCsvModalLabel" aria-hidden="true">
@@ -234,6 +245,14 @@
               </td>
               <td>
                 <span class="badge bg-<%= app.status_badge_color %><%= ' text-dark' if app.in_review? %>"><%= app.status_display %></span>
+                <% if membership_application_applicant_status_path(app) %>
+                  <div class="mt-1">
+                    <%= render 'applicant_status_link',
+                        application: app,
+                        label: 'Applicant view',
+                        btn_class: 'text-12 text-decoration-none' %>
+                  </div>
+                <% end %>
               </td>
               <td><%= app.submitted_at&.strftime('%b %d, %Y') || '—' %></td>
               <td class="text-nowrap">

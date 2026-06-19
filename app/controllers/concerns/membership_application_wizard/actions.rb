@@ -27,11 +27,9 @@ module MembershipApplicationWizard
       end
 
       return unless @email
+      return unless MembershipApplication.where(email: @email).where.not(status: 'draft').exists?
 
-      @existing_application = MembershipApplication.where(email: @email)
-                                                   .where.not(status: 'draft')
-                                                   .newest_first
-                                                   .first
+      redirect_to apply_application_status_path(token: @verification.token)
     end
 
     def save_page

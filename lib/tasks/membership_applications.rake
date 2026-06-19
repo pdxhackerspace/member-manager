@@ -57,4 +57,28 @@ namespace :membership_applications do
 
     puts "Done. Success: #{ok}, skipped: #{skipped}, failed: #{failed}."
   end
+
+  desc 'Associate sent acceptance/rejection emails with finalized applications missing outcome links (preview)'
+  task backfill_outcome_emails_preview: :environment do
+    run_backfill_outcome_emails(dry_run: true)
+  end
+
+  desc 'Associate sent acceptance/rejection emails with finalized applications missing outcome links'
+  task backfill_outcome_emails: :environment do
+    run_backfill_outcome_emails(dry_run: false)
+  end
+
+  def run_backfill_outcome_emails(dry_run:)
+    prefix = dry_run ? '[DRY RUN] ' : ''
+    puts "#{prefix}Backfilling outcome email links for finalized membership applications…"
+    puts
+
+    result = MembershipApplications::BackfillOutcomeEmails.call(dry_run: dry_run)
+
+    puts
+    puts 'Summary:'
+    puts "  Linked via queued mail: #{result.linked_queued_mail}"
+    puts "  Linked via mail log snapshot: #{result.linked_snapshot}"
+    puts "  Unmatched: #{result.unmatched}"
+  end
 end

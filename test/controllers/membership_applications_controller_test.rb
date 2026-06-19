@@ -104,6 +104,25 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'button', text: 'Link member', count: 0
   end
 
+  test 'index shows average processing time for finalized applications' do
+    travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+      since = 2.months.ago
+      MembershipApplication.create!(
+        email: 'index-stats@example.com',
+        status: 'approved',
+        submitted_at: since + 1.day,
+        reviewed_at: since + 3.days
+      )
+
+      get membership_applications_path
+
+      assert_response :success
+      assert_select '.text-13', text: /Average processing time \(last 2 months\):/
+      assert_select '.text-13', text: /2 days/
+      assert_select '.text-13', text: /1 approved or rejected/
+    end
+  end
+
   test 'index under review tab does not offer link member action' do
     MembershipApplication.create!(
       email: 'review-no-link@example.com',
@@ -130,6 +149,32 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select 'button', text: 'Link member'
     assert_select 'button[data-ma-link-action=?]', link_user_membership_application_path(app)
+  end
+
+  test 'index and show link to applicant status page when verification exists' do
+    verification = ApplicationVerification.create!(
+      email: 'admin-status-link@example.com',
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true,
+      email_verified: true,
+      verified_at: Time.current
+    )
+    app = MembershipApplication.create!(
+      email: 'admin-status-link@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    status_path = apply_application_status_path(token: verification.token)
+
+    get membership_applications_path(status: 'submitted')
+
+    assert_response :success
+    assert_select 'a[href=?][target=_blank]', status_path, text: 'Applicant view'
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_select 'a[href=?][target=_blank]', status_path, text: 'Applicant status'
   end
 
   test 'index search filters by query param' do
@@ -387,6 +432,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'approve-ok@example.com', app.user.email
     assert_equal "123 Privacy Way\nPortland, OR", app.user.mailing_address
     assert_equal '555-123-4567', app.user.phone_number
+    assert_equal qm.id, app.outcome_queued_mail_id
     assert_equal 'application_approved', qm.mailer_action
     assert_equal app.user, qm.recipient
   end

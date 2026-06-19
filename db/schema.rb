@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_19_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -549,6 +549,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_120000) do
     t.datetime "application_nag_sent_at"
     t.datetime "created_at", null: false
     t.string "email", null: false
+    t.text "outcome_email_body_html"
+    t.string "outcome_email_subject"
+    t.bigint "outcome_queued_mail_id"
     t.datetime "reviewed_at"
     t.bigint "reviewed_by_id"
     t.string "status", default: "draft", null: false
@@ -559,6 +562,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_120000) do
     t.index ["ai_feedback_processed_at"], name: "index_membership_applications_on_ai_feedback_processed_at"
     t.index ["application_nag_sent_at"], name: "index_membership_applications_on_application_nag_sent_at"
     t.index ["email"], name: "index_membership_applications_on_email"
+    t.index ["outcome_queued_mail_id"], name: "index_membership_applications_on_outcome_queued_mail_id"
     t.index ["reviewed_by_id"], name: "index_membership_applications_on_reviewed_by_id"
     t.index ["status"], name: "index_membership_applications_on_status"
     t.index ["token"], name: "index_membership_applications_on_token", unique: true
@@ -1105,6 +1109,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_13_120000) do
   add_foreign_key "membership_application_ai_feedback_votes", "users"
   add_foreign_key "membership_application_tour_feedbacks", "membership_applications"
   add_foreign_key "membership_application_tour_feedbacks", "users"
+  add_foreign_key "membership_applications", "queued_mails", column: "outcome_queued_mail_id"
   add_foreign_key "membership_applications", "users"
   add_foreign_key "membership_applications", "users", column: "reviewed_by_id"
   add_foreign_key "membership_plans", "users"

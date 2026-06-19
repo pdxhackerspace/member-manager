@@ -9,7 +9,12 @@
           and will be reviewed by our membership committee. We will contact you at the
           email address you provided.
         </p>
-        <%= link_to "← Back to Home", login_path, class: "btn btn-outline-primary" %>
+        <% if session[:verified_application_token].present? %>
+          <%= link_to "View application status",
+              apply_application_status_path(token: session[:verified_application_token]),
+              class: "btn btn-primary btn-sm me-2" %>
+        <% end %>
+        <%= link_to "← Back to Home", login_path, class: "btn btn-outline-secondary btn-sm" %>
       </div>
     </div>
   </div>

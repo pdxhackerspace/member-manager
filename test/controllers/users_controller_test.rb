@@ -544,6 +544,41 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Access paused/i, response.body)
   end
 
+  test 'admin parking tab shows print actions for permits and tickets' do
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    permit = parking_notices(:active_permit)
+    ticket = ParkingNotice.create!(
+      notice_type: 'ticket', status: 'active', user: @user, issued_by: @user,
+      expires_at: 3.days.from_now, description: 'Ticket on member profile', location: 'Main Area'
+    )
+
+    get user_path(@user, tab: :parking)
+
+    assert_response :success
+    assert_select 'a[href=?]', print_notice_parking_notice_path(permit, printer_id: printer.id)
+    assert_select 'a[href=?]', print_notice_parking_notice_path(ticket, printer_id: printer.id)
+  end
+
+  test 'member parking tab shows print for permits but not tickets' do
+    sign_in_as_regular_member
+    member = User.find_by!(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    permit = member.parking_notices.create!(
+      notice_type: 'permit', status: 'active', issued_by: member,
+      expires_at: 3.days.from_now, description: 'Member permit', location: 'Woodshop'
+    )
+    ticket = ParkingNotice.create!(
+      notice_type: 'ticket', status: 'active', user: member, issued_by: users(:one),
+      expires_at: 3.days.from_now, description: 'Member ticket', location: 'Main Area'
+    )
+
+    get user_path(member, tab: :parking)
+
+    assert_response :success
+    assert_select 'a[href=?]', print_notice_member_parking_permit_path(permit, printer_id: printer.id)
+    assert_select 'a[href=?]', print_notice_member_parking_permit_path(ticket, printer_id: printer.id), count: 0
+  end
+
   private
 
   def sign_in_as_local_admin

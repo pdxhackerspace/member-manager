@@ -43,6 +43,25 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Request training/i, response.body)
   end
 
+  test 'admin home parking tab shows print for permits but not tickets' do
+    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    permit = admin_user.parking_notices.create!(
+      notice_type: 'permit', status: 'active', issued_by: admin_user,
+      expires_at: 3.days.from_now, description: 'Home permit', location: 'Woodshop'
+    )
+    ticket = ParkingNotice.create!(
+      notice_type: 'ticket', status: 'active', user: admin_user, issued_by: admin_user,
+      expires_at: 3.days.from_now, description: 'Home ticket', location: 'Main Area'
+    )
+
+    get root_path(tab: :parking)
+
+    assert_response :success
+    assert_select 'a[href=?]', print_notice_member_parking_permit_path(permit, printer_id: printer.id)
+    assert_select 'a[href=?]', print_notice_member_parking_permit_path(ticket, printer_id: printer.id), count: 0
+  end
+
   test 'member home payments details use source labels without payer emails' do
     admin_user = User.find_by!(email: local_accounts(:active_admin).email)
     [

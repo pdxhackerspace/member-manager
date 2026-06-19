@@ -74,6 +74,7 @@ Rails.application.routes.draw do
       patch :close
       post :request_clearance
       post :add_note
+      post :print_notice
     end
   end
 

@@ -91,7 +91,15 @@
                 <span class="badge text-bg-<%= notice.status_badge_color %>-subtle"><%= notice.status_display %></span>
               </td>
               <td class="text-end">
-                <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                <div class="d-flex gap-1 justify-content-end align-items-center">
+                  <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                  <%= render 'shared/printer_print_button',
+                      notice: notice,
+                      printers: @printers,
+                      print_route: :print_notice_parking_notice_path,
+                      btn_size: :sm,
+                      dropdown_suffix: notice.id %>
+                </div>
               </td>
             </tr>
           <% end %>

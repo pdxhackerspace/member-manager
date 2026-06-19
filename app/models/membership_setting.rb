@@ -6,6 +6,7 @@ class MembershipSetting < ApplicationRecord
   validates :admin_login_link_expiry_minutes, presence: true, numericality: { greater_than: 0 }
   validates :application_verification_expiry_hours, presence: true, numericality: { greater_than: 0 }
   validates :manual_payment_due_soon_days, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :application_review_time_cap_days, presence: true, numericality: { greater_than: 0 }
 
   # Singleton pattern - only one row should exist
   def self.instance
@@ -16,7 +17,8 @@ class MembershipSetting < ApplicationRecord
       login_link_expiry_hours: 180,
       admin_login_link_expiry_minutes: 15,
       application_verification_expiry_hours: 24,
-      manual_payment_due_soon_days: 7
+      manual_payment_due_soon_days: 7,
+      application_review_time_cap_days: 15
     )
   end
 
@@ -47,6 +49,10 @@ class MembershipSetting < ApplicationRecord
 
   def self.manual_payment_due_soon_days
     instance.manual_payment_due_soon_days
+  end
+
+  def self.application_review_time_cap_days
+    instance.application_review_time_cap_days
   end
 
   def self.use_builtin_membership_application?

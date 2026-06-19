@@ -30,11 +30,18 @@ module MembershipApplications
       average_seconds = stats[:average_seconds]
       return stats.merge(estimated_seconds: nil, estimated_label: nil) unless average_seconds
 
-      estimated_seconds = average_seconds * multiplier
+      estimated_seconds = cap_applicant_estimate_seconds(average_seconds * multiplier)
       stats.merge(
         estimated_seconds: estimated_seconds,
         estimated_label: format_duration(estimated_seconds)
       )
+    end
+
+    def self.cap_applicant_estimate_seconds(seconds)
+      return nil if seconds.nil?
+
+      cap_seconds = MembershipSetting.application_review_time_cap_days.days.to_i
+      [seconds, cap_seconds].min
     end
 
     def initialize(since:)

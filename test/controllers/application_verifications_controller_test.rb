@@ -209,6 +209,37 @@ class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'status page shows capped review estimate without mentioning cap' do
+    travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+      MembershipSetting.instance.update!(application_review_time_cap_days: 15)
+      opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
+      MembershipApplication.create!(
+        email: 'slow-baseline@example.com',
+        status: 'approved',
+        submitted_at: opened_at,
+        reviewed_at: opened_at + 14.days
+      )
+      verification = ApplicationVerification.create!(
+        email: 'slow-status@example.com',
+        confirmed_open_house: true,
+        confirmed_code_of_conduct: true
+      )
+      MembershipApplication.create!(
+        email: 'slow-status@example.com',
+        status: 'submitted',
+        submitted_at: 1.day.ago
+      )
+
+      get apply_application_status_path(token: verification.token)
+
+      assert_response :success
+      assert_match 'review typically takes about', response.body
+      assert_match '15 days', response.body
+      assert_no_match '18 days', response.body
+      assert_no_match '19 days', response.body
+    end
+  end
+
   test 'status page shows review begun progress when admin reviews exist' do
     verification = ApplicationVerification.create!(
       email: 'review-status@example.com',

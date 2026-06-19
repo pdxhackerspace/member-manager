@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_19_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_19_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -594,6 +594,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_19_140000) do
 
   create_table "membership_settings", force: :cascade do |t|
     t.integer "admin_login_link_expiry_minutes", default: 15, null: false
+    t.integer "application_review_time_cap_days", default: 15, null: false
     t.integer "application_verification_expiry_hours", default: 24, null: false
     t.datetime "created_at", null: false
     t.integer "invitation_expiry_hours", default: 72, null: false

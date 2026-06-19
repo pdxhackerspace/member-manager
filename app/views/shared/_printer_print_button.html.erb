@@ -1,0 +1,38 @@
+<%# locals: notice:, printers:, print_route:, btn_size: nil, dropdown_suffix: nil %>
+<% if printers.present? %>
+  <% small = local_assigns[:btn_size] == :sm %>
+  <% btn_class = small ? 'btn btn-sm btn-outline-info' : 'btn btn-outline-info' %>
+  <% toggle_class = small ? 'btn btn-sm btn-outline-info dropdown-toggle' : 'btn btn-outline-info dropdown-toggle' %>
+  <% dropdown_id = local_assigns[:dropdown_suffix].present? ? "printer-dropdown-#{local_assigns[:dropdown_suffix]}" : 'printer-dropdown' %>
+  <% last_printer_id = cookies[:last_printer_id].to_i %>
+
+  <% if printers.size == 1 %>
+    <%= link_to send(print_route, notice, printer_id: printers.first.id),
+        data: { turbo_method: :post },
+        class: btn_class do %>
+      <i class="bi bi-printer<%= ' me-1' unless small %>"></i><%= 'Print' unless small %>
+    <% end %>
+  <% else %>
+    <div class="btn-group">
+      <button type="button" class="<%= toggle_class %>" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-printer<%= ' me-1' unless small %>"></i><%= 'Print' unless small %>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" id="<%= dropdown_id %>">
+        <% printers.each do |printer| %>
+          <li>
+            <%= link_to send(print_route, notice, printer_id: printer.id),
+                data: { turbo_method: :post },
+                class: "dropdown-item #{'fw-bold' if printer.id == last_printer_id || (last_printer_id.zero? && printer.default_printer?)}" do %>
+              <%= printer.name %>
+              <% if printer.id == last_printer_id %>
+                <span class="badge bg-secondary ms-1">Last used</span>
+              <% elsif printer.default_printer? %>
+                <span class="badge bg-primary ms-1">Default</span>
+              <% end %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>

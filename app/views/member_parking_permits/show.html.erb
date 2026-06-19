@@ -23,11 +23,24 @@
         <% end %>
       <% end %>
     <% end %>
+    <% if @parking_notice.permit? %>
+      <%= render 'shared/printer_print_button',
+          notice: @parking_notice,
+          printers: @printers,
+          print_route: :print_notice_member_parking_permit_path %>
+    <% end %>
     <%= link_to user_path(current_user, tab: :parking), class: 'btn btn-outline-secondary' do %>
       <i class="bi bi-arrow-left me-1"></i> Back
     <% end %>
   </div>
 </div>
+
+<% if @parking_notice.permit? && @printers.any? %>
+  <p class="text-12 text-secondary mb-3">
+    Parking print jobs use each printer's receipt paper setting configured by staff.
+    Choose the thermal roll width on the printer so receipts fill the roll instead of shrinking.
+  </p>
+<% end %>
 
 <% if @parking_notice.ticket? %>
   <p class="text-secondary mb-3">This parking ticket was issued by staff. Contact a member of the team if you have questions.</p>

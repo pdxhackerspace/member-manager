@@ -224,6 +224,47 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'form[action=?]', close_member_parking_permit_path(permit)
   end
 
+  test 'member can print own permit when a printer is configured' do
+    sign_in_as_member
+    permit = member_permit
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    original_print_data = CupsService.method(:print_data)
+
+    CupsService.define_singleton_method(:print_data) do |*_args, **_kwargs|
+      'member-print-99'
+    end
+
+    begin
+      post print_notice_member_parking_permit_path(permit, printer_id: printer.id)
+    ensure
+      CupsService.define_singleton_method(:print_data, original_print_data)
+    end
+
+    assert_redirected_to member_parking_permit_path(permit)
+    assert_equal "Printed to #{printer.name} (job member-print-99).", flash[:notice]
+  end
+
+  test 'member permit show includes print action when printers are configured' do
+    sign_in_as_member
+    permit = member_permit
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+
+    get member_parking_permit_path(permit)
+
+    assert_response :success
+    assert_select 'a[href=?]', print_notice_member_parking_permit_path(permit, printer_id: printer.id)
+  end
+
+  test 'member cannot print their own ticket' do
+    sign_in_as_member
+    ticket = member_ticket
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+
+    post print_notice_member_parking_permit_path(ticket, printer_id: printer.id)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+  end
+
   test 'member can view own ticket with a clear action but no edit action' do
     sign_in_as_member
     ticket = member_ticket

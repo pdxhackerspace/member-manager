@@ -1,5 +1,6 @@
 class ParkingNoticesController < AdminController
   include Pagy::Method
+  include ParkingNoticePrinting
 
   before_action :set_parking_notice,
                 only: %i[show edit update clear add_note download_pdf print_notice remove_photo download_photo]
@@ -18,6 +19,7 @@ class ParkingNoticesController < AdminController
     }
 
     @pagy, @parking_notices = pagy(@parking_notices, limit: 25)
+    @printers = Printer.ordered
   end
 
   def show
@@ -113,9 +115,7 @@ class ParkingNoticesController < AdminController
 
   def print_notice
     printer = Printer.find(params[:printer_id])
-    cookies[:last_printer_id] = { value: printer.id.to_s, expires: 1.year.from_now }
-
-    job_id = print_parking_notice(printer)
+    job_id = print_parking_notice_to_printer(@parking_notice, printer)
 
     redirect_to parking_notice_path(@parking_notice),
                 notice: "Printed to #{printer.name} (job #{job_id})."
@@ -141,32 +141,6 @@ class ParkingNoticesController < AdminController
   end
 
   private
-
-  def parking_notice_pdf_and_cups_options(printer)
-    force_letter = params[:layout].to_s.in?(%w[letter full_page])
-    if !force_letter && printer.thermal_receipt_printer?
-      pdf = ParkingNoticeReceiptPdf.new(
-        @parking_notice,
-        layout: :thermal,
-        thermal_width_mm: printer.thermal_roll_width_mm
-      )
-      [pdf, CupsService::THERMAL_PDF_OPTIONS]
-    else
-      [ParkingNoticeReceiptPdf.new(@parking_notice, layout: :full_page), {}]
-    end
-  end
-
-  def print_parking_notice(printer)
-    pdf, cups_options = parking_notice_pdf_and_cups_options(printer)
-
-    CupsService.print_data(
-      pdf.render,
-      printer.cups_printer_name,
-      cups_printer_server: printer.cups_printer_server,
-      filename: "parking_notice_#{@parking_notice.id}.pdf",
-      options: cups_options
-    )
-  end
 
   def set_parking_notice
     @parking_notice = ParkingNotice.find(params[:id])
@@ -210,8 +184,7 @@ class ParkingNoticesController < AdminController
       return
     end
 
-    cookies[:last_printer_id] = { value: printer.id.to_s, expires: 1.year.from_now }
-    job_id = print_parking_notice(printer)
+    job_id = print_parking_notice_to_printer(@parking_notice, printer)
 
     redirect_to redirect_path,
                 notice: "Parking permit created and printed to #{printer.name} (job #{job_id})."

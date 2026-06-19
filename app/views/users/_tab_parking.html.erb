@@ -1,6 +1,7 @@
 <%# actions: :admin (view/edit/clear all), :member (own permits editable/clearable, tickets view-only), or nil %>
 <% actions = local_assigns[:actions] %>
 <% show_actions_column = actions.present? %>
+<% printers = local_assigns.fetch(:printers) { Printer.ordered } %>
 <% if parking_notices.any? %>
   <div class="card shadow-sm border-0">
     <div class="table-responsive">
@@ -43,6 +44,12 @@
                     <% end %>
                     <% if actions == :admin %>
                       <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                      <%= render 'shared/printer_print_button',
+                          notice: notice,
+                          printers: printers,
+                          print_route: :print_notice_parking_notice_path,
+                          btn_size: :sm,
+                          dropdown_suffix: notice.id %>
                       <% unless notice.cleared? %>
                         <%= link_to "Edit", edit_parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
                         <%= button_to "Clear", clear_parking_notice_path(notice), method: :post,
@@ -51,6 +58,14 @@
                       <% end %>
                     <% elsif actions == :member %>
                       <%= link_to "View", member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
+                      <% if notice.permit? %>
+                        <%= render 'shared/printer_print_button',
+                            notice: notice,
+                            printers: printers,
+                            print_route: :print_notice_member_parking_permit_path,
+                            btn_size: :sm,
+                            dropdown_suffix: notice.id %>
+                      <% end %>
                       <% unless notice.cleared? %>
                         <% if notice.permit? %>
                           <%= link_to "Edit", edit_member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>

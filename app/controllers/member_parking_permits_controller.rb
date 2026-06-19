@@ -1,11 +1,15 @@
 class MemberParkingPermitsController < AuthenticatedController
+  include ParkingNoticePrinting
+
   MAX_MEMBER_PERMIT_DURATION = 2.weeks
 
-  before_action :set_owned_notice, only: %i[show edit update close request_clearance add_note]
-  before_action :require_owned_permit, only: %i[edit update]
+  before_action :set_owned_notice, only: %i[show edit update close request_clearance add_note print_notice]
+  before_action :require_owned_permit, only: %i[edit update print_notice]
 
   # Members may view their own permits and tickets.
-  def show; end
+  def show
+    @printers = Printer.ordered
+  end
 
   def new
     @parking_notice = ParkingNotice.new(
@@ -80,6 +84,17 @@ class MemberParkingPermitsController < AuthenticatedController
     @parking_notice.request_clearance!(current_user)
     redirect_to user_path(current_user, tab: :parking),
                 notice: 'Clearance requested. An admin will review your request.'
+  end
+
+  def print_notice
+    printer = Printer.find(params[:printer_id])
+    job_id = print_parking_notice_to_printer(@parking_notice, printer)
+
+    redirect_to member_parking_permit_path(@parking_notice),
+                notice: "Printed to #{printer.name} (job #{job_id})."
+  rescue CupsService::PrintError => e
+    redirect_to member_parking_permit_path(@parking_notice),
+                alert: "Print failed: #{e.message}"
   end
 
   # Members may add a note to the history of their own notice.

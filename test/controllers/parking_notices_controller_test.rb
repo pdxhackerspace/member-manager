@@ -30,6 +30,26 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'index shows print action when printers are configured' do
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+
+    get parking_notices_url
+
+    assert_response :success
+    assert_select 'a[href=?]', print_notice_parking_notice_path(@active_permit, printer_id: printer.id)
+    assert_select 'a[href=?]', print_notice_parking_notice_path(@expired_ticket, printer_id: printer.id)
+  end
+
+  test 'show displays printer print dropdown when multiple printers exist' do
+    Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    Printer.create!(name: 'Back Office', cups_printer_name: 'back_office')
+
+    get parking_notice_url(@active_permit)
+
+    assert_response :success
+    assert_select '.btn-group .dropdown-toggle', text: /Print/
+  end
+
   # --- Show ---
 
   test 'show displays parking notice' do

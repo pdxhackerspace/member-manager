@@ -6,7 +6,7 @@ module MembershipApplications
   class ApplicantStatusTimingTest < ActiveSupport::TestCase
     test 'shows estimated review time at one point two five times recent average' do
       travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-        opened_at = Time.zone.local(2026, 4, 21, 12, 0, 0)
+        opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
         MembershipApplication.create!(
           email: 'avg-fast@example.com',
           status: 'approved',
@@ -35,7 +35,7 @@ module MembershipApplications
 
     test 'shows apology when waiting longer than recent average' do
       travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-        opened_at = Time.zone.local(2026, 4, 21, 12, 0, 0)
+        opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
         MembershipApplication.create!(
           email: 'baseline@example.com',
           status: 'approved',
@@ -62,7 +62,7 @@ module MembershipApplications
 
     test 'does not show apology for finalized applications' do
       travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-        opened_at = Time.zone.local(2026, 4, 21, 12, 0, 0)
+        opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
         MembershipApplication.create!(
           email: 'baseline@example.com',
           status: 'approved',

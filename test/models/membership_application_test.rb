@@ -302,7 +302,7 @@ class MembershipApplicationTest < ActiveSupport::TestCase
 
   test 'processing_time_stats returns empty stats when no finalized applications' do
     travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-      stats = MembershipApplications::ProcessingTimeStats.call(since: 2.months.ago)
+      stats = MembershipApplications::ProcessingTimeStats.call(since: 1.month.ago)
 
       assert_equal 0, stats[:count]
       assert_nil stats[:average_seconds]

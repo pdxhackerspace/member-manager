@@ -175,7 +175,7 @@ class ApplicationVerificationsControllerTest < ActionDispatch::IntegrationTest
 
   test 'status page shows timing guidance and overdue apology' do
     travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
-      opened_at = Time.zone.local(2026, 4, 21, 12, 0, 0)
+      opened_at = Time.zone.local(2026, 5, 21, 12, 0, 0)
       MembershipApplication.create!(
         email: 'baseline@example.com',
         status: 'approved',

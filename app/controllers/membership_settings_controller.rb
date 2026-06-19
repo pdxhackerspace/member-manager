@@ -24,6 +24,7 @@ class MembershipSettingsController < AdminController
                                          invitation_expiry_hours login_link_expiry_hours
                                          admin_login_link_expiry_minutes
                                          application_verification_expiry_hours
-                                         manual_payment_due_soon_days])
+                                         manual_payment_due_soon_days
+                                         application_review_time_cap_days])
   end
 end

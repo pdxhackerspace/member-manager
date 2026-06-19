@@ -101,6 +101,14 @@
             <div class="form-text">How long the email verification link for membership applications remains valid.</div>
           </div>
 
+          <div class="mb-4">
+            <%= f.label :application_review_time_cap_days, "Application review time cap (days)", class: "form-label" %>
+            <%= f.number_field :application_review_time_cap_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+            <div class="form-text">
+              Maximum review time shown to applicants on the status page. Admins still see the actual average from recent reviews.
+            </div>
+          </div>
+
           <div class="d-flex gap-2">
             <%= f.submit "Save Settings", class: "btn btn-primary" %>
             <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary" %>
@@ -142,6 +150,10 @@
         <p class="small text-muted mb-0">
           <strong>Application Email Verification:</strong> When someone starts a membership application,
           they must verify their email address. The verification link expires after this many hours.
+        </p>
+        <p class="small text-muted mb-0 mt-2">
+          <strong>Application review time cap:</strong> The estimated review time on the applicant status page
+          never exceeds this many days, even when recent reviews took longer.
         </p>
       </div>
     </div>

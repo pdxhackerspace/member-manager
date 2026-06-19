@@ -1,0 +1,63 @@
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4 p-md-5">
+        <h1 class="h-page-title mb-1">Application status</h1>
+        <p class="text-13 text-secondary mb-4">
+          Submitted <%= @application.submitted_at ? l(@application.submitted_at.to_date, format: :long) : 'recently' %>
+          · <%= @application.email %>
+        </p>
+
+        <p class="text-body mb-4"><%= @status.headline %></p>
+
+        <%= render 'application_status_progress', status: @status %>
+
+        <% if @timing[:waiting_label].present? %>
+          <div class="text-13 mt-4">
+            <p class="mb-2">
+              Your application was submitted
+              <span class="text-body fw-medium"><%= @timing[:waiting_label] %></span> ago.
+            </p>
+            <% if @timing[:estimate][:estimated_label].present? %>
+              <p class="mb-0 text-secondary">
+                Based on applications reviewed in the last two months, review typically takes about
+                <span class="text-body"><%= @timing[:estimate][:estimated_label] %></span>.
+              </p>
+            <% end %>
+          </div>
+        <% end %>
+
+        <% if @timing[:show_apology] && @timing[:apology_content].present? %>
+          <div class="alert alert-warning text-start text-13 mt-3 mb-0">
+            <%= sanitize(@timing[:apology_content], tags: %w[p br strong b em i u a], attributes: %w[href class]) %>
+          </div>
+        <% elsif @timing[:show_apology] %>
+          <div class="alert alert-warning text-start text-13 mt-3 mb-0">
+            <p class="mb-0">
+              We're sorry your application is taking longer than usual. PDX Hackerspace is run entirely
+              by volunteers, and sometimes review can take longer than we'd like. Thank you for your patience.
+            </p>
+          </div>
+        <% end %>
+
+        <% if @status.complete? && @outcome_email.present? %>
+          <div class="mt-4">
+            <div class="h-section-label mb-2">Decision email</div>
+            <div class="card border-0 bg-body-tertiary">
+              <div class="card-header bg-transparent border-bottom py-2 px-3">
+                <strong class="text-13"><%= @outcome_email[:subject] %></strong>
+              </div>
+              <div class="card-body text-13 px-3 py-3 application-status-outcome-email">
+                <%= sanitize(@outcome_email[:body_html], tags: %w[h1 h2 h3 h4 h5 h6 p br strong b em i u s ul ol li a div span hr], attributes: %w[href target class]) %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <div class="mt-4">
+          <%= link_to "← Back to Sign In", login_path, class: "btn btn-outline-secondary btn-sm" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -18,8 +18,9 @@
     Application #<%= @application.id %>
     <span class="badge bg-<%= @application.status_badge_color %><%= ' text-dark' if @application.in_review? %>"><%= @application.status_display %></span>
   </h1>
-  <div>
-    <%= link_to membership_applications_path, class: "btn btn-outline-secondary" do %>
+  <div class="d-flex gap-2">
+    <%= render 'applicant_status_link', application: @application %>
+    <%= link_to membership_applications_path, class: "btn btn-outline-secondary btn-sm" do %>
       <i class="bi bi-arrow-left me-1"></i> Back
     <% end %>
   </div>

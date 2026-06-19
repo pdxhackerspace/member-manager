@@ -1,0 +1,5 @@
+<%# locals: (application:, label: 'Applicant status', btn_class: 'btn btn-outline-secondary btn-sm') %>
+<% status_path = membership_application_applicant_status_path(application) %>
+<% if status_path %>
+  <%= link_to label, status_path, class: btn_class, target: '_blank', rel: 'noopener' %>
+<% end %>

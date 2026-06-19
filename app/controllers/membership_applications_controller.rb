@@ -43,6 +43,7 @@ class MembershipApplicationsController < ApplicationController
   def index
     @current_status = params[:status].presence || 'submitted'
     @status_counts = membership_application_status_counts
+    @processing_time_stats = MembershipApplications::ProcessingTimeStats.call
 
     if @current_status == 'initiated'
       load_initiated_applications

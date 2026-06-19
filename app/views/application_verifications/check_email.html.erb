@@ -5,11 +5,16 @@
         <div class="display-4 text-primary mb-4">
           <i class="bi bi-envelope-check"></i>
         </div>
-        <h2 class="h4 mb-3">Check Your Email</h2>
-        <p class="mb-4">
-          We've sent a verification link to the email address you provided.
-          Please check your inbox and click the link to begin your membership application.
-        </p>
+        <% check_email_content = TextFragment.content_for('application_verification_check_email') %>
+        <% if check_email_content.present? %>
+          <%= sanitize(check_email_content) %>
+        <% else %>
+          <h2 class="h4 mb-3">Check Your Email</h2>
+          <p class="mb-4">
+            We've sent a verification link to the email address you provided.
+            Please check your inbox and click the link to begin your membership application.
+          </p>
+        <% end %>
         <div class="alert alert-info text-start">
           <i class="bi bi-info-circle me-2"></i>
           <strong>Didn't receive it?</strong> Check your spam folder. The link expires in

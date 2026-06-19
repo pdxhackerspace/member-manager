@@ -15,6 +15,14 @@
 .text-11            { font-size: 11px; }
 .fw-medium          { font-weight: 500; }
 
+.application-status-progress-track {
+  height: 8px;
+}
+
+.application-status-outcome-email p:last-child {
+  margin-bottom: 0;
+}
+
 /* Bootstrap has subtle color variables but not text-bg-*-subtle utilities. */
 .text-bg-primary-subtle { color: var(--bs-primary-text-emphasis); background-color: var(--bs-primary-bg-subtle); }
 .text-bg-secondary-subtle { color: var(--bs-secondary-text-emphasis); background-color: var(--bs-secondary-bg-subtle); }

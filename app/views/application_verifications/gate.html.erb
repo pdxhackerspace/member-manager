@@ -3,10 +3,15 @@
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body p-4 p-md-5">
         <h2 class="h4 mb-3">Membership Application</h2>
-        <p>
-          Thank you for your interest in joining! Before you begin your application, please
-          confirm the following and provide your email address.
-        </p>
+        <% gate_intro_content = TextFragment.content_for('application_verification_gate_intro') %>
+        <% if gate_intro_content.present? %>
+          <%= sanitize(gate_intro_content) %>
+        <% else %>
+          <p>
+            Thank you for your interest in joining! Before you begin your application, please
+            confirm the following and provide your email address.
+          </p>
+        <% end %>
       </div>
     </div>
 

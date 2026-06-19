@@ -32,6 +32,27 @@
           shown on the public <%= link_to 'apply page', apply_path, class: 'text-decoration-none' %> when the external option is selected (built-in redirects <code>/apply</code> to the wizard).
         </p>
       <% end %>
+      <% check_email_frag = TextFragment.find_by(key: 'application_verification_check_email') %>
+      <% if check_email_frag %>
+        <p class="text-muted small mb-3">
+          <%= link_to 'Edit check-email text', edit_text_fragment_path(check_email_frag), class: 'text-decoration-none' %>:
+          shown after someone submits their email on the built-in apply flow.
+        </p>
+      <% end %>
+      <% gate_intro_frag = TextFragment.find_by(key: 'application_verification_gate_intro') %>
+      <% if gate_intro_frag %>
+        <p class="text-muted small mb-3">
+          <%= link_to 'Edit apply gate intro', edit_text_fragment_path(gate_intro_frag), class: 'text-decoration-none' %>:
+          shown at the top of the built-in <%= link_to 'apply gate', apply_new_path, class: 'text-decoration-none' %> before confirmations.
+        </p>
+      <% end %>
+      <% overdue_apology_frag = TextFragment.find_by(key: 'application_status_overdue_apology') %>
+      <% if overdue_apology_frag %>
+        <p class="text-muted small mb-3">
+          <%= link_to 'Edit overdue status apology', edit_text_fragment_path(overdue_apology_frag), class: 'text-decoration-none' %>:
+          shown on the applicant status page when review is taking longer than recent averages.
+        </p>
+      <% end %>
       <%= submit_tag 'Save application flow', class: 'btn btn-primary' %>
     <% end %>
   </div>

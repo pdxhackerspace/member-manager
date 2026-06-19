@@ -235,6 +235,8 @@ class TextFragmentsController < AdminController
       HTML
     )
 
+    TextFragments::ApplicationFlowSeeds.seed!
+
     TextFragment.ensure_exists!(
       key: 'invite_already_accepted',
       title: 'Invitation: Already Accepted',

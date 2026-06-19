@@ -64,6 +64,7 @@ module MembershipApplications
         user = resolve_recipient_user!
         approve_application!(user)
         queued_mail = queue_approval_mail_for(user)
+        MembershipApplications::OutcomeEmailRecorder.assign!(@application, queued_mail)
       end
 
       success_result(user: user, queued_mail: queued_mail)

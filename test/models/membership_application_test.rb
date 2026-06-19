@@ -117,6 +117,7 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_equal 'pending', qm.status
     assert_equal 'application_rejected', qm.mailer_action
     assert_equal app.email, qm.to
+    assert_equal qm.id, app.outcome_queued_mail_id
     assert_includes qm.body_html, 'Does not meet requirements'
   end
 
@@ -255,5 +256,77 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     assert_equal 'warning', app.ai_feedback_recommendation_badge_color
     app.ai_feedback_recommendation = 'something_else'
     assert_equal 'secondary', app.ai_feedback_recommendation_badge_color
+  end
+
+  test 'processing_time_stats averages finalized applications since cutoff' do
+    travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+      since = Time.zone.local(2026, 4, 19, 12, 0, 0)
+      opened_at = Time.zone.local(2026, 4, 20, 12, 0, 0)
+      MembershipApplication.create!(
+        email: 'processed-fast@example.com',
+        status: 'approved',
+        submitted_at: opened_at,
+        reviewed_at: opened_at + 1.day
+      )
+      MembershipApplication.create!(
+        email: 'processed-slow@example.com',
+        status: 'rejected',
+        submitted_at: opened_at,
+        reviewed_at: opened_at + 3.days
+      )
+      MembershipApplication.create!(
+        email: 'still-open@example.com',
+        status: 'submitted',
+        submitted_at: opened_at
+      )
+      MembershipApplication.create!(
+        email: 'parked-review@example.com',
+        status: 'needs_review',
+        submitted_at: opened_at,
+        reviewed_at: opened_at + 1.day
+      )
+      MembershipApplication.create!(
+        email: 'processed-old@example.com',
+        status: 'approved',
+        submitted_at: since - 10.days,
+        reviewed_at: since - 1.day
+      )
+
+      stats = MembershipApplications::ProcessingTimeStats.call(since: since)
+
+      assert_equal 2, stats[:count]
+      assert_in_delta 2.days.to_i, stats[:average_seconds], 1.0
+      assert_equal '2 days', stats[:average_label]
+    end
+  end
+
+  test 'processing_time_stats returns empty stats when no finalized applications' do
+    travel_to Time.zone.local(2026, 6, 19, 12, 0, 0) do
+      stats = MembershipApplications::ProcessingTimeStats.call(since: 2.months.ago)
+
+      assert_equal 0, stats[:count]
+      assert_nil stats[:average_seconds]
+      assert_nil stats[:average_label]
+    end
+  end
+
+  test 'status_page_verification returns newest verification for email' do
+    app = MembershipApplication.create!(
+      email: 'status-page-verification@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+    older = ApplicationVerification.create!(email: app.email, created_at: 2.days.ago)
+    newer = ApplicationVerification.create!(email: app.email, created_at: 1.day.ago)
+
+    assert_equal newer.id, app.status_page_verification.id
+    assert_not_equal older.id, app.status_page_verification.id
+  end
+
+  test 'status_page_verification is nil for draft applications' do
+    app = MembershipApplication.create!(email: 'draft-no-status@example.com', status: 'draft')
+    ApplicationVerification.create!(email: app.email)
+
+    assert_nil app.status_page_verification
   end
 end

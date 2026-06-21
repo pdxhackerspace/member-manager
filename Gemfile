@@ -31,7 +31,7 @@ gem 'cssbundling-rails'
 
 # Authentication & integrations
 gem 'faraday', '~> 2.14'
-gem 'google-apis-sheets_v4', '~> 0.47.0'
+gem 'google-apis-sheets_v4', '~> 0.48.0'
 gem 'googleauth', '~> 1.17'
 gem 'multi_json'
 gem 'omniauth', '~> 2.1'

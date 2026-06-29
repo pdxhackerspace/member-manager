@@ -56,7 +56,7 @@ jobs:
       APP_VERSION: ${{ needs.preflight.outputs.version }}
     steps:
       - name: Checkout requested tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.preflight.outputs.ref }}
           fetch-depth: 0

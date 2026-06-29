@@ -31,7 +31,7 @@ gem 'cssbundling-rails'
 
 # Authentication & integrations
 gem 'faraday', '~> 2.14'
-gem 'google-apis-sheets_v4', '~> 0.47.0'
+gem 'google-apis-sheets_v4', '~> 0.48.0'
 gem 'googleauth', '~> 1.17'
 gem 'multi_json'
 gem 'omniauth', '~> 2.1'
@@ -109,7 +109,7 @@ group :development do
   # gem "spring"
 
   # Code style checker
-  gem 'rubocop', '~> 1.87', require: false
+  gem 'rubocop', '~> 1.88', require: false
   gem 'rubocop-rails', '~> 2.35', require: false
 
   # Preview emails in browser instead of sending

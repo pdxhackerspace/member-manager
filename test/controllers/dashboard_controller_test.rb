@@ -103,7 +103,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
       read_at: Time.current
     )
 
-    get root_path
+    get root_path(tab: :member_dashboard)
 
     assert_response :success
     assert_select 'a.nav-link[href=?]', messages_path(folder: :unread) do

@@ -15,6 +15,27 @@
 .text-11            { font-size: 11px; }
 .fw-medium          { font-weight: 500; }
 
+/* === Sub-level nav pills ===
+   Secondary tier under the primary section tabs. Reads as subordinate:
+   muted by default, subtle tint when active (no saturated primary fill). */
+.nav-pills-sub {
+  gap: 0.25rem;
+}
+.nav-pills-sub .nav-link {
+  padding: 0.25rem 0.6rem;
+  color: var(--bs-secondary-color);
+  border-radius: var(--bs-border-radius-sm);
+}
+.nav-pills-sub .nav-link:hover {
+  color: var(--bs-body-color);
+  background-color: var(--bs-tertiary-bg);
+}
+.nav-pills-sub .nav-link.active {
+  color: var(--bs-body-color);
+  background-color: var(--bs-secondary-bg);
+  font-weight: 500;
+}
+
 .application-status-progress-track {
   height: 8px;
 }

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_19_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_01_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -926,6 +926,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_19_150000) do
 
   create_table "training_requests", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "dismissed_at"
     t.datetime "responded_at"
     t.bigint "responded_by_id"
     t.boolean "share_contact_info", default: false, null: false
@@ -933,6 +934,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_19_150000) do
     t.bigint "training_topic_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["dismissed_at"], name: "index_training_requests_on_dismissed_at"
     t.index ["responded_by_id"], name: "index_training_requests_on_responded_by_id"
     t.index ["status"], name: "index_training_requests_on_status"
     t.index ["training_topic_id"], name: "index_training_requests_on_training_topic_id"

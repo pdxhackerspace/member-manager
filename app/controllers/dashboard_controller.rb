@@ -1,5 +1,6 @@
 class DashboardController < AdminController
   include MemberHomeTabs
+  include TrainingHistoryData
 
   def index
     @home_user = true_user || current_user
@@ -39,6 +40,8 @@ class DashboardController < AdminController
                                 .limit(50)
 
     prepare_member_home_tabs_data
+    load_completed_training_requests(@home_user)
+    load_training_history(@home_user) if @active_tab == :training_history
   end
 
   private

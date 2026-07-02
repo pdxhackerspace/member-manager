@@ -386,6 +386,16 @@
       </li>
     <% end %>
     <li class="nav-item" role="presentation">
+      <%= link_to user_path(@user, tab: :training_history, view_as: params[:view_as]),
+          class: "nav-link #{'active' if @active_tab == :training_history}",
+          role: "tab" do %>
+        Training
+        <% if @completed_training_requests.to_a.any? %>
+          <span class="text-secondary small ms-1"><%= @completed_training_requests.size %></span>
+        <% end %>
+      <% end %>
+    </li>
+    <li class="nav-item" role="presentation">
       <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
           class: "nav-link #{'active' if @active_tab == :messages}",
           role: "tab" do %>
@@ -406,6 +416,8 @@
       <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>
     <% elsif @active_tab == :parking %>
       <%= render 'users/tab_parking', parking_notices: @parking_notices_list, actions: :member %>
+    <% elsif @active_tab == :training_history %>
+      <%= render 'users/tab_training_history', user: @user %>
     <% elsif @active_tab == :messages %>
       <%= render 'users/tab_messages', messages: @messages, pagy: @pagy_messages, user: @user, show_send: false %>
     <% end %>

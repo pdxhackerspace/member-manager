@@ -121,6 +121,94 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil request.responded_at
   end
 
+  test 'trainer can mark a request as trained which records training and closes the request' do
+    trainer = sign_in_as_trainer
+    TrainerCapability.find_or_create_by!(user: trainer, training_topic: training_topics(:laser_cutting))
+    request = training_requests(:pending_laser_request)
+
+    assert_difference 'Training.count', 1 do
+      post mark_trained_training_request_path(request)
+    end
+
+    request.reload
+    assert_equal 'responded', request.status
+    assert_equal trainer, request.responded_by
+
+    training = Training.order(:created_at).last
+    assert_equal request.user, training.trainee
+    assert_equal trainer, training.trainer
+    assert_equal request.training_topic, training.training_topic
+  end
+
+  test 'marking trained when member already trained closes the request without a duplicate record' do
+    trainer = sign_in_as_trainer
+    topic = training_topics(:laser_cutting)
+    TrainerCapability.find_or_create_by!(user: trainer, training_topic: topic)
+    member = training_requests(:pending_laser_request).user
+    Training.create!(trainee: member, trainer: trainer, training_topic: topic, trained_at: Time.current)
+
+    later_request = TrainingRequest.create!(
+      user: member, training_topic: topic, share_contact_info: true, status: 'pending'
+    )
+
+    assert_no_difference 'Training.count' do
+      post mark_trained_training_request_path(later_request)
+    end
+
+    assert_equal 'responded', later_request.reload.status
+  end
+
+  test 'admin can mark a request as trained' do
+    sign_in_as_admin
+    request = training_requests(:pending_laser_request)
+
+    assert_difference 'Training.count', 1 do
+      post mark_trained_training_request_path(request)
+    end
+
+    assert_equal 'responded', request.reload.status
+  end
+
+  test 'member cannot mark a request as trained' do
+    sign_in_as_member
+    request = training_requests(:pending_laser_request)
+
+    assert_no_difference 'Training.count' do
+      post mark_trained_training_request_path(request)
+    end
+
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    assert_redirected_to user_path(member)
+    assert_equal 'pending', request.reload.status
+  end
+
+  test 'member can dismiss their own completed training request' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    request = TrainingRequest.create!(
+      user: member,
+      training_topic: training_topics(:woodworking),
+      share_contact_info: true,
+      status: 'responded',
+      responded_at: Time.current
+    )
+
+    post dismiss_training_request_path(request)
+
+    assert_not_nil request.reload.dismissed_at
+  end
+
+  test 'member cannot dismiss another members request' do
+    sign_in_as_member
+    other_request = training_requests(:responded_woodworking_request)
+
+    post dismiss_training_request_path(other_request)
+
+    assert_nil other_request.reload.dismissed_at
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    assert_redirected_to user_path(member)
+  end
+
   test 'member dashboard links to training request page' do
     sign_in_as_member
     member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
@@ -144,5 +232,12 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
       session: { email: local_accounts(:trainer_account).email, password: 'trainerpassword123' }
     }
     User.find_by(authentik_id: "local:#{local_accounts(:trainer_account).id}")
+  end
+
+  def sign_in_as_admin
+    post local_login_path, params: {
+      session: { email: local_accounts(:active_admin).email, password: 'localpassword123' }
+    }
+    User.find_by(authentik_id: "local:#{local_accounts(:active_admin).id}")
   end
 end

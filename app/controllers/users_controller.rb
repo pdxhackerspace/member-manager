@@ -1,4 +1,6 @@
 class UsersController < AuthenticatedController
+  include TrainingHistoryData
+
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
   before_action :set_user,
@@ -199,6 +201,8 @@ class UsersController < AuthenticatedController
     if @view_level == :self
       set_self_service_training_data
       set_member_dashboard_data
+      load_completed_training_requests(@user)
+      load_training_history(@user) if @active_tab == :training_history
     end
 
     # Load payment history for admin and self views (paginated)

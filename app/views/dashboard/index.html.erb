@@ -1,5 +1,5 @@
 <div class="py-4">
-  <% member_section_tabs = %i[member_dashboard profile payments parking messages] %>
+  <% member_section_tabs = %i[member_dashboard profile payments parking training_history messages] %>
   <% member_section_active = @active_tab.in?(member_section_tabs) %>
 
   <ul class="nav nav-tabs mb-3" role="tablist">
@@ -43,6 +43,14 @@
           <% end %>
         </li>
       <% end %>
+      <li class="nav-item" role="presentation">
+        <%= link_to root_path(tab: :training_history), class: "nav-link #{'active' if @active_tab == :training_history}", role: "tab" do %>
+          <i class="bi bi-mortarboard me-1"></i> Training
+          <% if @completed_training_requests.to_a.any? %>
+            <span class="badge bg-secondary ms-1"><%= @completed_training_requests.size %></span>
+          <% end %>
+        <% end %>
+      </li>
       <li class="nav-item" role="presentation">
         <%= link_to messages_path(folder: :unread), class: 'nav-link', role: 'tab' do %>
           <i class="bi bi-chat-dots me-1"></i> Messages
@@ -316,6 +324,8 @@
     <%= render 'users/tab_payments', payments: @home_payments, pagy: @pagy_payments, user: @home_user, show_payment_links: false, dashboard_mode: true %>
   <% elsif @active_tab == :parking %>
     <%= render 'users/tab_parking', parking_notices: @home_parking_notices_list, actions: :member %>
+  <% elsif @active_tab == :training_history %>
+    <%= render 'users/tab_training_history', user: @home_user %>
   <% else %>
     <%= render 'users/tab_dashboard_self', user: @home_user %>
   <% end %>

@@ -1,0 +1,112 @@
+<%# locals: user %>
+<% completed = @completed_training_requests || [] %>
+<% member_trainings = @member_trainings || [] %>
+<% trainer_trainings = @trainer_topic_trainings || [] %>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <% if completed.any? %>
+      <div class="card dashboard-panel mb-3">
+        <div class="card-header">
+          <h3 class="h-section-label mb-0">Recently completed</h3>
+        </div>
+        <div class="list-group list-group-flush list-compact">
+          <% completed.each do |request| %>
+            <div class="list-group-item d-flex justify-content-between align-items-start gap-3">
+              <div>
+                <div class="fw-medium"><%= request.training_topic.name %></div>
+                <div class="text-secondary text-12 mt-1">
+                  Training completed <%= admin_profile_time(request.responded_at, empty: 'recently') %><% if request.responded_by.present? %> by <%= request.responded_by.display_name %><% end %>
+                </div>
+              </div>
+              <%= button_to 'Dismiss', dismiss_training_request_path(request),
+                    method: :post,
+                    class: 'btn btn-sm btn-outline-secondary flex-shrink-0',
+                    form: { class: 'd-inline' } %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="card dashboard-panel mb-3">
+      <div class="card-header">
+        <h3 class="h-section-label mb-0">Your training</h3>
+      </div>
+      <% if member_trainings.any? %>
+        <div class="table-responsive">
+          <table class="table table-compact mb-0 align-middle">
+            <thead>
+              <tr>
+                <th>Topic</th>
+                <th>Trained</th>
+                <th>Trainer</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% member_trainings.each do |training| %>
+                <tr>
+                  <td class="fw-medium"><%= training.training_topic.name %></td>
+                  <td><%= admin_profile_time(training.trained_at) %></td>
+                  <td class="text-secondary"><%= training.trainer&.display_name || 'Not recorded' %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="card-body text-13 text-secondary">No trainings recorded yet.</div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <%= render 'users/member_training_card', user: user, show_request_link: true %>
+  </div>
+</div>
+
+<% if @can_view_trainer_history %>
+  <div class="card dashboard-panel mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="h-section-label mb-0">Training in topics you can teach</h3>
+      <% if @pagy_trainer_trainings %>
+        <span class="text-12 text-secondary"><%= @pagy_trainer_trainings.count %> total</span>
+      <% end %>
+    </div>
+    <% if trainer_trainings.any? %>
+      <div class="table-responsive">
+        <table class="table table-compact mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Topic</th>
+              <th>Trained</th>
+              <th>Trainer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% trainer_trainings.each do |training| %>
+              <tr>
+                <td class="fw-medium">
+                  <%= link_to training.trainee.display_name, user_path(training.trainee), class: 'text-decoration-none' %>
+                </td>
+                <td><%= training.training_topic.name %></td>
+                <td><%= admin_profile_time(training.trained_at) %></td>
+                <td class="text-secondary"><%= training.trainer&.display_name || 'Not recorded' %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <% if @pagy_trainer_trainings %>
+        <div class="card-body py-2">
+          <%= render 'shared/pagination', pagy: @pagy_trainer_trainings %>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="card-body text-13 text-secondary">
+        No training records yet for the topics you can teach.
+      </div>
+    <% end %>
+  </div>
+<% end %>

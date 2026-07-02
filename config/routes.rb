@@ -62,7 +62,12 @@ Rails.application.routes.draw do
       post :restore
     end
   end
-  resources :training_requests, only: %i[new create edit update]
+  resources :training_requests, only: %i[new create edit update] do
+    member do
+      post :mark_trained
+      post :dismiss
+    end
+  end
 
   # Member-facing catalog of training topics
   get '/training',      to: 'training_catalog#index', as: :training_catalog

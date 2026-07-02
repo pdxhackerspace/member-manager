@@ -1,6 +1,7 @@
 class TrainingRequestsController < AuthenticatedController
-  before_action :set_training_request, only: %i[edit update]
-  before_action :authorize_responder!, only: %i[edit update]
+  before_action :set_training_request, only: %i[edit update mark_trained dismiss]
+  before_action :authorize_responder!, only: %i[edit update mark_trained]
+  before_action :authorize_requester!, only: %i[dismiss]
 
   def new
     @member_requestable_topics = TrainingTopic.available_for_member_requests
@@ -58,6 +59,44 @@ class TrainingRequestsController < AuthenticatedController
     end
   end
 
+  # Trainer (or admin) records the training directly from the request. Recording a Training
+  # marks the pending request(s) responded, so it disappears from every trainer's queue and
+  # surfaces a "training completed" notification for the member.
+  def mark_trained
+    topic = @training_request.training_topic
+    trainee = @training_request.user
+
+    if Training.exists?(trainee: trainee, training_topic: topic)
+      @training_request.respond!(current_user) if @training_request.pending?
+      redirect_back_or_to user_path(current_user),
+                          notice: "#{trainee.display_name} is already trained in #{topic.name}."
+      return
+    end
+
+    result = TrainingRecorder.new(
+      current_user: current_user,
+      training_topic: topic,
+      trainee_ids: [trainee.id.to_s],
+      trainer: current_user,
+      trained_at: Time.current
+    ).call
+
+    if result.recorded_count.positive?
+      redirect_back_or_to user_path(current_user),
+                          notice: "Recorded training for #{trainee.display_name} in #{topic.name}."
+    else
+      redirect_back_or_to user_path(current_user),
+                          alert: "Could not record training for #{trainee.display_name}."
+    end
+  end
+
+  # Member dismisses a completed training request so it stops showing on their dashboard.
+  def dismiss
+    @training_request.dismiss!
+    redirect_back_or_to user_path(current_user, tab: :training_history),
+                        notice: 'Training update dismissed.'
+  end
+
   private
 
   def set_training_request
@@ -71,6 +110,12 @@ class TrainingRequestsController < AuthenticatedController
     end
 
     redirect_to user_path(current_user), alert: 'You are not allowed to respond to that request.'
+  end
+
+  def authorize_requester!
+    return if @training_request.user_id == current_user.id
+
+    redirect_to user_path(current_user), alert: 'You are not allowed to update that request.'
   end
 
   def training_request_params

@@ -15,7 +15,13 @@ class TrainingRequest < ApplicationRecord
 
   scope :pending, -> { where(status: 'pending') }
   scope :responded, -> { where(status: 'responded') }
+  scope :not_dismissed, -> { where(dismissed_at: nil) }
+  scope :dismissed, -> { where.not(dismissed_at: nil) }
   scope :newest_first, -> { order(created_at: :desc) }
+
+  # Requests the member has had responded to but has not yet dismissed. These drive the
+  # "training completed" notifications the member sees on their dashboard.
+  scope :awaiting_member_acknowledgement, -> { responded.not_dismissed }
 
   def pending?
     status == 'pending'
@@ -25,8 +31,18 @@ class TrainingRequest < ApplicationRecord
     status == 'responded'
   end
 
+  def dismissed?
+    dismissed_at.present?
+  end
+
   def respond!(responder)
     update!(status: 'responded', responded_by: responder, responded_at: Time.current)
+  end
+
+  def dismiss!
+    return if dismissed?
+
+    update!(dismissed_at: Time.current)
   end
 
   def self.clear_pending_for!(user:, training_topic:, responded_by: nil)

@@ -52,7 +52,7 @@ class QueuedMail < ApplicationRecord
                  queued_mail_attrs(dest, reason || action.to_s.humanize, user, action.to_s, extra_args)
                )
              else
-               message = MemberMailer.public_send(action, *build_mailer_args(action, user, to, extra_args))
+               message = dispatch_mailer(action, build_mailer_args(action, user, to, extra_args))
                create_queued_mail_from_message(
                  message,
                  queued_mail_attrs(dest, reason || action.to_s.humanize, user, action.to_s, extra_args)
@@ -245,6 +245,20 @@ class QueuedMail < ApplicationRecord
     variables = MemberMailer.build_template_variables(user, extra_args)
     ensure_admin_new_application_application_url!(variables, action, extra_args) if template
     variables
+  end
+
+  # Some mailer actions accept a trailing options hash positionally (opts = {}) while others use
+  # keyword arguments (e.g. training_completed(user, training_topic:)). build_mailer_args returns the
+  # options as a trailing Hash; splat it as keywords so keyword-based mailers receive it correctly.
+  # Ruby forwards **hash as a positional Hash to mailers that don't declare keyword params, so this
+  # is safe for both styles.
+  def self.dispatch_mailer(action, mailer_args)
+    if mailer_args.last.is_a?(Hash)
+      *positional, keyword_args = mailer_args
+      MemberMailer.public_send(action, *positional, **keyword_args)
+    else
+      MemberMailer.public_send(action, *mailer_args)
+    end
   end
 
   def self.build_mailer_args(action, user, to_addr, extra_args)

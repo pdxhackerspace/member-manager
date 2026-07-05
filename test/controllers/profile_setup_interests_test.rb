@@ -36,6 +36,16 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_select "[data-live-filter-target='noResults']", text: /No interests match/i
   end
 
+  test 'selected interest pills stay visible during search via keep-visible' do
+    interest = interests(:electronics)
+    @current_user.interests << interest unless @current_user.interests.include?(interest)
+
+    get profile_setup_interests_path
+    assert_response :success
+    assert_select "#pill_interest_#{interest.id}[data-live-filter-keep-visible='true']"
+    assert_select "#pill_interest_#{interests(:laser_cutting).id}[data-live-filter-keep-visible='false']"
+  end
+
   test 'shows completely optional notice' do
     get profile_setup_interests_path
     assert_match(/completely optional/i, response.body)
@@ -88,6 +98,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_match(/turbo-stream action="replace" target="pill_interest_#{interest.id}"/, response.body)
     # The replacement pill is now in the selected state (remove form)
     assert_match profile_setup_remove_interest_path(interest), response.body
+    assert_match(/data-live-filter-keep-visible="true"/, response.body)
   end
 
   test 'does not add the same interest twice' do
@@ -132,6 +143,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_match(/turbo-stream action="replace" target="pill_interest_#{interest.id}"/, response.body)
     # The replacement pill is now in the unselected state (add form)
     assert_match profile_setup_add_interest_path(interest), response.body
+    assert_match(/data-live-filter-keep-visible="false"/, response.body)
   end
 
   test 'redirects gracefully for a non-existent interest id on remove' do

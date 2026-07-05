@@ -106,6 +106,12 @@ export default class extends Controller {
     }
   }
 
+  // Re-apply visibility when Turbo Stream replaces a filtered item (e.g. interest pill).
+  itemTargetConnected() {
+    const term = this.hasInputTarget ? this.inputTarget.value.toLowerCase().trim() : ""
+    if (term.length >= this.minLengthValue) this.filter()
+  }
+
   _updateClearButton(term) {
     if (!this.hasClearButtonTarget) return
     this.clearButtonTarget.classList.toggle("d-none", term === "")

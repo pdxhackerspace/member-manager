@@ -1,6 +1,7 @@
 <span id="<%= dom_id(interest, :pill) %>"
       data-live-filter-target="item"
-      data-search-text="<%= interest.name %>">
+      data-search-text="<%= interest.name %>"
+      data-live-filter-keep-visible="<%= selected ? 'true' : 'false' %>">
   <% if selected %>
     <%= button_to profile_setup_remove_interest_path(interest),
         method: :delete,

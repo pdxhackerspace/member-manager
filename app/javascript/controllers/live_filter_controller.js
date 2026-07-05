@@ -11,6 +11,9 @@ import { Controller } from "@hotwired/stimulus"
 //     <tbody>
 //       <tr data-live-filter-target="item" data-search-text="...">...</tr>
 //     </tbody>
+//
+// Items with data-live-filter-keep-visible="true" stay visible during an active
+// search even when their text does not match (e.g. selected interest pills).
 //   </div>
 //
 // Pattern B — panel filter with minimum character threshold:
@@ -52,29 +55,25 @@ export default class extends Controller {
       return
     }
 
-    let visibleCount = 0
+    let matchingCount = 0
 
     this.itemTargets.forEach(item => {
       const text = (item.dataset.searchText || "").toLowerCase()
-      const visible = text.includes(term)
+      const matches = text.includes(term)
+      const keepVisible = item.dataset.liveFilterKeepVisible === "true"
+      const visible = keepVisible || matches
 
-      if (this.hasResultsContainerTarget) {
-        // Pattern B: toggle via d-none class
-        item.classList.toggle("d-none", !visible)
-      } else {
-        // Pattern A: toggle via d-none class
-        item.classList.toggle("d-none", !visible)
-      }
+      item.classList.toggle("d-none", !visible)
 
-      if (visible) visibleCount++
+      if (matches) matchingCount++
     })
 
     // Pattern B: show/hide results container and no-results message
     if (this.hasResultsContainerTarget) {
-      this.resultsContainerTarget.classList.toggle("d-none", visibleCount === 0)
+      this.resultsContainerTarget.classList.toggle("d-none", matchingCount === 0)
     }
     if (this.hasNoResultsTarget) {
-      this.noResultsTarget.classList.toggle("d-none", visibleCount > 0)
+      this.noResultsTarget.classList.toggle("d-none", matchingCount > 0)
     }
 
     this._updateClearButton(term)
@@ -109,7 +108,7 @@ export default class extends Controller {
   // Re-apply visibility when Turbo Stream replaces a filtered item (e.g. interest pill).
   itemTargetConnected() {
     const term = this.hasInputTarget ? this.inputTarget.value.toLowerCase().trim() : ""
-    if (term.length >= this.minLengthValue) this.filter()
+    if (term.length > 0 && term.length >= this.minLengthValue) this.filter()
   }
 
   _updateClearButton(term) {

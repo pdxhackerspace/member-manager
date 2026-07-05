@@ -189,44 +189,52 @@
           <div class="row g-3">
             <div class="col-md-4">
               <div class="h-section-label mb-2">Members</div>
-              <div class="d-flex flex-wrap gap-2">
-                <%= link_to new_rfid_path, class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-key me-1"></i>Key
+              <div class="d-grid gap-2">
+                <%= link_to new_rfid_path, class: "action-card" do %>
+                  <div class="action-card-title"><i class="bi bi-key me-1"></i>Key</div>
+                  <div class="action-card-desc">Assign or replace a member's RFID key</div>
                 <% end %>
                 <% if current_user_admin? || current_user&.trainer_capabilities&.any? %>
-                  <%= link_to record_training_path, class: "btn btn-outline-secondary btn-sm" do %>
-                    <i class="bi bi-mortarboard me-1"></i>Record training
+                  <%= link_to record_training_path, class: "action-card" do %>
+                    <div class="action-card-title"><i class="bi bi-mortarboard me-1"></i>Record training</div>
+                    <div class="action-card-desc">Log training completed for a member</div>
                   <% end %>
                 <% end %>
-                <%= link_to onboard_path, class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-person-badge me-1"></i>New member
+                <%= link_to onboard_path, class: "action-card" do %>
+                  <div class="action-card-title"><i class="bi bi-person-badge me-1"></i>New member</div>
+                  <div class="action-card-desc">Start onboarding for a walk-in or event signup</div>
                 <% end %>
-                <%= link_to new_invitation_path, class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-envelope-plus me-1"></i>Invitation
+                <%= link_to new_invitation_path, class: "action-card" do %>
+                  <div class="action-card-title"><i class="bi bi-envelope-plus me-1"></i>Invitation</div>
+                  <div class="action-card-desc">Send an invite to join the space</div>
                 <% end %>
               </div>
             </div>
             <div class="col-md-4">
               <div class="h-section-label mb-2">Building</div>
-              <div class="d-flex flex-wrap gap-2">
-                <%= link_to new_parking_notice_path(type: 'permit'), class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-p-circle me-1"></i>Parking permit
+              <div class="d-grid gap-2">
+                <%= link_to new_parking_notice_path(type: 'permit'), class: "action-card" do %>
+                  <div class="action-card-title"><i class="bi bi-p-circle me-1"></i>Parking permit</div>
+                  <div class="action-card-desc">Issue a project or visitor parking permit</div>
                 <% end %>
-                <%= link_to new_parking_notice_path(type: 'ticket'), class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-ticket-perforated me-1"></i>Parking ticket
+                <%= link_to new_parking_notice_path(type: 'ticket'), class: "action-card" do %>
+                  <div class="action-card-title"><i class="bi bi-ticket-perforated me-1"></i>Parking ticket</div>
+                  <div class="action-card-desc">Record a parking violation notice</div>
                 <% end %>
                 <% if current_user_admin? %>
-                  <%= link_to access_controllers_path, class: "btn btn-outline-secondary btn-sm" do %>
-                    <i class="bi bi-router me-1"></i>Access controllers
+                  <%= link_to access_controllers_path, class: "action-card" do %>
+                    <div class="action-card-title"><i class="bi bi-router me-1"></i>Access controllers</div>
+                    <div class="action-card-desc">Manage door locks and access hardware</div>
                   <% end %>
                 <% end %>
               </div>
             </div>
             <div class="col-md-4">
               <div class="h-section-label mb-2">Operations</div>
-              <div class="d-flex flex-wrap gap-2">
-                <%= link_to new_incident_report_path, class: "btn btn-outline-secondary btn-sm" do %>
-                  <i class="bi bi-exclamation-triangle me-1"></i>Incident report
+              <div class="d-grid gap-2">
+                <%= link_to new_incident_report_path, class: "action-card" do %>
+                  <div class="action-card-title"><i class="bi bi-exclamation-triangle me-1"></i>Incident report</div>
+                  <div class="action-card-desc">Document a safety or facility incident</div>
                 <% end %>
               </div>
             </div>

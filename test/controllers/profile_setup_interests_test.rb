@@ -21,11 +21,19 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_match(/Interests/i, response.body)
   end
 
-  test 'shows suggested interests' do
+  test 'shows the entire interest tag cloud' do
     get profile_setup_interests_path
     assert_response :success
-    # At least one fixture interest should appear
-    assert_match interests(:electronics).name, response.body
+    Interest.find_each do |interest|
+      assert_match interest.name, response.body
+    end
+  end
+
+  test 'shows the interest search box and no-results message' do
+    get profile_setup_interests_path
+    assert_response :success
+    assert_select "input[data-live-filter-target='input']"
+    assert_select "[data-live-filter-target='noResults']", text: /No interests match/i
   end
 
   test 'shows completely optional notice' do
@@ -62,11 +70,24 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     assert_not @current_user.interests.include?(interest)
 
     assert_difference -> { @current_user.reload.interests.count }, 1 do
-      post profile_setup_add_interest_path(interest)
+      post profile_setup_add_interest_path(interest), headers: { 'Accept' => 'text/html' }
     end
 
     assert_redirected_to profile_setup_interests_path
     assert @current_user.reload.interests.include?(interest)
+  end
+
+  test 'add responds with a turbo stream replacing the pill' do
+    interest = interests(:laser_cutting)
+
+    assert_difference -> { @current_user.reload.interests.count }, 1 do
+      post profile_setup_add_interest_path(interest), as: :turbo_stream
+    end
+
+    assert_response :success
+    assert_match(/turbo-stream action="replace" target="pill_interest_#{interest.id}"/, response.body)
+    # The replacement pill is now in the selected state (remove form)
+    assert_match profile_setup_remove_interest_path(interest), response.body
   end
 
   test 'does not add the same interest twice' do
@@ -74,7 +95,7 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     @current_user.interests << interests(:electronics) unless @current_user.interests.include?(interests(:electronics))
 
     assert_no_difference -> { @current_user.reload.interests.count } do
-      post profile_setup_add_interest_path(interests(:electronics))
+      post profile_setup_add_interest_path(interests(:electronics)), headers: { 'Accept' => 'text/html' }
     end
 
     assert_redirected_to profile_setup_interests_path
@@ -92,11 +113,25 @@ class ProfileSetupInterestsTest < ActionDispatch::IntegrationTest
     @current_user.interests << interest unless @current_user.interests.include?(interest)
 
     assert_difference -> { @current_user.reload.interests.count }, -1 do
-      delete profile_setup_remove_interest_path(interest)
+      delete profile_setup_remove_interest_path(interest), headers: { 'Accept' => 'text/html' }
     end
 
     assert_redirected_to profile_setup_interests_path
     assert_not @current_user.reload.interests.include?(interest)
+  end
+
+  test 'remove responds with a turbo stream replacing the pill' do
+    interest = interests(:electronics)
+    @current_user.interests << interest unless @current_user.interests.include?(interest)
+
+    assert_difference -> { @current_user.reload.interests.count }, -1 do
+      delete profile_setup_remove_interest_path(interest), as: :turbo_stream
+    end
+
+    assert_response :success
+    assert_match(/turbo-stream action="replace" target="pill_interest_#{interest.id}"/, response.body)
+    # The replacement pill is now in the unselected state (add form)
+    assert_match profile_setup_add_interest_path(interest), response.body
   end
 
   test 'redirects gracefully for a non-existent interest id on remove' do

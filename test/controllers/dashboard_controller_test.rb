@@ -21,6 +21,31 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Recent Highlights/i, response.body)
   end
 
+  test 'admin dashboard quick actions use action cards in category columns' do
+    get root_path
+
+    assert_response :success
+    assert_select '.h-section-label', text: 'Members'
+    assert_select '.h-section-label', text: 'Building'
+    assert_select '.h-section-label', text: 'Operations'
+
+    [
+      [new_rfid_path, /Key/],
+      [record_training_path, /Record training/],
+      [onboard_path, /New member/],
+      [new_invitation_path, /Invitation/],
+      [new_parking_notice_path(type: 'permit'), /Parking permit/],
+      [new_parking_notice_path(type: 'ticket'), /Parking ticket/],
+      [access_controllers_path, /Access controllers/],
+      [new_incident_report_path, /Incident report/]
+    ].each do |path, label|
+      assert_select "a.action-card[href='#{path}']", text: label
+    end
+
+    assert_select 'a.action-card .action-card-desc', minimum: 8
+    assert_select "a.action-card[href='#{new_rfid_path}'] .action-card-title i.bi-key"
+  end
+
   test 'admin home member dashboard tab renders member dashboard content' do
     get root_path(tab: :member_dashboard)
     assert_response :success

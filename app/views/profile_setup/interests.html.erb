@@ -49,46 +49,27 @@
             This step is <strong>completely optional</strong>. Interests are visible to admins and, if your profile is visible to them, other members, and may be used to make automated recommendations about resources. Click an interest to select or deselect it — you can always change your interests later.
           </div>
 
-          <% if @suggested.any? %>
-            <p class="text-muted small mb-3">Click any interest to add it to your profile:</p>
+          <% if @interests.any? %>
+            <div data-controller="live-filter">
+              <p class="text-muted small mb-2">Click any interest to add it to your profile:</p>
 
-            <div class="d-flex flex-wrap gap-2 mb-4">
-              <% @suggested.each do |interest| %>
-                <% selected = @user_interest_ids.include?(interest.id) %>
-                <% if selected %>
-                  <%= button_to profile_setup_remove_interest_path(interest),
-                      method: :delete,
-                      class: "btn btn-primary btn-sm rounded-pill",
-                      form: { data: { turbo: false } } do %>
-                    <i class="bi bi-check me-1"></i><%= interest.name %>
-                    <i class="bi bi-x ms-1"></i>
-                  <% end %>
-                <% else %>
-                  <%= button_to profile_setup_add_interest_path(interest),
-                      method: :post,
-                      class: "btn btn-outline-secondary btn-sm rounded-pill",
-                      form: { data: { turbo: false } } do %>
-                    <%= interest.name %>
-                  <% end %>
-                <% end %>
-              <% end %>
-            </div>
+              <input type="search" class="form-control form-control-sm mb-3"
+                     placeholder="Search interests…" autocomplete="off"
+                     aria-label="Search interests"
+                     data-live-filter-target="input"
+                     data-action="input->live-filter#filter">
 
-            <% interests_not_shown = @user_interests.reject { |i| @suggested.map(&:id).include?(i.id) } %>
-            <% if interests_not_shown.any? %>
-              <p class="text-muted small mb-2">Other interests you've selected:</p>
-              <div class="d-flex flex-wrap gap-2 mb-4">
-                <% interests_not_shown.each do |interest| %>
-                  <%= button_to profile_setup_remove_interest_path(interest),
-                      method: :delete,
-                      class: "btn btn-primary btn-sm rounded-pill",
-                      form: { data: { turbo: false } } do %>
-                    <i class="bi bi-check me-1"></i><%= interest.name %>
-                    <i class="bi bi-x ms-1"></i>
-                  <% end %>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <% @interests.each do |interest| %>
+                  <%= render 'interest_pill', interest: interest,
+                             selected: @user_interest_ids.include?(interest.id) %>
                 <% end %>
               </div>
-            <% end %>
+
+              <p class="text-muted fst-italic small mb-4 d-none" data-live-filter-target="noResults">
+                No interests match your search — you can add it as a new interest below.
+              </p>
+            </div>
 
           <% else %>
             <p class="text-muted fst-italic mb-4">No interests have been added yet. An admin can add interests under Settings.</p>

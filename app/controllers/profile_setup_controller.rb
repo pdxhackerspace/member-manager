@@ -33,16 +33,15 @@ class ProfileSetupController < AuthenticatedController
 
   # Step 4: Interests
   def interests
-    @user_interests    = @user.interests.order(:name)
-    @user_interest_ids = @user_interests.to_set(&:id)
-    @suggested         = Interest.suggested(limit: 20, exclude_ids: [])
-    @all_interests     = Interest.alphabetical.pluck(:id, :name).map { |id, name| { id: id, name: name } }
+    @user_interest_ids = @user.interests.to_set(&:id)
+    @interests         = Interest.alphabetical.to_a
+    @all_interests     = @interests.map { |i| { id: i.id, name: i.name } }
   end
 
   def add_interest
     interest = Interest.find(params[:id])
     @user.interests << interest unless @user.interests.include?(interest)
-    redirect_to profile_setup_interests_path, status: :see_other
+    respond_with_interest_pill(interest, selected: true)
   rescue ActiveRecord::RecordNotFound
     redirect_to profile_setup_interests_path, status: :see_other
   end
@@ -50,7 +49,7 @@ class ProfileSetupController < AuthenticatedController
   def remove_interest
     interest = Interest.find(params[:id])
     @user.interests.delete(interest)
-    redirect_to profile_setup_interests_path, status: :see_other
+    respond_with_interest_pill(interest, selected: false)
   rescue ActiveRecord::RecordNotFound
     redirect_to profile_setup_interests_path, status: :see_other
   end
@@ -120,6 +119,21 @@ class ProfileSetupController < AuthenticatedController
   end
 
   private
+
+  # Swaps the clicked interest pill in place via Turbo Stream so the page
+  # (including any active search filter) is not reloaded.
+  def respond_with_interest_pill(interest, selected:)
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          ActionView::RecordIdentifier.dom_id(interest, :pill),
+          partial: 'profile_setup/interest_pill',
+          locals: { interest: interest, selected: selected }
+        )
+      end
+      format.html { redirect_to profile_setup_interests_path, status: :see_other }
+    end
+  end
 
   def set_user
     @user = current_user

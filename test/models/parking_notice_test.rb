@@ -197,8 +197,19 @@ class ParkingNoticeTest < ActiveSupport::TestCase
     assert notice.clearable_by?(admin)
   end
 
-  test 'clearable_by? blocks clearing a notice that is not active' do
+  test 'clearable_by? blocks clearing an already-cleared notice' do
     assert_not parking_notices(:cleared_permit).clearable_by?(@user)
+  end
+
+  test 'clearable_by? lets the owner clear their own expired notice' do
+    expired = parking_notices(:expired_ticket)
+    assert expired.clearable_by?(expired.user)
+  end
+
+  test 'clearable_by? blocks the owner clearing an expired notice when admin clearance is required' do
+    expired = parking_notices(:expired_ticket)
+    expired.update!(requires_admin_clearance: true)
+    assert_not expired.clearable_by?(expired.user)
   end
 
   # --- History events ---

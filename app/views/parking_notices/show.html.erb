@@ -18,17 +18,19 @@
     <%= link_to download_pdf_parking_notice_path(@parking_notice), class: "btn btn-outline-dark" do %>
       <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
     <% end %>
-    <%= render 'shared/printer_print_button',
-        notice: @parking_notice,
-        printers: @printers,
-        print_route: :print_notice_parking_notice_path %>
+    <% if @parking_notice.active? %>
+      <%= render 'shared/printer_print_button',
+          notice: @parking_notice,
+          printers: @printers,
+          print_route: :print_notice_parking_notice_path %>
+    <% end %>
     <%= link_to parking_notices_path, class: "btn btn-outline-secondary" do %>
       <i class="bi bi-arrow-left me-1"></i> Back
     <% end %>
   </div>
 </div>
 
-<% if @printers.any? %>
+<% if @parking_notice.active? && @printers.any? %>
   <p class="text-12 text-secondary mb-3">
     Parking print jobs use each printer's receipt paper setting
     (<%= link_to 'Printers', printers_path %>). Choose the thermal roll width there so receipts fill the roll instead of shrinking.

@@ -61,10 +61,11 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_not TrainingTopic.available_for_member_requests.exists?(id: @topic.id)
   end
 
-  test 'member must consent to sharing contact info' do
+  test 'member can submit training request without sharing contact info' do
     sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
 
-    assert_no_difference 'TrainingRequest.count' do
+    assert_difference 'TrainingRequest.count', 1 do
       post training_requests_path, params: {
         training_request: {
           training_topic_id: @topic.id,
@@ -73,8 +74,46 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to new_training_request_path
-    assert_equal 'Please confirm contact sharing to submit your request.', flash[:alert]
+    request = TrainingRequest.order(:created_at).last
+    assert_not request.share_contact_info
+    assert_redirected_to user_path(member, tab: :profile)
+  end
+
+  test 'trainer notification uses withheld email when member did not share contact info' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    member.update!(slack_handle: 'trainee-slack')
+
+    post training_requests_path, params: {
+      training_request: {
+        training_topic_id: @topic.id,
+        share_contact_info: '0'
+      }
+    }
+
+    trainer_mail = QueuedMail.where(recipient_id: users(:one).id).order(:id).last
+    assert trainer_mail
+    assert_equal 'withheld', trainer_mail.mailer_args['requester_email']
+    assert_equal '', trainer_mail.mailer_args['requester_slack']
+    assert_equal false, trainer_mail.mailer_args['share_contact_info']
+  end
+
+  test 'trainer notification includes slack handle when member shared contact info' do
+    sign_in_as_member
+    member = User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    member.update!(slack_handle: 'trainee-slack')
+
+    post training_requests_path, params: {
+      training_request: {
+        training_topic_id: @topic.id,
+        share_contact_info: '1'
+      }
+    }
+
+    trainer_mail = QueuedMail.where(recipient_id: users(:one).id).order(:id).last
+    assert trainer_mail
+    assert_equal 'trainee-slack', trainer_mail.mailer_args['requester_slack']
+    assert_equal member.email, trainer_mail.mailer_args['requester_email']
   end
 
   test 'member can open new training request page' do

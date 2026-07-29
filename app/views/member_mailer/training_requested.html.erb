@@ -12,15 +12,9 @@
 <h2>Requester details</h2>
 <ul>
   <li><strong>Name:</strong> <%= @requester_name %></li>
-  <% if @share_contact_info %>
-    <% if @requester_email.present? %>
-      <li><strong>Email:</strong> <%= @requester_email %></li>
-    <% end %>
-    <% if @requester_slack.present? %>
-      <li><strong>Slack:</strong> <%= @requester_slack %></li>
-    <% end %>
-  <% else %>
-    <li>The member did not consent to sharing contact details.</li>
+  <li><strong>Email:</strong> <%= @requester_email %></li>
+  <% if @share_contact_info && @requester_slack.present? %>
+    <li><strong>Slack:</strong> <%= @requester_slack %></li>
   <% end %>
 </ul>
 

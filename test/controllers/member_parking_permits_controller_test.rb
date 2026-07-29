@@ -125,6 +125,40 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_equal current_member.id, ticket.cleared_by_id
   end
 
+  test 'member can clear their own expired ticket' do
+    sign_in_as_member
+    ticket = member_ticket
+    ticket.update!(status: 'expired', expires_at: 2.days.ago)
+
+    patch close_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_equal 'cleared', ticket.reload.status
+    assert_equal current_member.id, ticket.cleared_by_id
+  end
+
+  test 'member cannot clear an expired ticket that requires admin clearance' do
+    sign_in_as_member
+    ticket = member_ticket
+    ticket.update!(status: 'expired', expires_at: 2.days.ago, requires_admin_clearance: true)
+
+    patch close_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_equal 'expired', ticket.reload.status
+  end
+
+  test 'member can request clearance for an expired ticket that requires admin clearance' do
+    sign_in_as_member
+    ticket = member_ticket
+    ticket.update!(status: 'expired', expires_at: 2.days.ago, requires_admin_clearance: true)
+
+    post request_clearance_member_parking_permit_path(ticket)
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert ticket.reload.clearance_requested?
+  end
+
   test 'member cannot close a ticket that requires admin clearance' do
     sign_in_as_member
     ticket = member_ticket
@@ -242,6 +276,29 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to member_parking_permit_path(permit)
     assert_equal "Printed to #{printer.name} (job member-print-99).", flash[:notice]
+  end
+
+  test 'member cannot print an expired permit' do
+    sign_in_as_member
+    permit = member_permit(status: 'expired')
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+
+    post print_notice_member_parking_permit_path(permit, printer_id: printer.id)
+
+    assert_redirected_to member_parking_permit_path(permit)
+    assert_match(/cannot be printed/i, flash[:alert])
+  end
+
+  test 'member permit show hides print action for an expired permit' do
+    sign_in_as_member
+    permit = member_permit(status: 'expired')
+    printer = Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+
+    get member_parking_permit_path(permit)
+
+    assert_response :success
+    assert_select 'a[href=?]', print_notice_member_parking_permit_path(permit, printer_id: printer.id), false
+    assert_select 'form[action=?]', close_member_parking_permit_path(permit)
   end
 
   test 'member permit show includes print action when printers are configured' do

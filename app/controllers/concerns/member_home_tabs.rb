@@ -1,4 +1,6 @@
 module MemberHomeTabs
+  include ParkingStatusFiltering
+
   private
 
   def prepare_member_home_tabs_data
@@ -10,9 +12,11 @@ module MemberHomeTabs
   end
 
   def set_home_parking_data
-    parking_query = @home_user.parking_notices.not_cleared.newest_first
-    @home_parking_notices_count = parking_query.count
-    @home_parking_notices_list = parking_query.limit(50)
+    base = @home_user.parking_notices
+    @home_parking_notices_count = base.not_cleared.count
+    @parking_status_counts = base.group(:status).count
+    @parking_selected_statuses = selected_parking_statuses
+    @home_parking_notices_list = apply_parking_status_filter(base).newest_first.limit(50)
   end
 
   def set_home_messages_data

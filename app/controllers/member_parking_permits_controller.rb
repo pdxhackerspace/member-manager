@@ -48,10 +48,11 @@ class MemberParkingPermitsController < AuthenticatedController
     end
   end
 
-  # Members may clear their own active notices unless admin clearance is required.
+  # Members may clear their own active or expired notices unless admin
+  # clearance is required.
   def close
-    unless @parking_notice.active?
-      redirect_to user_path(current_user, tab: :parking), alert: 'Only active parking notices can be cleared.'
+    if @parking_notice.cleared?
+      redirect_to user_path(current_user, tab: :parking), alert: 'This parking notice has already been cleared.'
       return
     end
 
@@ -70,7 +71,7 @@ class MemberParkingPermitsController < AuthenticatedController
 
   # Members ask an admin to clear a notice that requires admin clearance.
   def request_clearance
-    unless @parking_notice.active? && @parking_notice.requires_admin_clearance?
+    if @parking_notice.cleared? || !@parking_notice.requires_admin_clearance?
       redirect_to user_path(current_user, tab: :parking),
                   alert: 'This parking notice does not need an admin clearance request.'
       return
@@ -87,6 +88,12 @@ class MemberParkingPermitsController < AuthenticatedController
   end
 
   def print_notice
+    unless @parking_notice.active?
+      redirect_to member_parking_permit_path(@parking_notice),
+                  alert: 'Expired or cleared permits cannot be printed.'
+      return
+    end
+
     printer = Printer.find(params[:printer_id])
     job_id = print_parking_notice_to_printer(@parking_notice, printer)
 

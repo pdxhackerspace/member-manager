@@ -75,6 +75,18 @@ class EmailTemplatesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'form#email_template_form[data-controller=?]', 'email-template-rewrite'
   end
 
+  test 'training_requested edit lists slack handle in available variables' do
+    template = EmailTemplate.find_or_create_by!(key: 'training_requested') do |record|
+      record.assign_attributes(EmailTemplate::DEFAULT_TEMPLATES['training_requested'])
+    end
+
+    get edit_email_template_path(template)
+
+    assert_response :success
+    assert_match '{{requester_slack}}', response.body
+    assert_match 'Slack handle of the member requesting training', response.body
+  end
+
   test 'rewrite_with_ai rewrites subject and body' do
     ai_ollama_profiles(:default).update!(base_url: 'http://ollama.test:11434', model: 'llama3.2')
     ai_ollama_profiles(:email_rewriting).update!(enabled: true, base_url: '', model: '', prompt: 'Rewrite template.')

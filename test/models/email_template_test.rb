@@ -15,4 +15,12 @@ class EmailTemplateTest < ActiveSupport::TestCase
     assert template.valid?
     assert_not template.send_immediately?
   end
+
+  test 'training_requested editor variables include slack handle' do
+    keys = EmailTemplate.editor_variables_for('training_requested').keys
+
+    assert_includes keys, '{{requester_slack}}'
+    assert_includes keys, '{{requester_email}}'
+    assert_not_includes keys, '{{days_overdue}}'
+  end
 end

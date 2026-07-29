@@ -33,6 +33,51 @@ class MemberMailerTest < ActionMailer::TestCase
     assert_includes text, url
   end
 
+  test 'training_requested withholds email and slack when contact not shared' do
+    EmailTemplate.where(key: 'training_requested').update_all(enabled: false)
+
+    member = users(:one)
+    trainer = users(:two)
+    email = MemberMailer.training_requested(
+      trainer,
+      training_topic: 'Laser Cutter',
+      requester_name: member.display_name,
+      share_contact_info: false,
+      recipient_role: 'trainer',
+      trainer_names: 'Trainer One'
+    ).deliver_now
+
+    html = email.html_part.body.to_s
+    text = email.text_part.body.to_s
+    assert_includes html, 'withheld'
+    assert_not_includes html, member.email
+    assert_not_includes html, 'Slack:'
+    assert_includes text, 'Email: withheld'
+    assert_not_includes text, member.email
+  end
+
+  test 'training_requested includes slack handle when contact shared' do
+    EmailTemplate.where(key: 'training_requested').update_all(enabled: false)
+
+    member = users(:one)
+    member.update!(slack_handle: 'laser-trainee')
+    trainer = users(:two)
+    email = MemberMailer.training_requested(
+      trainer,
+      training_topic: 'Laser Cutter',
+      requester_name: member.display_name,
+      requester_email: member.email,
+      requester_slack: 'laser-trainee',
+      share_contact_info: true,
+      recipient_role: 'trainer',
+      trainer_names: 'Trainer One'
+    ).deliver_now
+
+    html = email.html_part.body.to_s
+    assert_includes html, member.email
+    assert_includes html, 'laser-trainee'
+  end
+
   test 'application email verification logs failed delivery instead of sent when delivery raises' do
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)

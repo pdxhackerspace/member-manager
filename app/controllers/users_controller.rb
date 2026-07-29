@@ -1,5 +1,6 @@
 class UsersController < AuthenticatedController
   include TrainingHistoryData
+  include ParkingStatusFiltering
 
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
@@ -180,11 +181,19 @@ class UsersController < AuthenticatedController
                     :profile
                   end
 
-    # Parking notices for admin and self views
+    # Parking notices for admin and self views. The self view gets stacking
+    # status filter pills (default: active only); the admin view keeps the
+    # uncleared list.
     if @view_level == :admin || @view_level == :self
-      parking_query = @user.parking_notices.not_cleared.newest_first
-      @parking_notices_count = parking_query.count
-      @parking_notices_list = parking_query.limit(50)
+      parking_base = @user.parking_notices
+      @parking_notices_count = parking_base.not_cleared.count
+      if @view_level == :self
+        @parking_status_counts = parking_base.group(:status).count
+        @parking_selected_statuses = selected_parking_statuses
+        @parking_notices_list = apply_parking_status_filter(parking_base).newest_first.limit(50)
+      else
+        @parking_notices_list = parking_base.not_cleared.newest_first.limit(50)
+      end
     end
 
     # Messages for admin and self views (not deleted by the recipient)

@@ -1,0 +1,26 @@
+<%# Stacking status filter pills for a member's parking notices.
+    locals:
+      selected   — array of currently applied statuses ([] means no filter / show all)
+      counts     — hash of status => count
+      filter_url — lambda taking a statuses param value ('active,expired' or 'all')
+                   and returning the URL for that filter state %>
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <% { 'active' => 'Active', 'expired' => 'Expired', 'cleared' => 'Cleared' }.each do |status, label| %>
+    <% count = counts.fetch(status, 0) %>
+    <% is_selected = selected.include?(status) %>
+    <% toggled = is_selected ? selected - [status] : selected + [status] %>
+    <% chip_classes = ['filter-chip', 'text-decoration-none',
+                       ('warning' if status == 'expired' && count.positive?),
+                       ('active' if is_selected),
+                       ('muted' if count.zero?)].compact.join(' ') %>
+    <%= link_to filter_url.call(toggled.empty? ? 'all' : toggled.join(',')), class: chip_classes do %>
+      <%= '✓ ' if is_selected %><%= label %> <span class="count"><%= count %></span>
+    <% end %>
+  <% end %>
+  <% if selected.any? %>
+    <span class="text-12 text-secondary ms-1">
+      <%= pluralize(selected.size, 'filter') %> active ·
+      <%= link_to 'Clear', filter_url.call('all'), class: 'link-secondary' %>
+    </span>
+  <% end %>
+</div>

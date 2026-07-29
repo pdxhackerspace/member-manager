@@ -18,14 +18,11 @@ class TrainingRequestsController < AuthenticatedController
       return
     end
 
-    if training_request_params[:share_contact_info] != '1'
-      redirect_to new_training_request_path, alert: 'Please confirm contact sharing to submit your request.'
-      return
-    end
+    share_contact = training_request_params[:share_contact_info] == '1'
 
     request = current_user.training_requests.build(
       training_topic: topic,
-      share_contact_info: true
+      share_contact_info: share_contact
     )
 
     if request.save
@@ -142,14 +139,18 @@ class TrainingRequestsController < AuthenticatedController
   end
 
   def training_request_mail_args(request, recipient_role:, trainer_names:)
+    contact = MemberMailer.training_request_contact_fields(
+      user: request.user,
+      share_contact_info: request.share_contact_info
+    )
+
     {
       training_topic: request.training_topic.name,
       requester_name: request.user.display_name,
-      requester_email: request.user.email.to_s,
-      requester_slack: request.user.slack_handle.to_s,
       share_contact_info: request.share_contact_info,
       recipient_role: recipient_role,
-      trainer_names: trainer_names
+      trainer_names: trainer_names,
+      **contact
     }
   end
 

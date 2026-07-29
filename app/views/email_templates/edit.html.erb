@@ -57,7 +57,7 @@
             <div class="form-text">You can use template variables like <code>{{member_name}}</code> and <code>{{organization_name}}</code>.</div>
           </div>
 
-          <% variables_json = EmailTemplate::AVAILABLE_VARIABLES.map { |var, desc| { name: "#{var} - #{desc}", value: var } }.to_json %>
+          <% variables_json = @email_template.editor_variables.map { |var, desc| { name: "#{var} - #{desc}", value: var } }.to_json %>
           <div class="mb-3" data-controller="rich-editor" data-rich-editor-variables-value="<%= variables_json %>">
             <%= f.label :body_html, "HTML Body", class: "form-label" %>
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -172,7 +172,7 @@
       </div>
       <div class="card-body">
         <p class="text-muted small mb-3">Click to copy a variable to your clipboard.</p>
-        <% EmailTemplate::AVAILABLE_VARIABLES.each do |var, desc| %>
+        <% @email_template.editor_variables.each do |var, desc| %>
           <div class="mb-2">
             <button type="button" class="btn btn-sm btn-outline-secondary font-monospace copy-btn" data-variable="<%= var %>">
               <%= var %>

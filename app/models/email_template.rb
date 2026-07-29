@@ -30,6 +30,20 @@ class EmailTemplate < ApplicationRecord
     '{{contact_details}}' => 'Rendered contact details block for training request notifications'
   }.freeze
 
+  TEMPLATE_EDITOR_VARIABLES = {
+    'training_requested' => %w[
+      {{member_name}}
+      {{organization_name}}
+      {{training_topic}}
+      {{requester_name}}
+      {{requester_email}}
+      {{requester_slack}}
+      {{recipient_role}}
+      {{trainer_names}}
+      {{contact_details}}
+    ]
+  }.freeze
+
   # Default templates that can be seeded
   DEFAULT_TEMPLATES = {
     'application_received' => {
@@ -576,6 +590,15 @@ class EmailTemplate < ApplicationRecord
     find_by(key: key, enabled: true)
   end
 
+  def self.editor_variables_for(key)
+    keys = TEMPLATE_EDITOR_VARIABLES.fetch(key, AVAILABLE_VARIABLES.keys)
+    keys.filter_map { |var| [var, AVAILABLE_VARIABLES[var]] if AVAILABLE_VARIABLES.key?(var) }.to_h
+  end
+
+  def editor_variables
+    self.class.editor_variables_for(key)
+  end
+
   # Render the template with given variables
   def render(variables = {})
     {
@@ -609,7 +632,7 @@ class EmailTemplate < ApplicationRecord
       requester_slack: '@alex',
       recipient_role: 'trainer',
       trainer_names: 'Trainer One, Trainer Two',
-      contact_details: 'Email: alex@example.com'
+      contact_details: 'Email: alex@example.com<br>Slack: alex'
     }.merge(admin_dashboard_preview_variables)
     render(sample_variables)
   end

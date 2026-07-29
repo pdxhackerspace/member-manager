@@ -347,12 +347,28 @@ class MemberMailer < ApplicationMailer
     )
   end
 
+  TRAINING_REQUEST_CONTACT_WITHHELD = 'withheld'.freeze
+
   # Build template variables for a user, merging in action-specific extras.
   # Public class method so QueuedMail can call it for regeneration.
   def self.build_template_variables(user, extra_args = {})
     vars = base_template_variables(user)
     merge_template_extras!(vars, extra_args)
     vars
+  end
+
+  def self.training_request_contact_fields(user:, share_contact_info:)
+    if ActiveModel::Type::Boolean.new.cast(share_contact_info)
+      {
+        requester_email: user.email.to_s,
+        requester_slack: user.slack_handle.to_s
+      }
+    else
+      {
+        requester_email: TRAINING_REQUEST_CONTACT_WITHHELD,
+        requester_slack: ''
+      }
+    end
   end
 
   def self.base_template_variables(user)
@@ -410,9 +426,10 @@ class MemberMailer < ApplicationMailer
     @organization = organization_name
     @training_topic = normalized[:training_topic]
     @requester_name = normalized[:requester_name] || @user.display_name
-    @requester_email = normalized[:requester_email] || @user.email.to_s
-    @requester_slack = normalized[:requester_slack] || @user.slack_handle.to_s
     @share_contact_info = ActiveModel::Type::Boolean.new.cast(normalized[:share_contact_info])
+    contact = self.class.training_request_contact_fields(user: @user, share_contact_info: @share_contact_info)
+    @requester_email = normalized.key?(:requester_email) ? normalized[:requester_email].to_s : contact[:requester_email]
+    @requester_slack = normalized.key?(:requester_slack) ? normalized[:requester_slack].to_s : contact[:requester_slack]
     @recipient_role = normalized[:recipient_role] || 'trainer'
     @trainer_names = normalized[:trainer_names] || ''
   end
@@ -430,12 +447,9 @@ class MemberMailer < ApplicationMailer
   end
 
   def training_requested_contact_block
-    return 'The member did not consent to sharing contact details.' unless @share_contact_info
-
-    [
-      ("Email: #{@requester_email}" if @requester_email.present?),
-      ("Slack: #{@requester_slack}" if @requester_slack.present?)
-    ].compact.join('<br>')
+    lines = ["Email: #{@requester_email}"]
+    lines << "Slack: #{@requester_slack}" if @share_contact_info && @requester_slack.present?
+    lines.join('<br>')
   end
 
   def training_requested_to_address(user, opts)

@@ -87,6 +87,46 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', print_notice_member_parking_permit_path(ticket, printer_id: printer.id), count: 0
   end
 
+  test 'home parking tab defaults to active notices with stacking filter pills' do
+    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    admin_user.parking_notices.create!(
+      notice_type: 'permit', status: 'active', issued_by: admin_user,
+      expires_at: 3.days.from_now, description: 'Active home permit', location: 'Woodshop'
+    )
+    ParkingNotice.create!(
+      notice_type: 'ticket', status: 'expired', user: admin_user, issued_by: admin_user,
+      expires_at: 2.days.ago, description: 'Expired home ticket', location: 'Main Area'
+    )
+
+    get root_path(tab: :parking)
+
+    assert_response :success
+    assert_select '.filter-chip', 3
+    assert_match 'Active home permit', response.body
+    assert_no_match(/Expired home ticket/, response.body)
+
+    get root_path(tab: :parking, statuses: 'active,expired')
+
+    assert_response :success
+    assert_match 'Active home permit', response.body
+    assert_match 'Expired home ticket', response.body
+  end
+
+  test 'home parking tab hides print for expired permits' do
+    admin_user = User.find_by!(email: local_accounts(:active_admin).email)
+    Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    expired_permit = admin_user.parking_notices.create!(
+      notice_type: 'permit', status: 'expired', issued_by: admin_user,
+      expires_at: 2.days.ago, description: 'Expired home permit', location: 'Woodshop'
+    )
+
+    get root_path(tab: :parking, statuses: 'expired')
+
+    assert_response :success
+    assert_select 'a[href^=?]', print_notice_member_parking_permit_path(expired_permit), count: 0
+    assert_select 'form[action=?]', close_member_parking_permit_path(expired_permit)
+  end
+
   test 'member home payments details use source labels without payer emails' do
     admin_user = User.find_by!(email: local_accounts(:active_admin).email)
     [

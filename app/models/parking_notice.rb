@@ -83,10 +83,11 @@ class ParkingNotice < ApplicationRecord
     parts.join(' — ')
   end
 
-  # A member may clear their own active notice unless it has been flagged as
-  # requiring admin clearance. Admins can always clear any active notice.
+  # A member may clear their own active or expired notice unless it has been
+  # flagged as requiring admin clearance. Admins can always clear any
+  # uncleared notice.
   def clearable_by?(actor)
-    return false unless active?
+    return false if cleared?
     return true if actor&.admin?
     return false if requires_admin_clearance?
 

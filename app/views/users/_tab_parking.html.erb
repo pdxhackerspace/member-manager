@@ -2,6 +2,7 @@
 <% actions = local_assigns[:actions] %>
 <% show_actions_column = actions.present? %>
 <% printers = local_assigns.fetch(:printers) { Printer.ordered } %>
+<% empty_message = local_assigns.fetch(:empty_message, 'No parking notices for this member.') %>
 <% if parking_notices.any? %>
   <div class="card shadow-sm border-0">
     <div class="table-responsive">
@@ -44,12 +45,14 @@
                     <% end %>
                     <% if actions == :admin %>
                       <%= link_to "View", parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
-                      <%= render 'shared/printer_print_button',
-                          notice: notice,
-                          printers: printers,
-                          print_route: :print_notice_parking_notice_path,
-                          btn_size: :sm,
-                          dropdown_suffix: notice.id %>
+                      <% if notice.active? %>
+                        <%= render 'shared/printer_print_button',
+                            notice: notice,
+                            printers: printers,
+                            print_route: :print_notice_parking_notice_path,
+                            btn_size: :sm,
+                            dropdown_suffix: notice.id %>
+                      <% end %>
                       <% unless notice.cleared? %>
                         <%= link_to "Edit", edit_parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
                         <%= button_to "Clear", clear_parking_notice_path(notice), method: :post,
@@ -58,7 +61,7 @@
                       <% end %>
                     <% elsif actions == :member %>
                       <%= link_to "View", member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
-                      <% if notice.permit? %>
+                      <% if notice.permit? && notice.active? %>
                         <%= render 'shared/printer_print_button',
                             notice: notice,
                             printers: printers,
@@ -74,7 +77,7 @@
                           <%= button_to "Clear", close_member_parking_permit_path(notice), method: :patch,
                               class: "btn btn-sm btn-outline-secondary",
                               form: { data: { turbo_confirm: "Clear this parking notice? This frees the spot and can't be undone." } } %>
-                        <% elsif notice.active? && notice.requires_admin_clearance? && !notice.clearance_requested? %>
+                        <% elsif notice.requires_admin_clearance? && !notice.clearance_requested? %>
                           <%= button_to "Request clearance", request_clearance_member_parking_permit_path(notice), method: :post,
                               class: "btn btn-sm btn-outline-secondary" %>
                         <% end %>
@@ -91,6 +94,6 @@
   </div>
 <% else %>
   <div class="text-center text-muted py-4">
-    <p>No parking notices for this member.</p>
+    <p><%= empty_message %></p>
   </div>
 <% end %>

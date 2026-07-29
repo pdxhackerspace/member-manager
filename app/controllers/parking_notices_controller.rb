@@ -114,6 +114,12 @@ class ParkingNoticesController < AdminController
   end
 
   def print_notice
+    unless @parking_notice.active?
+      redirect_to parking_notice_path(@parking_notice),
+                  alert: 'Expired or cleared notices cannot be printed.'
+      return
+    end
+
     printer = Printer.find(params[:printer_id])
     job_id = print_parking_notice_to_printer(@parking_notice, printer)
 

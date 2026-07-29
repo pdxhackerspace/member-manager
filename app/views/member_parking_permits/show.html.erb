@@ -16,14 +16,14 @@
             form: { data: { turbo_confirm: "Clear this parking notice? This frees the spot and can't be undone." } } do %>
           <i class="bi bi-check-circle me-1"></i> Clear
         <% end %>
-      <% elsif @parking_notice.active? && @parking_notice.requires_admin_clearance? && !@parking_notice.clearance_requested? %>
+      <% elsif @parking_notice.requires_admin_clearance? && !@parking_notice.clearance_requested? %>
         <%= button_to request_clearance_member_parking_permit_path(@parking_notice), method: :post,
             class: 'btn btn-outline-secondary' do %>
           <i class="bi bi-hand-index me-1"></i> Request clearance
         <% end %>
       <% end %>
     <% end %>
-    <% if @parking_notice.permit? %>
+    <% if @parking_notice.permit? && @parking_notice.active? %>
       <%= render 'shared/printer_print_button',
           notice: @parking_notice,
           printers: @printers,
@@ -35,7 +35,7 @@
   </div>
 </div>
 
-<% if @parking_notice.permit? && @printers.any? %>
+<% if @parking_notice.permit? && @parking_notice.active? && @printers.any? %>
   <p class="text-12 text-secondary mb-3">
     Parking print jobs use each printer's receipt paper setting configured by staff.
     Choose the thermal roll width on the printer so receipts fill the roll instead of shrinking.
@@ -51,7 +51,7 @@
     <i class="bi bi-hand-index me-1"></i>
     You've requested that an admin clear this notice. They'll review it soon.
   </div>
-<% elsif @parking_notice.active? && @parking_notice.requires_admin_clearance? %>
+<% elsif !@parking_notice.cleared? && @parking_notice.requires_admin_clearance? %>
   <p class="text-secondary mb-3">This notice must be cleared by an admin. Use "Request clearance" to ask the team to clear it.</p>
 <% end %>
 

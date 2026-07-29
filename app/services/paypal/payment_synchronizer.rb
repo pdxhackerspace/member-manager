@@ -181,7 +181,7 @@ module Paypal
 
       # Convert raw_attributes to JSON string and search for allowed transaction subjects
       raw_json = attrs[:raw_attributes].to_json
-      subjects.any? { |subject| raw_json.include?(subject) }
+      subjects.any?(raw_json.method(:include?))
     end
 
     # Extract transaction subject from payment for logging

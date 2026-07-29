@@ -651,7 +651,7 @@ namespace :payments do
         matches_plan = false
         if attrs[:raw_attributes].present? && plan_subjects.any?
           raw_json = attrs[:raw_attributes].to_json
-          matches_plan = plan_subjects.any? { |subject| raw_json.include?(subject) }
+          matches_plan = plan_subjects.any?(raw_json.method(:include?))
         end
 
         if matches_plan

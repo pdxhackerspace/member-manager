@@ -415,7 +415,12 @@
     <% elsif @active_tab == :payments %>
       <%= render 'users/tab_payments', payments: @payments, pagy: @pagy_payments, user: @user, show_payment_links: false %>
     <% elsif @active_tab == :parking %>
-      <%= render 'users/tab_parking', parking_notices: @parking_notices_list, actions: :member %>
+      <%= render 'users/parking_status_filters',
+          selected: @parking_selected_statuses,
+          counts: @parking_status_counts,
+          filter_url: ->(statuses) { user_path(@user, tab: :parking, statuses: statuses) } %>
+      <%= render 'users/tab_parking', parking_notices: @parking_notices_list, actions: :member,
+          empty_message: 'No parking notices match these filters.' %>
     <% elsif @active_tab == :training_history %>
       <%= render 'users/tab_training_history', user: @user %>
     <% elsif @active_tab == :messages %>

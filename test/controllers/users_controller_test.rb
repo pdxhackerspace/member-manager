@@ -579,6 +579,62 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', print_notice_member_parking_permit_path(ticket, printer_id: printer.id), count: 0
   end
 
+  test 'member parking tab defaults to active notices only, with filter pills' do
+    sign_in_as_regular_member
+    member = User.find_by!(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    create_member_parking_notices(member)
+
+    get user_path(member, tab: :parking)
+
+    assert_response :success
+    assert_select '.filter-chip', 3
+    assert_match 'Active woodshop permit', response.body
+    assert_no_match 'Expired lot ticket', response.body
+    assert_no_match 'Cleared laser permit', response.body
+  end
+
+  test 'member parking tab filters stack' do
+    sign_in_as_regular_member
+    member = User.find_by!(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    create_member_parking_notices(member)
+
+    get user_path(member, tab: :parking, statuses: 'active,expired')
+
+    assert_response :success
+    assert_match 'Active woodshop permit', response.body
+    assert_match 'Expired lot ticket', response.body
+    assert_no_match 'Cleared laser permit', response.body
+  end
+
+  test 'member parking tab shows everything when filters are cleared' do
+    sign_in_as_regular_member
+    member = User.find_by!(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    create_member_parking_notices(member)
+
+    get user_path(member, tab: :parking, statuses: 'all')
+
+    assert_response :success
+    assert_match 'Active woodshop permit', response.body
+    assert_match 'Expired lot ticket', response.body
+    assert_match 'Cleared laser permit', response.body
+  end
+
+  test 'member parking tab shows a clear action for expired tickets but no print action' do
+    sign_in_as_regular_member
+    member = User.find_by!(authentik_id: "local:#{local_accounts(:regular_member).id}")
+    Printer.create!(name: 'Front Desk', cups_printer_name: 'front_desk')
+    expired = ParkingNotice.create!(
+      notice_type: 'ticket', status: 'expired', user: member, issued_by: users(:one),
+      expires_at: 2.days.ago, description: 'Expired lot ticket', location: 'Parking Lot'
+    )
+
+    get user_path(member, tab: :parking, statuses: 'expired')
+
+    assert_response :success
+    assert_select 'form[action=?]', close_member_parking_permit_path(expired)
+    assert_select 'a[href^=?]', print_notice_member_parking_permit_path(expired), count: 0
+  end
+
   private
 
   def sign_in_as_local_admin
@@ -610,5 +666,22 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       }
     }
     User.find_by!(authentik_id: "local:#{account.id}")
+  end
+
+  # One notice in each status for exercising the member parking tab filters.
+  def create_member_parking_notices(member)
+    member.parking_notices.create!(
+      notice_type: 'permit', status: 'active', issued_by: member,
+      expires_at: 3.days.from_now, description: 'Active woodshop permit', location: 'Woodshop'
+    )
+    ParkingNotice.create!(
+      notice_type: 'ticket', status: 'expired', user: member, issued_by: users(:one),
+      expires_at: 2.days.ago, description: 'Expired lot ticket', location: 'Parking Lot'
+    )
+    member.parking_notices.create!(
+      notice_type: 'permit', status: 'cleared', issued_by: member,
+      expires_at: 10.days.ago, cleared_at: 8.days.ago, cleared_by: member,
+      description: 'Cleared laser permit', location: 'Main Area'
+    )
   end
 end

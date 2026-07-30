@@ -20,23 +20,32 @@
     <%= f.text_field :subject, class: "form-control", required: true, placeholder: "Brief summary of the incident" %>
   </div>
 
-  <div>
-    <%= f.label :incident_type, "Incident Type", class: "form-label" %>
-    <%= f.select :incident_type, 
-        options_for_select(IncidentReport::INCIDENT_TYPES, @incident_report.incident_type),
-        { prompt: "Select a type..." },
-        { class: "form-select", required: true, id: "incident_type_select" } %>
-  </div>
-
   <% other_selected = @incident_report.incident_type == 'other' %>
-  <div id="other_explanation_field" style="<%= 'display: none;' unless other_selected %>">
-    <%= f.label :other_type_explanation, "Please explain", class: "form-label" %>
-    <span class="text-danger">*</span>
-    <%= f.text_field :other_type_explanation,
-        class: "form-control#{' is-invalid' if @incident_report.errors[:other_type_explanation].any?}",
-        placeholder: "Describe the type of incident",
-        required: other_selected %>
-    <div class="form-text">Required when the incident type is "Other".</div>
+  <div class="vstack gap-3"
+       data-controller="conditional-field"
+       data-conditional-field-match-value="other">
+    <div>
+      <%= f.label :incident_type, "Incident Type", class: "form-label" %>
+      <span class="text-danger">*</span>
+      <%= f.select :incident_type,
+          options_for_select(IncidentReport::INCIDENT_TYPES, @incident_report.incident_type),
+          { prompt: "Select a type..." },
+          { class: "form-select", required: true, id: "incident_type_select",
+            data: { conditional_field_target: "trigger", action: "change->conditional-field#toggle" } } %>
+    </div>
+
+    <div id="other_explanation_field"
+         class="<%= 'd-none' unless other_selected %>"
+         data-conditional-field-target="field">
+      <%= f.label :other_type_explanation, "Please explain", class: "form-label" %>
+      <span class="text-danger">*</span>
+      <%= f.text_field :other_type_explanation,
+          class: "form-control#{' is-invalid' if @incident_report.errors[:other_type_explanation].any?}",
+          placeholder: "Describe the type of incident",
+          required: other_selected,
+          data: { conditional_field_target: "input" } %>
+      <div class="form-text">Required when the incident type is "Other".</div>
+    </div>
   </div>
 
   <div>
@@ -47,52 +56,70 @@
         { class: "form-select" } %>
   </div>
 
-  <div>
+  <div data-controller="live-filter member-picker"
+       data-live-filter-min-length-value="2"
+       data-member-picker-field-name-value="incident_report[involved_member_ids][]">
     <%= f.label :involved_member_ids, "Involved Members", class: "form-label" %>
-    <div class="form-text mb-2">Select any members involved in this incident. Leave empty if only non-members were involved.</div>
-    
-    <!-- Selected members display -->
-    <div id="selected_members" class="d-flex flex-wrap gap-2 mb-2">
+    <div class="form-text mb-2">Search by name, email, or username. Leave empty if only non-members were involved.</div>
+
+    <div class="d-flex flex-wrap gap-2 mb-2" data-member-picker-target="selected"></div>
+    <div class="text-13 text-secondary mb-2" data-member-picker-target="empty">No members selected.</div>
+
+    <div data-member-picker-target="inputs">
+      <%# Always submitted so clearing every selection reaches the server. %>
+      <input type="hidden" name="incident_report[involved_member_ids][]" value="">
       <% @incident_report.involved_members.each do |member| %>
-        <span class="badge bg-primary d-flex align-items-center gap-1 selected-member-badge" data-user-id="<%= member.id %>">
-          <%= member.display_name %>
-          <button type="button" class="btn-close btn-close-white ms-1" style="font-size: 0.6rem;" aria-label="Remove"></button>
-        </span>
+        <input type="hidden"
+               name="incident_report[involved_member_ids][]"
+               value="<%= member.id %>"
+               data-user-name="<%= member.display_name %>">
       <% end %>
     </div>
-    
-    <!-- Hidden inputs for selected members -->
-    <div id="selected_member_inputs">
-      <% @incident_report.involved_members.each do |member| %>
-        <input type="hidden" name="incident_report[involved_member_ids][]" value="<%= member.id %>" data-user-id="<%= member.id %>">
-      <% end %>
-    </div>
-    
-    <!-- Search input -->
-    <div class="mb-2">
-      <input type="text" id="member_search" class="form-control" placeholder="Type to search and add members..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    </div>
-    
-    <!-- Search results dropdown -->
-    <div id="member_search_results" class="border rounded" style="max-height: 200px; overflow-y: auto; display: none;">
+
+    <input type="text" id="member_search" class="form-control"
+           placeholder="Type to search by name, email, or username..."
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           data-live-filter-target="input"
+           data-member-picker-target="search"
+           data-action="input->live-filter#filter keyup->live-filter#filter">
+
+    <div id="member_search_results" class="mt-2 d-none border rounded"
+         style="max-height: 280px; overflow-y: auto;"
+         data-live-filter-target="resultsContainer">
       <% @users.each do |user| %>
-        <div class="member-result p-2 border-bottom" 
-             data-user-id="<%= user.id %>" 
-             data-user-name="<%= user.display_name.downcase %>"
-             data-user-email="<%= user.email.to_s.downcase %>"
-             data-username="<%= user.username.to_s.downcase %>"
-             data-user-display="<%= user.display_name %>"
-             style="cursor: pointer;">
-          <span class="member-name"><%= user.display_name %></span>
-          <% if user.email.present? %>
-            <span class="text-muted small ms-2"><%= user.email %></span>
-          <% end %>
+        <div class="search-result-item d-none p-2 border-bottom d-flex justify-content-between align-items-center"
+             role="button"
+             data-live-filter-target="item"
+             data-member-picker-target="result"
+             data-user-id="<%= user.id %>"
+             data-search-text="<%= user_live_search_text(user) %>"
+             data-action="click->member-picker#add"
+             data-member-picker-id-param="<%= user.id %>"
+             data-member-picker-name-param="<%= user.display_name %>">
+          <div>
+            <div class="fw-medium text-13"><%= user.display_name %></div>
+            <% if user.email.present? %>
+              <div class="text-11 text-secondary"><%= user.email %></div>
+            <% end %>
+          </div>
+          <span class="badge text-bg-success-subtle d-none" data-member-added>
+            <i class="bi bi-check"></i> Added
+          </span>
         </div>
       <% end %>
     </div>
-    <div id="no_member_results" class="text-muted text-center p-3 border rounded" style="display: none;">
+    <div id="no_member_results" class="mt-2 p-3 text-center text-secondary border rounded text-13 d-none"
+         data-live-filter-target="noResults">
       No members found matching your search.
     </div>
+
+    <template data-member-picker-target="template">
+      <span class="badge text-bg-secondary d-inline-flex align-items-center gap-1">
+        <span data-member-name></span>
+        <button type="button" class="btn-close" style="font-size: 0.6rem;" aria-label="Remove"
+                data-action="member-picker#remove"></button>
+      </span>
+    </template>
   </div>
 
   <div>
@@ -185,185 +212,3 @@
     </div>
   </div>
 <% end %>
-
-<script>
-  (function() {
-  function initIncidentReportForm() {
-    // Show/hide other explanation field based on incident type
-    const typeSelect = document.getElementById('incident_type_select');
-    const otherField = document.getElementById('other_explanation_field');
-
-    if (typeSelect && otherField && typeSelect.dataset.otherToggleBound !== 'true') {
-      typeSelect.dataset.otherToggleBound = 'true';
-
-      const otherInput = otherField.querySelector('input');
-
-      typeSelect.addEventListener('change', function() {
-        const isOther = this.value === 'other';
-        otherField.style.display = isOther ? '' : 'none';
-        // A hidden field carrying `required` blocks submission with no visible
-        // message, so the attribute has to track visibility.
-        if (otherInput) otherInput.required = isOther;
-      });
-    }
-
-    // Member search and selection functionality
-    const memberSearch = document.getElementById('member_search');
-    const searchResults = document.getElementById('member_search_results');
-    const noResults = document.getElementById('no_member_results');
-    const selectedMembers = document.getElementById('selected_members');
-    const selectedInputs = document.getElementById('selected_member_inputs');
-
-    if (!memberSearch || !searchResults || !selectedMembers || !selectedInputs) return;
-    if (memberSearch.dataset.memberSearchBound === 'true') return;
-    memberSearch.dataset.memberSearchBound = 'true';
-
-    // Get currently selected member IDs
-    function getSelectedIds() {
-      const ids = new Set();
-      selectedInputs.querySelectorAll('input[type="hidden"]').forEach(function(input) {
-        ids.add(input.value);
-      });
-      return ids;
-    }
-
-    // Filter and show search results
-    function filterMembers() {
-      const searchTerm = memberSearch.value.toLowerCase().trim();
-      const selectedIds = getSelectedIds();
-      const results = searchResults.querySelectorAll('.member-result');
-      let visibleCount = 0;
-
-      if (searchTerm === '') {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        return;
-      }
-
-      results.forEach(function(result) {
-        const name = result.getAttribute('data-user-name') || '';
-        const email = result.getAttribute('data-user-email') || '';
-        const username = result.getAttribute('data-username') || '';
-        const haystack = name + ' ' + email + ' ' + username;
-        const userId = result.getAttribute('data-user-id');
-        const isSelected = selectedIds.has(userId);
-        
-        if (!isSelected && haystack.includes(searchTerm)) {
-          result.style.display = '';
-          visibleCount++;
-        } else {
-          result.style.display = 'none';
-        }
-      });
-
-      if (visibleCount === 0) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'block';
-      } else {
-        searchResults.style.display = 'block';
-        noResults.style.display = 'none';
-      }
-    }
-
-    // Add a member to the selection
-    function addMember(userId, displayName) {
-      // Check if already selected
-      if (getSelectedIds().has(userId)) return;
-
-      // Add hidden input
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'incident_report[involved_member_ids][]';
-      input.value = userId;
-      input.setAttribute('data-user-id', userId);
-      selectedInputs.appendChild(input);
-
-     // Add badge — use textContent for user-supplied display name, never innerHTML
-     const badge = document.createElement('span');
-     badge.className = 'badge bg-primary d-flex align-items-center gap-1 selected-member-badge';
-     badge.setAttribute('data-user-id', userId);
-
-     const nameText = document.createTextNode(displayName);
-     badge.appendChild(nameText);
-
-     const closeBtn = document.createElement('button');
-     closeBtn.type = 'button';
-     closeBtn.className = 'btn-close btn-close-white ms-1';
-     closeBtn.style.fontSize = '0.6rem';
-     closeBtn.setAttribute('aria-label', 'Remove');
-     closeBtn.addEventListener('click', function() {
-       removeMember(userId);
-     });
-     badge.appendChild(closeBtn);
-
-     selectedMembers.appendChild(badge);
-
-      // Clear search and hide results
-      memberSearch.value = '';
-      searchResults.style.display = 'none';
-      noResults.style.display = 'none';
-    }
-
-    // Remove a member from the selection
-    function removeMember(userId) {
-      // Remove hidden input
-      const input = selectedInputs.querySelector('input[data-user-id="' + userId + '"]');
-      if (input) input.remove();
-
-      // Remove badge
-      const badge = selectedMembers.querySelector('.selected-member-badge[data-user-id="' + userId + '"]');
-      if (badge) badge.remove();
-    }
-
-    // Event listeners
-    memberSearch.addEventListener('input', filterMembers);
-    memberSearch.addEventListener('focus', filterMembers);
-
-    // Click to add member from search results
-    searchResults.querySelectorAll('.member-result').forEach(function(result) {
-      result.addEventListener('click', function() {
-        const userId = this.getAttribute('data-user-id');
-        const displayName = this.getAttribute('data-user-display');
-        addMember(userId, displayName);
-      });
-
-      // Hover effect
-      result.addEventListener('mouseenter', function() {
-        this.classList.add('bg-body-secondary');
-      });
-      result.addEventListener('mouseleave', function() {
-        this.classList.remove('bg-body-secondary');
-      });
-    });
-
-    // Remove member when clicking badge close button (for pre-existing selections)
-    selectedMembers.querySelectorAll('.selected-member-badge .btn-close').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        const badge = this.closest('.selected-member-badge');
-        const userId = badge.getAttribute('data-user-id');
-        removeMember(userId);
-      });
-    });
-
-    // Hide results when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!memberSearch.contains(e.target) && !searchResults.contains(e.target)) {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-      }
-    });
-
-    // Keyboard navigation
-    memberSearch.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        memberSearch.blur();
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', initIncidentReportForm);
-  document.addEventListener('turbo:load', initIncidentReportForm);
-  })();
-</script>

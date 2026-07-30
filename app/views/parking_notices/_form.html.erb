@@ -90,11 +90,12 @@
 
     <div class="col-md-6">
       <%# Expiration with quick-select buttons %>
-      <div class="mb-3">
+      <div class="mb-3" data-controller="quick-expire">
         <%= f.label :expires_at, 'Expiration', class: 'form-label' %>
         <span class="text-danger">*</span>
         <%= render 'parking_notices/expiration_quick_buttons' %>
         <%= f.datetime_local_field :expires_at, class: 'form-control', required: true,
+            data: { quick_expire_target: 'field' },
             value: parking_notice.expires_at&.strftime('%Y-%m-%dT%H:%M') %>
       </div>
 
@@ -172,28 +173,10 @@
 <script>
   (function() {
     function initParkingNoticeForm() {
-      var expiresField = document.querySelector('input[name="parking_notice[expires_at]"]');
       var locationField = document.querySelector('input[name="parking_notice[location]"]');
 
-      if (!expiresField) return;
-
-      document.querySelectorAll('.quick-expire').forEach(function(btn) {
-        if (btn.dataset.quickExpireBound === 'true') return;
-        btn.dataset.quickExpireBound = 'true';
-
-        btn.addEventListener('click', function() {
-          var date = new Date();
-          if (this.dataset.years) {
-            date.setFullYear(date.getFullYear() + parseInt(this.dataset.years, 10));
-          } else {
-            date.setDate(date.getDate() + parseInt(this.dataset.days, 10));
-          }
-          date.setHours(17, 0, 0, 0);
-          var pad = function(n) { return n < 10 ? '0' + n : n; };
-          expiresField.value = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' +
-                               pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
-        });
-      });
+      // turbo:load fires on every page, so bail out unless this is the form.
+      if (!document.querySelector('input[name="parking_notice[expires_at]"]')) return;
 
       document.querySelectorAll('.quick-room').forEach(function(btn) {
         btn.addEventListener('click', function() {

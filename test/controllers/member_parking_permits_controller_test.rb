@@ -468,11 +468,19 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def assert_expiration_quick_buttons
+    assert_select '[data-controller="quick-expire"]'
+    assert_select 'input[name="parking_notice[expires_at]"][data-quick-expire-target="field"]'
+
     assert_select '.quick-expire', 4
-    assert_select '.quick-expire[data-days="1"]', text: '1 day'
-    assert_select '.quick-expire[data-days="3"]', text: '3 days'
-    assert_select '.quick-expire[data-days="7"]', text: '1 week'
-    assert_select '.quick-expire[data-days="14"]', text: '2 weeks'
+    assert_select '.quick-expire[data-quick-expire-days-param="1"]', text: '1 day'
+    assert_select '.quick-expire[data-quick-expire-days-param="3"]', text: '3 days'
+    assert_select '.quick-expire[data-quick-expire-days-param="7"]', text: '1 week'
+    assert_select '.quick-expire[data-quick-expire-days-param="14"]', text: '2 weeks'
+
+    # Every button must carry the action; a guard flag on the DOM used to leave
+    # them inert after a Turbo cache restore.
+    assert_select '.quick-expire[data-action="quick-expire#set"]', 4
+
     assert_select 'input[name="parking_notice[expires_at]"][max]'
   end
 end

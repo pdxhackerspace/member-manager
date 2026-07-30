@@ -52,12 +52,12 @@ class MemberParkingPermitsController < AuthenticatedController
   # clearance is required.
   def close
     if @parking_notice.cleared?
-      redirect_to user_path(current_user, tab: :parking), alert: 'This parking notice has already been cleared.'
+      redirect_to close_return_path, alert: 'This parking notice has already been cleared.'
       return
     end
 
     unless @parking_notice.clearable_by?(current_user)
-      redirect_to user_path(current_user, tab: :parking),
+      redirect_to close_return_path,
                   alert: 'This parking notice must be cleared by an admin. You can request clearance instead.'
       return
     end
@@ -65,7 +65,7 @@ class MemberParkingPermitsController < AuthenticatedController
     @parking_notice.event_actor = current_user
     @parking_notice.clear!(current_user)
     @parking_notice.record_journal_entry!('parking_notice_cleared', actor: current_user)
-    redirect_to user_path(current_user, tab: :parking),
+    redirect_to close_return_path,
                 notice: "Parking #{@parking_notice.notice_type} cleared."
   end
 
@@ -118,6 +118,13 @@ class MemberParkingPermitsController < AuthenticatedController
   end
 
   private
+
+  # After clearing, return to the list the member was viewing (dashboard or
+  # profile parking tab, with any filters). Falls back to the profile parking
+  # tab; url_from rejects off-site URLs.
+  def close_return_path
+    url_from(params[:return_to]) || user_path(current_user, tab: :parking)
+  end
 
   def set_owned_notice
     @parking_notice = current_user.parking_notices.find(params[:id])

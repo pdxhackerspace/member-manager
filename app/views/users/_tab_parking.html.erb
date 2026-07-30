@@ -55,7 +55,7 @@
                       <% end %>
                       <% unless notice.cleared? %>
                         <%= link_to "Edit", edit_parking_notice_path(notice), class: "btn btn-sm btn-outline-secondary" %>
-                        <%= button_to "Clear", clear_parking_notice_path(notice), method: :post,
+                        <%= button_to "Clear", clear_parking_notice_path(notice, return_to: request.fullpath), method: :post,
                             class: "btn btn-sm btn-outline-secondary",
                             form: { data: { turbo_confirm: "Mark this parking #{notice.notice_type_display.downcase} as cleared?" } } %>
                       <% end %>
@@ -74,7 +74,7 @@
                           <%= link_to "Edit", edit_member_parking_permit_path(notice), class: "btn btn-sm btn-outline-secondary" %>
                         <% end %>
                         <% if notice.clearable_by?(current_user) %>
-                          <%= button_to "Clear", close_member_parking_permit_path(notice), method: :patch,
+                          <%= button_to "Clear", close_member_parking_permit_path(notice, return_to: request.fullpath), method: :patch,
                               class: "btn btn-sm btn-outline-secondary",
                               form: { data: { turbo_confirm: "Clear this parking notice? This frees the spot and can't be undone." } } %>
                         <% elsif notice.requires_admin_clearance? && !notice.clearance_requested? %>

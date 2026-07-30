@@ -114,6 +114,27 @@ class MemberParkingPermitsControllerTest < ActionDispatch::IntegrationTest
     assert_equal member.id, permit.cleared_by_id
   end
 
+  test 'closing a notice returns to the list passed as return_to' do
+    sign_in_as_member
+    permit = member_permit
+    return_to = root_path(tab: :parking, statuses: 'active,expired')
+
+    patch close_member_parking_permit_path(permit, return_to: return_to)
+
+    assert_redirected_to return_to
+    assert_equal 'cleared', permit.reload.status
+  end
+
+  test 'closing a notice ignores an off-site return_to' do
+    sign_in_as_member
+    permit = member_permit
+
+    patch close_member_parking_permit_path(permit, return_to: 'https://evil.example.com/phish')
+
+    assert_redirected_to user_path(current_member, tab: :parking)
+    assert_equal 'cleared', permit.reload.status
+  end
+
   test 'member can close their own ticket when admin clearance is not required' do
     sign_in_as_member
     ticket = member_ticket

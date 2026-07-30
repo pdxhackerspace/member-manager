@@ -86,7 +86,8 @@ class ParkingNoticesController < AdminController
     @parking_notice.clear!(current_user)
     @parking_notice.record_journal_entry!('parking_notice_cleared', actor: current_user)
 
-    redirect_to parking_notice_path(@parking_notice),
+    # Return to the list the admin was viewing rather than the cleared notice.
+    redirect_to url_from(params[:return_to]) || parking_notices_path,
                 notice: "Parking #{@parking_notice.notice_type} marked as cleared."
   end
 

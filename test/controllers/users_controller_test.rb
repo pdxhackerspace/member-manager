@@ -631,7 +631,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get user_path(member, tab: :parking, statuses: 'expired')
 
     assert_response :success
-    assert_select 'form[action=?]', close_member_parking_permit_path(expired)
+    assert_select 'form[action^=?]', close_member_parking_permit_path(expired)
     assert_select 'a[href^=?]', print_notice_member_parking_permit_path(expired), count: 0
   end
 

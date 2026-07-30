@@ -124,7 +124,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select 'a[href^=?]', print_notice_member_parking_permit_path(expired_permit), count: 0
-    assert_select 'form[action=?]', close_member_parking_permit_path(expired_permit)
+    assert_select 'form[action^=?]', close_member_parking_permit_path(expired_permit)
   end
 
   test 'member home payments details use source labels without payer emails' do

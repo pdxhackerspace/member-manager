@@ -367,9 +367,25 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
 
   # --- Clear ---
 
-  test 'clear marks notice as cleared' do
+  test 'clear marks notice as cleared and returns to the notices list' do
     post clear_parking_notice_url(@active_permit)
-    assert_redirected_to parking_notice_path(@active_permit)
+    assert_redirected_to parking_notices_path
+    assert @active_permit.reload.cleared?
+  end
+
+  test 'clear returns to the list passed as return_to' do
+    return_to = user_path(@active_permit.user, tab: :parking)
+
+    post clear_parking_notice_url(@active_permit, return_to: return_to)
+
+    assert_redirected_to return_to
+    assert @active_permit.reload.cleared?
+  end
+
+  test 'clear ignores an off-site return_to' do
+    post clear_parking_notice_url(@active_permit, return_to: 'https://evil.example.com/phish')
+
+    assert_redirected_to parking_notices_path
     assert @active_permit.reload.cleared?
   end
 

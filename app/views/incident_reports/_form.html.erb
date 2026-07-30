@@ -1,4 +1,15 @@
 <%= form_with model: @incident_report, local: true, class: "vstack gap-3" do |f| %>
+  <% if @incident_report.errors.any? %>
+    <div class="alert alert-danger">
+      <h6><%= pluralize(@incident_report.errors.count, 'error') %> prevented this incident report from being saved:</h6>
+      <ul class="mb-0">
+        <% @incident_report.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
   <div>
     <%= f.label :incident_date, "Date of Incident", class: "form-label" %>
     <%= f.date_field :incident_date, class: "form-control", required: true %>
@@ -17,9 +28,15 @@
         { class: "form-select", required: true, id: "incident_type_select" } %>
   </div>
 
-  <div id="other_explanation_field" style="<%= 'display: none;' unless @incident_report.incident_type == 'other' %>">
+  <% other_selected = @incident_report.incident_type == 'other' %>
+  <div id="other_explanation_field" style="<%= 'display: none;' unless other_selected %>">
     <%= f.label :other_type_explanation, "Please explain", class: "form-label" %>
-    <%= f.text_field :other_type_explanation, class: "form-control", placeholder: "Describe the type of incident" %>
+    <span class="text-danger">*</span>
+    <%= f.text_field :other_type_explanation,
+        class: "form-control#{' is-invalid' if @incident_report.errors[:other_type_explanation].any?}",
+        placeholder: "Describe the type of incident",
+        required: other_selected %>
+    <div class="form-text">Required when the incident type is "Other".</div>
   </div>
 
   <div>
@@ -170,18 +187,23 @@
 <% end %>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  (function() {
+  function initIncidentReportForm() {
     // Show/hide other explanation field based on incident type
     const typeSelect = document.getElementById('incident_type_select');
     const otherField = document.getElementById('other_explanation_field');
 
-    if (typeSelect && otherField) {
+    if (typeSelect && otherField && typeSelect.dataset.otherToggleBound !== 'true') {
+      typeSelect.dataset.otherToggleBound = 'true';
+
+      const otherInput = otherField.querySelector('input');
+
       typeSelect.addEventListener('change', function() {
-        if (this.value === 'other') {
-          otherField.style.display = '';
-        } else {
-          otherField.style.display = 'none';
-        }
+        const isOther = this.value === 'other';
+        otherField.style.display = isOther ? '' : 'none';
+        // A hidden field carrying `required` blocks submission with no visible
+        // message, so the attribute has to track visibility.
+        if (otherInput) otherInput.required = isOther;
       });
     }
 
@@ -193,6 +215,8 @@
     const selectedInputs = document.getElementById('selected_member_inputs');
 
     if (!memberSearch || !searchResults || !selectedMembers || !selectedInputs) return;
+    if (memberSearch.dataset.memberSearchBound === 'true') return;
+    memberSearch.dataset.memberSearchBound = 'true';
 
     // Get currently selected member IDs
     function getSelectedIds() {
@@ -337,5 +361,9 @@
         memberSearch.blur();
       }
     });
-  });
+  }
+
+  document.addEventListener('DOMContentLoaded', initIncidentReportForm);
+  document.addEventListener('turbo:load', initIncidentReportForm);
+  })();
 </script>

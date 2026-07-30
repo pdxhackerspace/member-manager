@@ -50,13 +50,8 @@ class AuthentikApplicationGroupMembershipSyncJobTest < ActiveJob::TestCase
       def set_group_users(_group_id, _user_ids); end
     end
 
-    original_client = Authentik.send(:remove_const, :Client)
-    Authentik.const_set(:Client, fake_client)
-    begin
+    with_stubbed_authentik_client(fake_client) do
       Authentik::ApplicationGroupMembershipSyncJob.perform_now(%w[manual])
-    ensure
-      Authentik.send(:remove_const, :Client)
-      Authentik.const_set(:Client, original_client)
     end
 
     assert_equal [dependent_group.authentik_group_id, nested_dependent_group.authentik_group_id],

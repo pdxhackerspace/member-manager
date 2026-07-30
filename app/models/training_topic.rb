@@ -7,6 +7,8 @@ class TrainingTopic < ApplicationRecord
   has_many :document_training_topics, dependent: :destroy
   has_many :documents, through: :document_training_topics
   has_many :application_groups, dependent: :destroy
+  has_many :topic_roles, class_name: 'TrainingTopicRole', dependent: :destroy
+  has_many :roles, through: :topic_roles
 
   validates :name, presence: true, uniqueness: true
   validates :offered_to_members, inclusion: { in: [true, false] }
@@ -20,6 +22,23 @@ class TrainingTopic < ApplicationRecord
   scope :available_for_member_requests, -> { offered_for_members.with_active_trainers.order(:name) }
 
   after_create_commit :provision_authentik_groups
+
+  # Privileges this topic confers, optionally limited to one conferral source.
+  def conferred_privileges(member_sources: TrainingTopicRole::MEMBER_SOURCES)
+    Privilege.joins(roles: :topic_roles)
+             .where(training_topic_roles: { training_topic_id: id, member_source: member_sources })
+             .distinct
+  end
+
+  # Only global privileges are subject to the no-escalation rule; see User#may_confer?.
+  def conferred_global_privilege_keys(member_sources: TrainingTopicRole::MEMBER_SOURCES)
+    conferred_privileges(member_sources: member_sources).global.pluck(:key)
+  end
+
+  # Topics carrying roles hand out privileges, so conferring them is gated more tightly.
+  def privilege_bearing?
+    topic_roles.exists?
+  end
 
   private
 

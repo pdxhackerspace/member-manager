@@ -130,29 +130,39 @@ class UserTest < ActiveSupport::TestCase
     assert_equal user, User.by_name_or_alias('Example User One').first
   end
 
-  test 'can_finalize_membership_application requires executive director training when topic exists' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.create!(
-      authentik_id: 'finalize-test-admin',
-      email: 'finalize-test-admin@example.com',
-      is_admin: true,
-      active: true
-    )
-    assert_not admin.can_finalize_membership_application?
-
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
-    assert_predicate admin.reload, :can_finalize_membership_application?
-  end
-
-  test 'can_finalize_membership_application is false for non-admins even with ED training' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
+  test 'can_finalize_membership_application requires the applications.approve privilege' do
     member = User.create!(
       authentik_id: 'finalize-test-member',
       email: 'finalize-test-member@example.com',
       is_admin: false,
       active: true
     )
-    Training.create!(trainee: member, training_topic: topic, trained_at: Time.current)
+    assert_not member.can_finalize_membership_application?
+
+    grant_privileges(member, 'applications.approve')
+    assert_predicate member, :can_finalize_membership_application?
+  end
+
+  test 'can_finalize_membership_application is true for admins without the privilege' do
+    admin = User.create!(
+      authentik_id: 'finalize-test-admin',
+      email: 'finalize-test-admin@example.com',
+      is_admin: true,
+      active: true
+    )
+
+    assert_predicate admin, :can_finalize_membership_application?
+  end
+
+  test 'reviewing training does not confer the power to approve' do
+    member = User.create!(
+      authentik_id: 'finalize-test-reviewer',
+      email: 'finalize-test-reviewer@example.com',
+      active: true
+    )
+    grant_privileges(member, 'applications.review', 'applications.view_pii')
+
+    assert member.can?(:'applications.review')
     assert_not member.can_finalize_membership_application?
   end
 

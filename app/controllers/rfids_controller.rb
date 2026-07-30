@@ -1,4 +1,5 @@
-class RfidsController < AdminController
+class RfidsController < AuthenticatedController
+  before_action -> { require_privilege!(:'access.manage_rfids') }
   before_action :set_rfid, only: %i[destroy sync_prompt]
 
   def new
@@ -76,6 +77,9 @@ class RfidsController < AdminController
     topic = TrainingTopic.find_by('LOWER(name) LIKE ?', '%building access%')
     return false unless topic
     return false if Training.exists?(trainee: user, training_topic: topic)
+    # Recording training here would confer the topic's roles, so the same no-escalation rule
+    # applies as in the training controller.
+    return false unless current_user.may_confer?(topic, member_sources: %w[trained_in])
 
     training = Training.create!(
       trainee: user,

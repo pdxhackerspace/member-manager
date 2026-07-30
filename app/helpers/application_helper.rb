@@ -102,14 +102,12 @@ module ApplicationHelper
     end
   end
 
-  # Membership application show: full applicant/referrer contact visibility (Executive Director training).
+  # Membership application show: full applicant/referrer contact visibility. Blank user means the
+  # applicant reading their own form, where there is nothing to hide from them.
   def membership_application_contact_pii_visible?(user = current_user)
     return true if user.blank?
 
-    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
-    return true if topic.nil?
-
-    Training.exists?(trainee: user, training_topic: topic)
+    user.can?(:'applications.view_pii')
   end
 
   def membership_application_mask_contact_pii?

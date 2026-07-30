@@ -263,12 +263,14 @@ Rails.application.routes.draw do
   get "/rag", to: "rag#index", defaults: { format: :json }
 
   get "/settings", to: "settings#index", as: :settings
+  resources :roles, except: [:show]
   resources :training_topics, only: [:index, :create, :edit, :update, :destroy] do
     member do
       delete :revoke_training
       delete :revoke_trainer_capability
     end
     resources :links, controller: 'training_topic_links', only: [:create, :update, :destroy]
+    resources :topic_roles, controller: 'training_topic_roles', only: [:create, :destroy]
   end
   resources :membership_plans do
     collection do

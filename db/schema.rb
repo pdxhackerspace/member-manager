@@ -764,6 +764,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
     t.index ["name"], name: "index_printers_on_name", unique: true
   end
 
+  create_table "privileges", force: :cascade do |t|
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "key", null: false
+    t.string "label", null: false
+    t.string "privilege_scope", default: "global", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_privileges_on_key", unique: true
+    t.index ["privilege_scope"], name: "index_privileges_on_privilege_scope"
+  end
+
   create_table "queued_mails", force: :cascade do |t|
     t.text "body_html", null: false
     t.text "body_text"
@@ -829,6 +841,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
     t.bigint "user_id", null: false
     t.index ["rfid"], name: "index_rfids_on_rfid"
     t.index ["user_id"], name: "index_rfids_on_user_id"
+  end
+
+  create_table "role_privileges", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "privilege_id", null: false
+    t.bigint "role_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["privilege_id"], name: "index_role_privileges_on_privilege_id"
+    t.index ["role_id", "privilege_id"], name: "index_role_privileges_on_role_id_and_privilege_id", unique: true
+    t.index ["role_id"], name: "index_role_privileges_on_role_id"
+  end
+
+  create_table "roles", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_roles_on_name", unique: true
   end
 
   create_table "rooms", force: :cascade do |t|
@@ -950,6 +980,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
     t.datetime "updated_at", null: false
     t.string "url", null: false
     t.index ["training_topic_id"], name: "index_training_topic_links_on_training_topic_id"
+  end
+
+  create_table "training_topic_roles", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "member_source", null: false
+    t.bigint "role_id", null: false
+    t.bigint "training_topic_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["role_id"], name: "index_training_topic_roles_on_role_id"
+    t.index ["training_topic_id", "role_id", "member_source"], name: "index_training_topic_roles_on_topic_role_source", unique: true
+    t.index ["training_topic_id"], name: "index_training_topic_roles_on_training_topic_id"
   end
 
   create_table "training_topics", force: :cascade do |t|
@@ -1136,6 +1177,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
   add_foreign_key "queued_mails", "users", column: "reviewed_by_id"
   add_foreign_key "recharge_payments", "users"
   add_foreign_key "rfids", "users"
+  add_foreign_key "role_privileges", "privileges"
+  add_foreign_key "role_privileges", "roles"
   add_foreign_key "sheet_entries", "users"
   add_foreign_key "slack_users", "users"
   add_foreign_key "trainer_capabilities", "training_topics"
@@ -1144,6 +1187,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
   add_foreign_key "training_requests", "users"
   add_foreign_key "training_requests", "users", column: "responded_by_id"
   add_foreign_key "training_topic_links", "training_topics"
+  add_foreign_key "training_topic_roles", "roles"
+  add_foreign_key "training_topic_roles", "training_topics"
   add_foreign_key "trainings", "training_topics"
   add_foreign_key "trainings", "users", column: "trainee_id"
   add_foreign_key "trainings", "users", column: "trainer_id"

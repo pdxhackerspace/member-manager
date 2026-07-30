@@ -12,7 +12,9 @@ class UsersController < AuthenticatedController
                          sync_to_authentik sync_from_authentik
                          unlink_slack unlink_authentik unlink_sheet
                          mark_help_seen pause_key_access resume_key_access]
-  before_action :require_admin!, except: %i[show edit update mark_help_seen]
+  before_action :require_admin!,
+                except: %i[show edit update mark_help_seen pause_key_access resume_key_access]
+  before_action -> { require_privilege!(:'access.pause_resume') }, only: %i[pause_key_access resume_key_access]
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: %i[edit update]
 

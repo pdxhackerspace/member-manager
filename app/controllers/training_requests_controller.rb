@@ -1,6 +1,7 @@
 class TrainingRequestsController < AuthenticatedController
   before_action :set_training_request, only: %i[edit update mark_trained dismiss]
   before_action :authorize_responder!, only: %i[edit update mark_trained]
+  before_action :require_conferral_for_mark_trained!, only: %i[mark_trained]
   before_action :authorize_requester!, only: %i[dismiss]
 
   def new
@@ -102,11 +103,27 @@ class TrainingRequestsController < AuthenticatedController
 
   def authorize_responder!
     return if current_user_admin?
-    if @training_request.pending? && current_user.training_topics.exists?(id: @training_request.training_topic_id)
-      return
-    end
+    return if responder_for_request?
 
     redirect_to user_path(current_user), alert: 'You are not allowed to respond to that request.'
+  end
+
+  def responder_for_request?
+    return false unless @training_request.pending?
+
+    topic_id = @training_request.training_topic_id
+    current_user.training_topics.exists?(id: topic_id) ||
+      current_user.can?(:'training.respond_requests', topic: topic_id)
+  end
+
+  # Recording training from a request confers the topic's privileges, so the no-escalation
+  # rule applies here just as it does in the training controller. Replying does not confer
+  # anything, so edit and update are left alone.
+  def require_conferral_for_mark_trained!
+    return if current_user.may_confer?(@training_request.training_topic, member_sources: %w[trained_in])
+
+    redirect_to user_path(current_user),
+                alert: 'You cannot record training that would grant privileges you do not hold.'
   end
 
   def authorize_requester!

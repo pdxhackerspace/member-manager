@@ -43,6 +43,86 @@
   </div>
 <% end %>
 
+<% if current_user_admin? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3"><i class="bi bi-shield-check me-2"></i>Roles</h2>
+      <p class="text-13 text-secondary">
+        Members who hold this topic receive the privileges in the roles below. "Trained in topic"
+        confers to everyone with a training record; "can train topic" confers only to its trainers.
+      </p>
+
+      <% if @topic_roles.any? %>
+        <div class="table-responsive mb-4">
+          <table class="table table-compact align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Role</th>
+                <th scope="col">Conferred to</th>
+                <th scope="col">Privileges</th>
+                <th scope="col" class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @topic_roles.each do |topic_role| %>
+                <tr>
+                  <td class="fw-medium">
+                    <%= link_to topic_role.role.name, edit_role_path(topic_role.role),
+                          class: 'text-body text-decoration-none' %>
+                  </td>
+                  <td class="text-12"><%= topic_role.member_source_label %></td>
+                  <td class="text-12">
+                    <% if topic_role.role.privileges.any? %>
+                      <%= topic_role.role.privileges.sort_by(&:key).map(&:label).join(', ') %>
+                    <% else %>
+                      <span class="text-secondary">None yet</span>
+                    <% end %>
+                  </td>
+                  <td class="text-end">
+                    <%= button_to 'Remove', training_topic_topic_role_path(@training_topic, topic_role),
+                          method: :delete,
+                          class: 'btn btn-sm btn-outline-secondary',
+                          form: { data: { turbo_confirm: "Stop conferring #{topic_role.role.name} from this topic?" } } %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-13 text-secondary mb-4">
+          This topic confers no privileges. Attach a role below to change that.
+        </p>
+      <% end %>
+
+      <h6 class="h-section-label mb-2">Attach a role</h6>
+      <% if @available_roles.any? %>
+        <%= form_with model: TrainingTopicRole.new, url: training_topic_topic_roles_path(@training_topic),
+              local: true, class: 'row g-2 align-items-end' do |f| %>
+          <div class="col-md-5">
+            <%= f.label :role_id, 'Role', class: 'form-label text-13' %>
+            <%= f.collection_select :role_id, @available_roles, :id, :name,
+                  { prompt: 'Choose a role' }, { class: 'form-select form-select-sm', required: true } %>
+          </div>
+          <div class="col-md-4">
+            <%= f.label :member_source, 'Conferred to', class: 'form-label text-13' %>
+            <%= f.select :member_source,
+                  [['Members trained in this topic', 'trained_in'], ['Members who can train it', 'can_train']],
+                  {}, { class: 'form-select form-select-sm' } %>
+          </div>
+          <div class="col-md-3">
+            <%= f.submit 'Attach role', class: 'btn btn-outline-secondary btn-sm w-100' %>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="text-13 text-secondary mb-0">
+          No roles defined yet. <%= link_to 'Create a role', new_role_path %> first.
+        </p>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
     <h2 class="h5 mb-3">Links</h2>

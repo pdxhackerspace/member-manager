@@ -67,7 +67,6 @@ class DefaultSettingsController < AdminController
     update_succeeded = false
 
     DefaultSetting.transaction do
-      apply_branding_image_removals(@default_setting)
       updated_default_setting = @default_setting.update(branding_default_setting_params)
       updated_fragment = @login_message_fragment.update(content: branding_text_fragment_params[:content])
       update_succeeded = updated_default_setting && updated_fragment
@@ -75,6 +74,7 @@ class DefaultSettingsController < AdminController
     end
 
     if update_succeeded
+      apply_branding_image_removals(@default_setting)
       redirect_to branding_default_settings_path, notice: 'Login branding updated successfully.'
     else
       flash.now[:alert] = 'Unable to update login branding.'
@@ -102,9 +102,9 @@ class DefaultSettingsController < AdminController
   end
 
   def branding_default_setting_params
-    params.expect(default_setting: %i[
-                    login_branding_image login_background_image
-                  ])
+    params.fetch(:default_setting, ActionController::Parameters.new).permit(
+      :login_branding_image, :login_background_image
+    )
   end
 
   def branding_text_fragment_params
@@ -113,12 +113,16 @@ class DefaultSettingsController < AdminController
 
   def apply_branding_image_removals(default_setting)
     raw_params = params.fetch(:default_setting, {})
-    if ActiveModel::Type::Boolean.new.cast(raw_params[:remove_login_branding_image])
+    if branding_image_marked_for_removal?(raw_params, :remove_login_branding_image, :login_branding_image)
       default_setting.login_branding_image.purge
     end
-    return unless ActiveModel::Type::Boolean.new.cast(raw_params[:remove_login_background_image])
+    if branding_image_marked_for_removal?(raw_params, :remove_login_background_image, :login_background_image)
+      default_setting.login_background_image.purge
+    end
+  end
 
-    default_setting.login_background_image.purge
+  def branding_image_marked_for_removal?(raw_params, remove_key, upload_key)
+    ActiveModel::Type::Boolean.new.cast(raw_params[remove_key]) && raw_params[upload_key].blank?
   end
 
   def login_message_fragment

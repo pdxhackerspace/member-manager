@@ -239,6 +239,21 @@ rails recharge:sync_payments
 
 The sync job pulls recent charges from Recharge, records them in `recharge_payments`, and surfaces them inside the app under **Recharge Payments** plus in each Authentik/Sheet profile’s payment history (alongside PayPal results).
 
+## Roles and Privileges
+
+Privileges bundle into roles, roles attach to training topics, and holding a topic confers that topic's roles. Members are never granted privileges directly. `is_admin` remains a superuser bypass, so a misconfigured role cannot lock administrators out.
+
+Roles are configuration rather than data, so they can be moved between instances as JSON. **Settings → Roles → Import / export** does it in the browser, and the same thing is available from the command line:
+
+```bash
+rails roles:export ROLES_FILE=roles.json
+rails roles:import ROLES_FILE=roles.json MODE=replace
+```
+
+The document keys everything by name and privilege key rather than by database id. `MODE=merge` (the default) only ever adds; `MODE=replace` makes the listed privileges and topic attachments the whole truth for the roles named. Add `DRY_RUN=1` to report what would change without writing it. An import runs in a single transaction, cannot create privileges outside the catalog or training topics that do not exist, and cannot delete roles — unrecognized entries are reported and skipped.
+
+`db/role_definitions/director_roles.json` configures the three director training topics to confer what they conferred before roles existed. Apply it with `MODE=replace`, then detach the seeded `Application approver` and `Application reviewer` bundles from those topics so they stop conferring alongside the imported roles.
+
 ### Local Test Accounts
 
 Local accounts are intended for development or emergency access when Authentik is unavailable:

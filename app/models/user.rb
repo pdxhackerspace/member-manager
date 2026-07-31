@@ -152,6 +152,12 @@ class User < ApplicationRecord
     self[:username].presence || (authentik_attributes || {})['username'].presence || authentik_id
   end
 
+  # Username (and optional @slack handle) for parking permits/tickets — avoids exposing legal names or email.
+  def parking_member_label
+    handle = slack_handle.presence || slack_user&.username
+    handle.present? ? "#{username} @#{handle}" : username.to_s
+  end
+
   def admin?
     is_admin?
   end

@@ -59,6 +59,27 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_select '.btn-group .dropdown-toggle', text: /Print/
   end
 
+  test 'index shows member username not display name' do
+    user = @active_permit.user
+    user.update!(slack_handle: 'parkedslack')
+
+    get parking_notices_url
+
+    assert_response :success
+    assert_select 'td a', text: user.parking_member_label
+  end
+
+  test 'show displays member username not display name' do
+    user = @active_permit.user
+    user.update!(slack_handle: 'showslack')
+
+    get parking_notice_url(@active_permit)
+
+    assert_response :success
+    assert_match user.parking_member_label, response.body
+    assert_no_match(/<dd>\s*#{Regexp.escape(user.display_name)}/, response.body)
+  end
+
   # --- Show ---
 
   test 'show displays parking notice' do
@@ -94,21 +115,25 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select 'input[name="parking_notice[user_id]"][value=?]', user.id.to_s
-    assert_select 'input#pn_member_search[value=?]', user.display_name
+    assert_select 'input#pn_member_search[value=?]', user.parking_member_label
     assert_select 'textarea[name="parking_notice[description]"]', text: 'Repeat permit'
     assert_select 'input[name="parking_notice[expires_at]"][value="2026-06-01T17:00"]'
     assert_select 'input[name="parking_notice[location]"][value="Woodshop"]'
     assert_select 'input[name="parking_notice[location_detail]"][value="South wall shelf"]'
   end
 
-  test 'member search includes email and username fields' do
+  test 'member search shows username and slack handle not email' do
     user = users(:one)
+    user.update!(slack_handle: 'searchslack')
 
     get new_parking_notice_url(type: 'permit')
     assert_response :success
 
-    assert_select '.pn-member-item[data-user-id=?][data-user-email=?][data-username=?]',
-                  user.id.to_s, user.email, user.username
+    assert_select '.pn-member-item[data-user-id=?][data-user-email=?][data-username=?][data-slack-handle=?]',
+                  user.id.to_s, user.email, user.username, 'searchslack'
+    assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /#{Regexp.escape(user.username)}/
+    assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /@searchslack/
+    assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /#{Regexp.escape(user.email)}/, count: 0
   end
 
   test 'new renders ticket form' do

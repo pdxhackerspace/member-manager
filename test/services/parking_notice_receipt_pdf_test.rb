@@ -10,6 +10,14 @@ class ParkingNoticeReceiptPdfTest < ActiveSupport::TestCase
     assert pdf.render.bytesize.positive?
   end
 
+  test 'full_page layout renders when member has slack handle' do
+    @notice.user.update!(slack_handle: 'receiptslack')
+
+    pdf = ParkingNoticeReceiptPdf.new(@notice, layout: :full_page)
+    assert pdf.render.bytesize.positive?
+    assert_equal "#{@notice.user.username} @receiptslack", @notice.user.parking_member_label
+  end
+
   test 'thermal layout renders non-empty PDF' do
     pdf = ParkingNoticeReceiptPdf.new(@notice, layout: :thermal, thermal_width_mm: 88)
     assert pdf.render.bytesize.positive?

@@ -367,9 +367,25 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
 
   # --- Clear ---
 
-  test 'clear marks notice as cleared' do
+  test 'clear marks notice as cleared and returns to the notices list' do
     post clear_parking_notice_url(@active_permit)
-    assert_redirected_to parking_notice_path(@active_permit)
+    assert_redirected_to parking_notices_path
+    assert @active_permit.reload.cleared?
+  end
+
+  test 'clear returns to the list passed as return_to' do
+    return_to = user_path(@active_permit.user, tab: :parking)
+
+    post clear_parking_notice_url(@active_permit, return_to: return_to)
+
+    assert_redirected_to return_to
+    assert @active_permit.reload.cleared?
+  end
+
+  test 'clear ignores an off-site return_to' do
+    post clear_parking_notice_url(@active_permit, return_to: 'https://evil.example.com/phish')
+
+    assert_redirected_to parking_notices_path
     assert @active_permit.reload.cleared?
   end
 
@@ -410,13 +426,20 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
   end
 
   def assert_expiration_quick_buttons
+    assert_select '[data-controller="quick-expire"]'
+    assert_select 'input[data-quick-expire-target="field"]'
+
     assert_select '.quick-expire', 7
-    assert_select '.quick-expire[data-days="1"]', text: '1 day'
-    assert_select '.quick-expire[data-days="3"]', text: '3 days'
-    assert_select '.quick-expire[data-days="7"]', text: '1 week'
-    assert_select '.quick-expire[data-days="14"]', text: '2 weeks'
-    assert_select '.quick-expire[data-days="30"]', text: '30 days'
-    assert_select '.quick-expire[data-days="180"]', text: '180 days'
-    assert_select '.quick-expire[data-years="1"]', text: '1 year'
+    assert_select '.quick-expire[data-quick-expire-days-param="1"]', text: '1 day'
+    assert_select '.quick-expire[data-quick-expire-days-param="3"]', text: '3 days'
+    assert_select '.quick-expire[data-quick-expire-days-param="7"]', text: '1 week'
+    assert_select '.quick-expire[data-quick-expire-days-param="14"]', text: '2 weeks'
+    assert_select '.quick-expire[data-quick-expire-days-param="30"]', text: '30 days'
+    assert_select '.quick-expire[data-quick-expire-days-param="180"]', text: '180 days'
+    assert_select '.quick-expire[data-quick-expire-years-param="1"]', text: '1 year'
+
+    # Every button must carry the action; a guard flag on the DOM used to leave
+    # them inert after a Turbo cache restore.
+    assert_select '.quick-expire[data-action="quick-expire#set"]', 7
   end
 end

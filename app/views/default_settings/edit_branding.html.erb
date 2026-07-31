@@ -52,6 +52,13 @@
         <% end %>
       </div>
 
+      <h2 class="h-section-label mb-2">Sign-in methods</h2>
+      <div class="form-check form-switch mb-2">
+        <%= f.check_box :login_keyfob_sign_in_enabled, class: "form-check-input" %>
+        <%= f.label :login_keyfob_sign_in_enabled, "Show \"Sign in with Keyfob\" on login page", class: "form-check-label" %>
+      </div>
+      <div class="form-text">Disable this to hide keyfob sign-in from the login screen.</div>
+
       <div class="d-flex gap-2 mt-4">
         <%= f.submit "Update Login Branding", class: "btn btn-primary" %>
         <%= link_to "Cancel", branding_default_settings_path, class: "btn btn-outline-secondary" %>

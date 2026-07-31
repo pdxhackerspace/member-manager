@@ -59,7 +59,19 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match 'Custom login message', response.body
+    assert_match 'Apply for Membership', response.body
+    assert_match 'Continue with sign-in options', response.body
     assert_select 'img[alt="Organization branding"]'
+  end
+
+  test 'login page can hide keyfob sign-in button' do
+    setting = DefaultSetting.instance
+    setting.update!(login_keyfob_sign_in_enabled: false)
+
+    get login_path
+
+    assert_response :success
+    assert_no_match 'Sign In with Keyfob', response.body
   end
 
   test 'rfid login redirects to wait page' do

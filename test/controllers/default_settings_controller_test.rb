@@ -82,7 +82,8 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
     patch update_branding_default_settings_url, params: {
       default_setting: {
         login_branding_image: fixture_file_upload('test/fixtures/files/test_document.txt', 'text/plain'),
-        login_background_image: fixture_file_upload('test/fixtures/files/test_document.txt', 'text/plain')
+        login_background_image: fixture_file_upload('test/fixtures/files/test_document.txt', 'text/plain'),
+        login_keyfob_sign_in_enabled: '0'
       },
       login_message_fragment: {
         content: '<p>Welcome to the portal</p>'
@@ -93,6 +94,7 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
     setting = DefaultSetting.instance
     assert setting.login_branding_image.attached?
     assert setting.login_background_image.attached?
+    assert_not setting.login_keyfob_sign_in_enabled?
     assert_equal '<p>Welcome to the portal</p>', TextFragment.content_for('login_screen_message')
   end
 

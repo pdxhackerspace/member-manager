@@ -104,6 +104,7 @@ class DefaultSettingsController < AdminController
   def branding_default_setting_params
     params.expect(default_setting: %i[
                     login_branding_image login_background_image
+                    login_keyfob_sign_in_enabled
                   ])
   end
 

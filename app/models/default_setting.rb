@@ -1,5 +1,7 @@
 class DefaultSetting < ApplicationRecord
   DEFAULT_RFID_FACILITY_CODE = 127
+  has_one_attached :login_branding_image
+  has_one_attached :login_background_image
 
   validates :site_prefix, presence: true
   validates :app_prefix, presence: true

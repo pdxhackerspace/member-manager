@@ -15,6 +15,16 @@ class DefaultSettingsController < AdminController
     @default_setting = DefaultSetting.instance
   end
 
+  def branding
+    @default_setting = DefaultSetting.instance
+    @login_message_fragment = login_message_fragment
+  end
+
+  def edit_branding
+    @default_setting = DefaultSetting.instance
+    @login_message_fragment = login_message_fragment
+  end
+
   def provision_core_groups
     provisioner = Authentik::CoreGroupProvisioner.new
     results = provisioner.provision_and_sync!
@@ -51,6 +61,27 @@ class DefaultSettingsController < AdminController
     end
   end
 
+  def update_branding
+    @default_setting = DefaultSetting.instance
+    @login_message_fragment = login_message_fragment
+    update_succeeded = false
+
+    DefaultSetting.transaction do
+      updated_default_setting = @default_setting.update(branding_default_setting_params)
+      updated_fragment = @login_message_fragment.update(content: branding_text_fragment_params[:content])
+      update_succeeded = updated_default_setting && updated_fragment
+      raise ActiveRecord::Rollback unless update_succeeded
+    end
+
+    if update_succeeded
+      apply_branding_image_removals(@default_setting)
+      redirect_to branding_default_settings_path, notice: 'Login branding updated successfully.'
+    else
+      flash.now[:alert] = 'Unable to update login branding.'
+      render :edit_branding, status: :unprocessable_content
+    end
+  end
+
   private
 
   def default_setting_params
@@ -68,5 +99,37 @@ class DefaultSettingsController < AdminController
                     map_center_latitude map_center_longitude
                     map_radius_miles map_default_city map_default_state
                   ])
+  end
+
+  def branding_default_setting_params
+    params.fetch(:default_setting, ActionController::Parameters.new).permit(
+      :login_branding_image, :login_background_image
+    )
+  end
+
+  def branding_text_fragment_params
+    params.expect(login_message_fragment: [:content])
+  end
+
+  def apply_branding_image_removals(default_setting)
+    raw_params = params.fetch(:default_setting, {})
+    if branding_image_marked_for_removal?(raw_params, :remove_login_branding_image, :login_branding_image)
+      default_setting.login_branding_image.purge
+    end
+    if branding_image_marked_for_removal?(raw_params, :remove_login_background_image, :login_background_image)
+      default_setting.login_background_image.purge
+    end
+  end
+
+  def branding_image_marked_for_removal?(raw_params, remove_key, upload_key)
+    ActiveModel::Type::Boolean.new.cast(raw_params[remove_key]) && raw_params[upload_key].blank?
+  end
+
+  def login_message_fragment
+    TextFragment.ensure_exists!(
+      key: 'login_screen_message',
+      title: 'Login Screen Message',
+      content: ''
+    )
   end
 end

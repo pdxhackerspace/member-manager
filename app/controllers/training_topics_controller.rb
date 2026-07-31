@@ -1,14 +1,25 @@
 # Manages training topics. Topic setup needs training.topics.manage; curators reach the topic
-# page for the topics whose resources or documents they look after.
+# page for the topics whose resources or documents they look after, and for the subtopics
+# nested directly under those.
 class TrainingTopicsController < AuthenticatedController
+  # Any one of these is enough to reach a topic's page; each unlocks a different part of it.
+  TOPIC_PAGE_PRIVILEGES = %i[
+    training.topics.manage_links
+    training.documents.manage
+    training.topics.edit_details
+    training.subtopics.create
+  ].freeze
+
   before_action :set_training_topic, only: %i[edit update revoke_training revoke_trainer_capability]
-  before_action -> { require_privilege!(:'training.topics.manage') }, only: %i[index create destroy]
+  before_action -> { require_privilege!(:'training.topics.manage') }, only: %i[index destroy]
+  before_action :require_create_permission!, only: %i[create]
   before_action :require_topic_page_access!, only: %i[edit update]
   before_action :require_revoke_training_permission!, only: %i[revoke_training]
   before_action :require_trainer_capability_permission!, only: %i[revoke_trainer_capability]
 
   def index
-    @training_topics = TrainingTopic.order(:name)
+    @training_topics = TrainingTopic.includes(:parent).tree_ordered
+    @eligible_parents = TrainingTopic.order(:name)
   end
 
   def edit
@@ -17,20 +28,21 @@ class TrainingTopicsController < AuthenticatedController
 
   def create
     @training_topic = TrainingTopic.new(training_topic_params)
-    @training_topics = TrainingTopic.order(:name)
 
     if @training_topic.save
-      redirect_to training_topics_path, notice: 'Training topic created successfully.'
-    else
+      redirect_to after_create_path, notice: 'Training topic created successfully.'
+    elsif can?(:'training.topics.manage')
+      @training_topics = TrainingTopic.includes(:parent).tree_ordered
+      @eligible_parents = TrainingTopic.order(:name)
       render :index, status: :unprocessable_content
+    else
+      redirect_to edit_training_topic_path(@training_topic.parent_id),
+                  alert: @training_topic.errors.full_messages.to_sentence
     end
   end
 
   def update
-    # Curators can reach this page for their topics but cannot rename or retarget them.
-    permitted_params = can?(:'training.topics.manage') ? training_topic_params : {}
-
-    if permitted_params.empty? || @training_topic.update(permitted_params)
+    if @training_topic.update(permitted_update_params)
       redirect_to edit_training_topic_path(@training_topic), notice: 'Training topic updated successfully.'
     else
       load_edit_associations
@@ -87,10 +99,34 @@ class TrainingTopicsController < AuthenticatedController
 
   def require_topic_page_access!
     return if can?(:'training.topics.manage')
-    return if can?(:'training.topics.manage_links', topic: @training_topic)
-    return if can?(:'training.documents.manage', topic: @training_topic)
+    return if TOPIC_PAGE_PRIVILEGES.any? { |privilege| can?(privilege, topic: @training_topic) }
 
     redirect_to root_path, alert: "You don't have permission to manage that training topic."
+  end
+
+  # Creating a top-level topic is global setup, but an area lead can add subtopics beneath a
+  # topic they already hold without being able to start new areas of their own.
+  def require_create_permission!
+    return if can?(:'training.topics.manage')
+
+    parent = TrainingTopic.find_by(id: training_topic_params[:parent_id])
+    return if parent && can?(:'training.subtopics.create', topic: parent)
+
+    redirect_to root_path, alert: "You don't have permission to create training topics."
+  end
+
+  # Topic setup (name, visibility, and where it sits in the tree) needs the global privilege.
+  # Curators reach the same page for their topics and subtopics, but only to edit descriptions.
+  def permitted_update_params
+    return training_topic_params if can?(:'training.topics.manage')
+    return training_topic_params.slice(:description) if can?(:'training.topics.edit_details',
+                                                             topic: @training_topic)
+
+    {}
+  end
+
+  def after_create_path
+    can?(:'training.topics.manage') ? training_topics_path : edit_training_topic_path(@training_topic)
   end
 
   # Revoking training removes privileges, so it is gated the same way granting is: a trainer
@@ -117,9 +153,11 @@ class TrainingTopicsController < AuthenticatedController
     @topic_documents = @training_topic.documents.ordered
     @topic_roles = @training_topic.topic_roles.joins(:role).includes(role: :privileges).order('roles.name')
     @available_roles = Role.ordered
+    @subtopics = @training_topic.children.order(:name)
+    @eligible_parents = @training_topic.eligible_parents
   end
 
   def training_topic_params
-    params.expect(training_topic: %i[name offered_to_members])
+    params.expect(training_topic: %i[name offered_to_members description parent_id])
   end
 end

@@ -998,9 +998,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
     t.text "description"
     t.string "name", null: false
     t.boolean "offered_to_members", default: true, null: false
+    t.bigint "parent_id"
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_training_topics_on_name", unique: true
     t.index ["offered_to_members"], name: "index_training_topics_on_offered_to_members"
+    t.index ["parent_id"], name: "index_training_topics_on_parent_id"
   end
 
   create_table "trainings", force: :cascade do |t|
@@ -1189,6 +1191,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
   add_foreign_key "training_topic_links", "training_topics"
   add_foreign_key "training_topic_roles", "roles"
   add_foreign_key "training_topic_roles", "training_topics"
+  add_foreign_key "training_topics", "training_topics", column: "parent_id"
   add_foreign_key "trainings", "training_topics"
   add_foreign_key "trainings", "users", column: "trainee_id"
   add_foreign_key "trainings", "users", column: "trainer_id"

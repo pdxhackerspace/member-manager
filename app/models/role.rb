@@ -44,7 +44,14 @@ class Role < ApplicationRecord
     {
       name: 'Topic curator',
       description: 'Curates resources and documents for a topic. Attach with the "can train" source.',
-      privileges: %w[training.topics.manage_links training.documents.manage]
+      privileges: %w[training.topics.manage_links training.documents.manage training.topics.edit_details]
+    },
+    {
+      name: 'Area lead',
+      description: 'Curates a topic and the subtopics under it, and trains on all of them. ' \
+                   'Attach with the "can train" source.',
+      privileges: %w[training.topics.manage_links training.documents.manage training.topics.edit_details
+                     training.subtopics.create training.record training.revoke training.respond_requests]
     },
     {
       name: 'Communications editor',

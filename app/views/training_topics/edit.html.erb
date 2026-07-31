@@ -7,10 +7,19 @@
   <% end %>
 </div>
 
-<% if current_user_admin? %>
+<% can_manage_topic = can?(:'training.topics.manage') %>
+<% can_edit_details = can_manage_topic || can?(:'training.topics.edit_details', topic: @training_topic) %>
+
+<% if @training_topic.parent.present? %>
+  <div class="text-13 text-secondary mb-3">
+    Subtopic of <%= link_to @training_topic.parent.name, edit_training_topic_path(@training_topic.parent), class: "text-decoration-none" %>
+  </div>
+<% end %>
+
+<% if can_edit_details %>
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
-      <h2 class="h5 mb-3">Topic Name</h2>
+      <h2 class="h5 mb-3">Topic Settings</h2>
       <% if @training_topic.errors.any? %>
         <div class="alert alert-danger">
           <ul class="mb-0">
@@ -21,23 +30,78 @@
         </div>
       <% end %>
       <%= form_with model: @training_topic, url: training_topic_path(@training_topic), local: true, class: "row g-3" do |f| %>
-        <div class="col-md-6">
-          <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
-          <% if @training_topic.errors.key?(:name) %>
-            <div class="invalid-feedback">
-              <%= @training_topic.errors[:name].first %>
-            </div>
-          <% end %>
-        </div>
-        <div class="col-md-3 d-flex align-items-center">
-          <div class="form-check mt-1">
-            <%= f.check_box :offered_to_members, class: "form-check-input" %>
-            <%= f.label :offered_to_members, "Offered to members", class: "form-check-label" %>
+        <% if can_manage_topic %>
+          <div class="col-md-6">
+            <%= f.label :name, "Name", class: "form-label text-13" %>
+            <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
+            <% if @training_topic.errors.key?(:name) %>
+              <div class="invalid-feedback">
+                <%= @training_topic.errors[:name].first %>
+              </div>
+            <% end %>
           </div>
+          <div class="col-md-6">
+            <%= f.label :parent_id, "Parent topic", class: "form-label text-13" %>
+            <%= f.collection_select :parent_id, @eligible_parents, :id, :name,
+                  { include_blank: "No parent (top level)" },
+                  class: "form-select #{'is-invalid' if @training_topic.errors.key?(:parent_id)}" %>
+            <% if @training_topic.errors.key?(:parent_id) %>
+              <div class="invalid-feedback">
+                <%= @training_topic.errors[:parent_id].first %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <div class="col-12">
+          <%= f.label :description, "Description", class: "form-label text-13" %>
+          <%= f.text_area :description, rows: 3, class: "form-control", placeholder: "What this topic covers" %>
         </div>
+        <% if can_manage_topic %>
+          <div class="col-md-6 d-flex align-items-center">
+            <div class="form-check mt-1">
+              <%= f.check_box :offered_to_members, class: "form-check-input" %>
+              <%= f.label :offered_to_members, "Offered to members", class: "form-check-label" %>
+            </div>
+          </div>
+        <% end %>
         <div class="col-md-3">
           <%= f.submit "Update Topic", class: "btn btn-primary w-100" %>
         </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @subtopics.any? || can?(:'training.subtopics.create', topic: @training_topic) %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3"><i class="bi bi-diagram-3 me-2"></i>Subtopics</h2>
+      <% if @subtopics.any? %>
+        <ul class="list-group list-group-flush list-compact mb-3">
+          <% @subtopics.each do |subtopic| %>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <%= link_to subtopic.name, edit_training_topic_path(subtopic), class: "text-decoration-none" %>
+              <% unless subtopic.offered_to_members? %>
+                <span class="text-12 text-secondary">Not offered to members</span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-secondary text-13">No subtopics yet.</p>
+      <% end %>
+
+      <% if can?(:'training.subtopics.create', topic: @training_topic) %>
+        <%= form_with model: TrainingTopic.new, url: training_topics_path, local: true, class: "row g-2 align-items-end" do |f| %>
+          <%= f.hidden_field :parent_id, value: @training_topic.id %>
+          <div class="col-md-8">
+            <%= f.label :name, "Add a subtopic", class: "form-label text-13" %>
+            <%= f.text_field :name, class: "form-control", placeholder: "Subtopic name", required: true %>
+          </div>
+          <div class="col-md-4">
+            <%= f.submit "Add Subtopic", class: "btn btn-outline-secondary w-100" %>
+          </div>
+        <% end %>
       <% end %>
     </div>
   </div>

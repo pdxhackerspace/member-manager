@@ -66,6 +66,54 @@ class UserPrivilegesTest < ActiveSupport::TestCase
     assert_not @member.can?('test.topic', topic: @other_topic)
   end
 
+  test 'topic scoped privileges reach a topics direct subtopics' do
+    subtopic = TrainingTopic.create!(name: 'Subtopic', parent: @topic)
+    attach_role(member_source: 'can_train')
+    TrainerCapability.create!(user: @member, training_topic: @topic)
+    @member.reset_privilege_cache!
+
+    assert @member.can?('test.topic', topic: subtopic)
+  end
+
+  test 'topic scoped privileges stop after one level and skip grandchildren' do
+    subtopic = TrainingTopic.create!(name: 'Subtopic', parent: @topic)
+    grandchild = TrainingTopic.create!(name: 'Grandchild', parent: subtopic)
+    attach_role(member_source: 'can_train')
+    TrainerCapability.create!(user: @member, training_topic: @topic)
+    @member.reset_privilege_cache!
+
+    assert_not @member.can?('test.topic', topic: grandchild)
+  end
+
+  test 'subtopic privileges do not flow upward to the parent' do
+    subtopic = TrainingTopic.create!(name: 'Subtopic', parent: @topic)
+    attach_role(member_source: 'trained_in', topic: subtopic)
+    train(@member, subtopic)
+
+    assert @member.can?('test.topic', topic: subtopic)
+    assert_not @member.can?('test.topic', topic: @topic)
+  end
+
+  test 'topic scoped privileges resolve subtopics when given a topic id' do
+    subtopic = TrainingTopic.create!(name: 'Subtopic', parent: @topic)
+    attach_role(member_source: 'trained_in')
+    train(@member, @topic)
+
+    assert @member.can?('test.topic', topic: subtopic.id)
+  end
+
+  test 'topics_with_privilege includes the subtopics a privilege reaches' do
+    subtopic = TrainingTopic.create!(name: 'Subtopic', parent: @topic)
+    attach_role(member_source: 'trained_in')
+    train(@member, @topic)
+
+    reached = @member.topics_with_privilege('test.topic')
+
+    assert_includes reached, @topic
+    assert_includes reached, subtopic
+    assert_not_includes reached, @other_topic
+  end
+
   test 'topic scoped privileges require a topic argument' do
     attach_role(member_source: 'trained_in')
     train(@member, @topic)

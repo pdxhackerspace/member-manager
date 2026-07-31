@@ -182,11 +182,14 @@ class User < ApplicationRecord
       conferred_privileges.filter_map { |_topic_id, privilege| privilege.key if privilege.global? }.uniq
   end
 
+  # Topic-scoped privileges apply for the topic that conferred them and for that topic's
+  # direct children: taking on a topic makes you responsible for the subtopics nested under
+  # it. Reach stops after one level, so a privilege never cascades down a whole tree.
   def topic_scoped_privilege_keys(topic)
-    topic_id = topic.is_a?(TrainingTopic) ? topic.id : topic.to_i
+    conferring_ids = privilege_conferring_topic_ids(topic)
 
     conferred_privileges.filter_map do |conferring_topic_id, privilege|
-      privilege.key if privilege.topic_scoped? && conferring_topic_id == topic_id
+      privilege.key if privilege.topic_scoped? && conferring_ids.include?(conferring_topic_id)
     end.uniq
   end
 
@@ -201,12 +204,15 @@ class User < ApplicationRecord
     conferred_privileges.any? { |_topic_id, privilege| privilege.key == key }
   end
 
-  # Topics for which this member holds a topic-scoped privilege.
+  # Topics for which this member holds a topic-scoped privilege, including the direct
+  # subtopics those privileges reach into.
   def topics_with_privilege(privilege_key)
+    return TrainingTopic.all if is_admin?
+
     key = privilege_key.to_s
     topic_ids = conferred_privileges.filter_map { |topic_id, privilege| topic_id if privilege.key == key }.uniq
 
-    is_admin? ? TrainingTopic.all : TrainingTopic.where(id: topic_ids)
+    TrainingTopic.where(id: topic_ids).or(TrainingTopic.where(parent_id: topic_ids))
   end
 
   # No-escalation rule: conferring a topic hands over its privileges, so the actor must
@@ -630,6 +636,15 @@ class User < ApplicationRecord
   after_update_commit :enqueue_mailing_geocoding_if_needed
 
   private
+
+  # Which topics can satisfy a topic-scoped check against this one: the topic itself, plus its
+  # parent, whose privileges reach one level down into its subtopics.
+  def privilege_conferring_topic_ids(topic)
+    return [topic.id, topic.parent_id].compact if topic.is_a?(TrainingTopic)
+
+    topic_id = topic.to_i
+    [topic_id, TrainingTopic.where(id: topic_id).pick(:parent_id)].compact
+  end
 
   def build_conferred_privileges
     sources = held_topic_member_sources

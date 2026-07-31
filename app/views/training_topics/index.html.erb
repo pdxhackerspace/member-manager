@@ -16,13 +16,17 @@
       </div>
     <% end %>
     <%= form_with model: @training_topic || TrainingTopic.new, url: training_topics_path, local: true, class: "row g-3" do |f| %>
-      <div class="col-md-8">
+      <div class="col-md-5">
         <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic&.errors&.key?(:name)}", placeholder: "Enter training topic name", required: true, value: @training_topic&.name %>
         <% if @training_topic&.errors&.key?(:name) %>
           <div class="invalid-feedback">
             <%= @training_topic.errors[:name].first %>
           </div>
         <% end %>
+      </div>
+      <div class="col-md-3">
+        <%= f.collection_select :parent_id, @eligible_parents, :id, :name,
+              { include_blank: "No parent (top level)" }, class: "form-select" %>
       </div>
       <div class="col-md-2 d-flex align-items-center">
         <div class="form-check mt-1">
@@ -53,9 +57,14 @@
             </tr>
           </thead>
           <tbody>
-            <% @training_topics.each do |topic| %>
+            <% @training_topics.each do |topic, depth| %>
               <tr>
-                <td><strong><%= link_to topic.name, edit_training_topic_path(topic), class: "text-decoration-none" %></strong></td>
+                <td>
+                  <span style="padding-left: <%= depth * 1.25 %>rem;">
+                    <% if depth.positive? %><i class="bi bi-arrow-return-right text-secondary me-1"></i><% end %>
+                    <strong><%= link_to topic.name, edit_training_topic_path(topic), class: "text-decoration-none" %></strong>
+                  </span>
+                </td>
                 <td class="text-center">
                   <% if topic.offered_to_members? %>
                     <span class="badge text-bg-success">Yes</span>

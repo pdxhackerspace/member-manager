@@ -72,6 +72,8 @@ class Privilege < ApplicationRecord
     { key: 'payments.view_events', label: 'View payment event log', category: 'Plans & payments' },
     { key: 'training.topics.manage', label: 'Manage training topics', category: 'Training & topic resources' },
     { key: 'training.topics.manage_links', label: 'Edit topic resource links', category: 'Training & topic resources', privilege_scope: 'topic' },
+    { key: 'training.topics.edit_details', label: 'Edit topic descriptions', category: 'Training & topic resources', privilege_scope: 'topic' },
+    { key: 'training.subtopics.create', label: 'Create subtopics', category: 'Training & topic resources', privilege_scope: 'topic' },
     { key: 'training.record', label: 'Record training for others', category: 'Training & topic resources', privilege_scope: 'topic' },
     { key: 'training.revoke', label: 'Revoke training records', category: 'Training & topic resources', privilege_scope: 'topic' },
     { key: 'training.grant_trainer', label: 'Grant and revoke trainer capability', category: 'Training & topic resources' },

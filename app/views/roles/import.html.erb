@@ -1,0 +1,102 @@
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Import role definitions</h1>
+    <div class="text-13 text-secondary mt-1">
+      Roles match on name, privileges on key, topics on name — so a file from another instance applies here.
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to 'Export current', export_roles_path, class: 'btn btn-outline-secondary btn-sm' %>
+    <%= link_to 'Back to roles', roles_path, class: 'btn btn-outline-secondary btn-sm' %>
+  </div>
+</div>
+
+<% if @result %>
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="h-section-label mb-2">
+        <%= @dry_run ? 'Preview — nothing was saved' : 'Import result' %>
+      </h2>
+
+      <% if @result.success? %>
+        <p class="text-13 mb-<%= @result.warnings.any? ? 3 : 0 %>">
+          <% if @result.changed? %>
+            <%= @dry_run ? 'This file would apply: ' : 'Applied: ' %><%= @result.summary %>.
+          <% else %>
+            <span class="text-secondary">Nothing to change — every role in this file already matches.</span>
+          <% end %>
+        </p>
+      <% else %>
+        <ul class="text-13 text-danger mb-<%= @result.warnings.any? ? 3 : 0 %>">
+          <% @result.errors.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+        <p class="text-12 text-secondary mb-0">Nothing was saved.</p>
+      <% end %>
+
+      <% if @result.warnings.any? %>
+        <div class="h-section-label mb-1">Skipped</div>
+        <ul class="text-12 text-warning mb-0">
+          <% @result.warnings.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<%= form_with url: import_roles_path, method: :post, multipart: true, local: true do %>
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="mb-3">
+        <label class="form-label text-13" for="import_file">JSON file</label>
+        <%= file_field_tag :file, accept: 'application/json,.json', id: 'import_file',
+              class: 'form-control form-control-sm' %>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label text-13" for="import_json">…or paste the JSON</label>
+        <%= text_area_tag :json, @json_text, id: 'import_json', rows: 14, spellcheck: false,
+              class: 'form-control form-control-sm font-monospace text-12',
+              placeholder: '{ "roles": [ { "name": "…", "privileges": [], "topics": [] } ] }' %>
+        <div class="text-11 text-secondary mt-1">A chosen file takes precedence over anything pasted here.</div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="h-section-label mb-2">Mode</div>
+      <% Roles::DefinitionImport::MODES.each do |mode| %>
+        <div class="form-check mb-2">
+          <%= radio_button_tag :mode, mode, (@import_mode || Roles::DefinitionImport::DEFAULT_MODE) == mode,
+                class: 'form-check-input', id: "mode_#{mode}" %>
+          <label class="form-check-label text-13" for="mode_<%= mode %>">
+            <%= mode == 'replace' ? 'Replace' : 'Merge' %>
+            <div class="text-12 text-secondary">
+              <% if mode == 'replace' %>
+                Each role in the file ends up with exactly the privileges and topic attachments listed.
+                Anything it holds that the file omits is removed.
+              <% else %>
+                Adds the listed privileges and topic attachments. Nothing is ever removed.
+              <% end %>
+            </div>
+          </label>
+        </div>
+      <% end %>
+
+      <div class="h-section-label mt-4 mb-2">What an import cannot do</div>
+      <ul class="text-12 text-secondary">
+        <li>Invent privileges — keys outside the catalog are reported and skipped.</li>
+        <li>Create training topics — a role naming a topic that does not exist here is left unattached.</li>
+        <li>Delete roles — remove those from the roles list.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mt-3">
+    <%= button_tag 'Import', name: 'dry_run', value: '0', class: 'btn btn-primary btn-sm' %>
+    <%= button_tag 'Preview without saving', name: 'dry_run', value: '1',
+          class: 'btn btn-outline-secondary btn-sm' %>
+  </div>
+<% end %>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_173000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -277,6 +277,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_173000) do
     t.boolean "authentik_sync_inactive_as_active", default: true, null: false
     t.string "can_train_prefix", null: false
     t.datetime "created_at", null: false
+    t.boolean "login_keyfob_sign_in_enabled", default: true, null: false
     t.decimal "map_center_latitude", precision: 10, scale: 6, default: "45.581678", null: false
     t.decimal "map_center_longitude", precision: 10, scale: 6, default: "-122.682156", null: false
     t.string "map_default_city", default: "Portland", null: false

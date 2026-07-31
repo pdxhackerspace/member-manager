@@ -103,7 +103,7 @@ class DefaultSettingsController < AdminController
 
   def branding_default_setting_params
     params.fetch(:default_setting, ActionController::Parameters.new).permit(
-      :login_branding_image, :login_background_image
+      :login_branding_image, :login_background_image, :login_keyfob_sign_in_enabled
     )
   end
 

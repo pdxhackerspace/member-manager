@@ -1,5 +1,6 @@
 <% default_settings = DefaultSetting.instance %>
 <% login_message = TextFragment.content_for('login_screen_message') %>
+<% keyfob_enabled = default_settings.login_keyfob_sign_in_enabled? %>
 <% background_image_style = if default_settings.login_background_image.attached?
                               "background-image: url(#{url_for(default_settings.login_background_image)}); background-size: cover; background-position: center;"
                             end %>
@@ -14,7 +15,11 @@
           </div>
         <% end %>
 
-        <h1 class="h4 mb-3 text-center">Sign in</h1>
+        <div class="text-center mb-4">
+          <%= link_to "Apply for Membership", apply_path, class: "btn btn-success btn-lg w-100" %>
+        </div>
+
+        <h1 class="h4 mb-3 text-center">Sign In</h1>
 
         <% if login_message.present? %>
           <div class="alert alert-secondary mb-4">
@@ -22,11 +27,8 @@
           </div>
         <% end %>
 
-        <div class="text-center mb-4">
-          <%= link_to "Apply for Membership", apply_path, class: "btn btn-success btn-lg w-100" %>
-        </div>
-
         <hr class="my-4">
+        <p class="text-muted text-center mb-3">Continue with sign-in options</p>
 
         <% if local_auth_enabled? %>
           <%= form_with url: local_login_path, scope: :session, data: { turbo: false }, class: "mb-4" do |form| %>
@@ -71,11 +73,12 @@
           <% end %>
         </div>
 
-        <hr class="my-4">
-
-        <div class="text-center">
-          <%= button_to "Sign In with Keyfob", rfid_login_path, method: :post, class: "btn btn-outline-primary w-100", data: { turbo: false } %>
-        </div>
+        <% if keyfob_enabled %>
+          <hr class="my-4">
+          <div class="text-center">
+            <%= button_to "Sign In with Keyfob", rfid_login_path, method: :post, class: "btn btn-outline-primary w-100", data: { turbo: false } %>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

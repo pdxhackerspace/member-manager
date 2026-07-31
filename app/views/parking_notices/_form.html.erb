@@ -205,11 +205,12 @@
           var items = memberResults.querySelectorAll('.pn-member-item');
           var visibleCount = 0;
           items.forEach(function(item) {
+            var display = (item.getAttribute('data-user-display') || '').toLowerCase();
             var name = item.getAttribute('data-user-name') || '';
             var email = item.getAttribute('data-user-email') || '';
             var username = item.getAttribute('data-username') || '';
             var slackHandle = item.getAttribute('data-slack-handle') || '';
-            var haystack = name + ' ' + email + ' ' + username + ' ' + slackHandle;
+            var haystack = display + ' ' + name + ' ' + email + ' ' + username + ' ' + slackHandle;
             if (slackHandle) haystack += ' @' + slackHandle;
             if (haystack.includes(term)) {
               item.style.display = '';

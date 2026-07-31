@@ -129,7 +129,9 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     get new_parking_notice_url(type: 'permit')
     assert_response :success
 
-    assert_select '.pn-member-item[data-user-id=?][data-user-email=?][data-username=?][data-slack-handle=?][data-user-display=?]',
+    member_item_selector = '.pn-member-item[data-user-id=?][data-user-email=?][data-username=?]' \
+                           '[data-slack-handle=?][data-user-display=?]'
+    assert_select member_item_selector,
                   user.id.to_s, user.email, user.username, 'searchslack', user.parking_member_label
     assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /#{Regexp.escape(user.username)}/
     assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /@searchslack/

@@ -1,0 +1,61 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Edit Login Branding</h1>
+    <p class="text-muted mb-0">Customize login copy and upload branding images.</p>
+  </div>
+  <div>
+    <%= link_to "&larr; Back to Login Branding".html_safe, branding_default_settings_path, class: "text-decoration-none" %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <%= form_with model: @default_setting, url: update_branding_default_settings_path, method: :patch, local: true do |f| %>
+      <% if @default_setting.errors.any? || @login_message_fragment.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @default_setting.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+            <% @login_message_fragment.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <h2 class="h-section-label mb-2">Login message</h2>
+      <div class="mb-4">
+        <%= text_area_tag "login_message_fragment[content]", @login_message_fragment.content, class: "form-control", rows: 8 %>
+        <div class="form-text">HTML is allowed and will be sanitized before display.</div>
+      </div>
+
+      <h2 class="h-section-label mb-2">Branding image</h2>
+      <div class="mb-3">
+        <%= f.file_field :login_branding_image, class: "form-control", accept: "image/*" %>
+        <% if @default_setting.login_branding_image.attached? %>
+          <div class="form-check mt-2">
+            <%= check_box_tag "default_setting[remove_login_branding_image]", "1", false, class: "form-check-input", id: "remove_login_branding_image" %>
+            <%= label_tag "remove_login_branding_image", "Remove current branding image", class: "form-check-label" %>
+          </div>
+        <% end %>
+      </div>
+
+      <h2 class="h-section-label mb-2">Background image</h2>
+      <div class="mb-3">
+        <%= f.file_field :login_background_image, class: "form-control", accept: "image/*" %>
+        <% if @default_setting.login_background_image.attached? %>
+          <div class="form-check mt-2">
+            <%= check_box_tag "default_setting[remove_login_background_image]", "1", false, class: "form-check-input", id: "remove_login_background_image" %>
+            <%= label_tag "remove_login_background_image", "Remove current background image", class: "form-check-label" %>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <%= f.submit "Update Login Branding", class: "btn btn-primary" %>
+        <%= link_to "Cancel", branding_default_settings_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

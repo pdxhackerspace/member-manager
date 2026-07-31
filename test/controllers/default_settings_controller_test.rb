@@ -98,6 +98,63 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal '<p>Welcome to the portal</p>', TextFragment.content_for('login_screen_message')
   end
 
+  test 'should remove branding image when update succeeds' do
+    setting = DefaultSetting.instance
+    setting.login_branding_image.attach(
+      io: StringIO.new('branding-image'),
+      filename: 'branding.txt',
+      content_type: 'text/plain'
+    )
+
+    patch update_branding_default_settings_url, params: {
+      default_setting: { remove_login_branding_image: '1' },
+      login_message_fragment: { content: '<p>Welcome</p>' }
+    }
+
+    assert_redirected_to branding_default_settings_url
+    setting.reload
+    assert_not setting.login_branding_image.attached?
+  end
+
+  test 'failed branding update does not purge images marked for removal' do
+    setting = DefaultSetting.instance
+    setting.login_branding_image.attach(
+      io: StringIO.new('branding-image'),
+      filename: 'branding.txt',
+      content_type: 'text/plain'
+    )
+    blob_id = setting.login_branding_image.blob.id
+    TextFragment.ensure_exists!(
+      key: 'login_screen_message',
+      title: 'Login Screen Message',
+      content: ''
+    )
+
+    TextFragment.class_eval do
+      validate :reject_force_failure_content, on: :update
+
+      def reject_force_failure_content
+        errors.add(:content, 'is invalid') if content == '__force_failure__'
+      end
+    end
+
+    patch update_branding_default_settings_url, params: {
+      default_setting: { remove_login_branding_image: '1' },
+      login_message_fragment: { content: '__force_failure__' }
+    }
+
+    assert_response :unprocessable_entity
+    setting.reload
+    assert setting.login_branding_image.attached?
+    assert_equal blob_id, setting.login_branding_image.blob.id
+    assert ActiveStorage::Blob.exists?(blob_id)
+  ensure
+    TextFragment.skip_callback(:validate, :reject_force_failure_content)
+    if TextFragment.method_defined?(:reject_force_failure_content)
+      TextFragment.remove_method(:reject_force_failure_content)
+    end
+  end
+
   private
 
   def sign_in_as_admin

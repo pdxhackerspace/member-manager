@@ -37,6 +37,20 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'h1', /Edit Map Defaults/
   end
 
+  test 'should get branding settings' do
+    get branding_default_settings_url
+
+    assert_response :success
+    assert_select 'h1', /Login Branding/
+  end
+
+  test 'should get edit branding settings' do
+    get edit_branding_default_settings_url
+
+    assert_response :success
+    assert_select 'h1', /Edit Login Branding/
+  end
+
   test 'should update default settings' do
     patch default_settings_url, params: {
       default_setting: { site_prefix: 'test-prefix' }
@@ -62,6 +76,24 @@ class DefaultSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 6.5, setting.map_radius_miles.to_f
     assert_equal 'Beaverton', setting.map_default_city
     assert_equal 'Oregon', setting.map_default_state
+  end
+
+  test 'should update branding settings' do
+    patch update_branding_default_settings_url, params: {
+      default_setting: {
+        login_branding_image: fixture_file_upload('test/fixtures/files/test_document.txt', 'text/plain'),
+        login_background_image: fixture_file_upload('test/fixtures/files/test_document.txt', 'text/plain')
+      },
+      login_message_fragment: {
+        content: '<p>Welcome to the portal</p>'
+      }
+    }
+
+    assert_redirected_to branding_default_settings_url
+    setting = DefaultSetting.instance
+    assert setting.login_branding_image.attached?
+    assert setting.login_background_image.attached?
+    assert_equal '<p>Welcome to the portal</p>', TextFragment.content_for('login_screen_message')
   end
 
   private

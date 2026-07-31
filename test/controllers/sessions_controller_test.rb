@@ -37,6 +37,31 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_select '.alert', /Invalid email or password/
   end
 
+  test 'login page renders configured branding and message' do
+    setting = DefaultSetting.instance
+    setting.login_branding_image.attach(
+      io: StringIO.new('branding-image'),
+      filename: 'branding.txt',
+      content_type: 'text/plain'
+    )
+    setting.login_background_image.attach(
+      io: StringIO.new('background-image'),
+      filename: 'background.txt',
+      content_type: 'text/plain'
+    )
+    TextFragment.ensure_exists!(
+      key: 'login_screen_message',
+      title: 'Login Screen Message',
+      content: '<p>Custom login message</p>'
+    )
+
+    get login_path
+
+    assert_response :success
+    assert_match 'Custom login message', response.body
+    assert_select 'img[alt="Organization branding"]'
+  end
+
   test 'rfid login redirects to wait page' do
     post rfid_login_path
     assert_redirected_to rfid_wait_path

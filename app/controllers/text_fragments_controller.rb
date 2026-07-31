@@ -95,6 +95,12 @@ class TextFragmentsController < AdminController
     )
 
     TextFragment.ensure_exists!(
+      key: 'login_screen_message',
+      title: 'Login Screen Message',
+      content: ''
+    )
+
+    TextFragment.ensure_exists!(
       key: 'navbar_help',
       title: 'Navbar Help',
       content: <<~HTML

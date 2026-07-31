@@ -1,0 +1,44 @@
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Login Branding</h1>
+    <div class="text-13 text-secondary mt-1">
+      Control the login screen message, logo image, and background
+    </div>
+  </div>
+  <%= link_to "Edit", edit_branding_default_settings_path, class: "btn btn-primary btn-sm" %>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h-section-label mb-2">Login message</h2>
+    <% if @login_message_fragment.content.present? %>
+      <div><%= sanitize(@login_message_fragment.content) %></div>
+    <% else %>
+      <p class="text-secondary mb-0">No message is shown on the login screen.</p>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-body">
+    <h2 class="h-section-label mb-2">Branding image</h2>
+    <% if @default_setting.login_branding_image.attached? %>
+      <%= image_tag @default_setting.login_branding_image, alt: "Login branding image preview", class: "img-fluid rounded border", style: "max-height: 180px;" %>
+    <% else %>
+      <p class="text-secondary mb-0">No branding image uploaded.</p>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h2 class="h-section-label mb-2">Background image</h2>
+    <% if @default_setting.login_background_image.attached? %>
+      <%= image_tag @default_setting.login_background_image, alt: "Login background image preview", class: "img-fluid rounded border", style: "max-height: 220px;" %>
+    <% else %>
+      <p class="text-secondary mb-0">No background image uploaded.</p>
+    <% end %>
+  </div>
+</div>
+
+<%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary btn-sm" %>

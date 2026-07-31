@@ -63,7 +63,7 @@
           <dt>Member</dt>
           <dd>
             <% if @parking_notice.user.present? %>
-              <%= link_to @parking_notice.user.display_name, user_path(@parking_notice.user) %>
+              <%= link_to @parking_notice.user.parking_member_label, user_path(@parking_notice.user) %>
             <% else %>
               <span class="text-muted">No member assigned</span>
             <% end %>

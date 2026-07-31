@@ -6,7 +6,7 @@ class ParkingNoticesController < AdminController
                 only: %i[show edit update clear add_note download_pdf print_notice remove_photo download_photo]
 
   def index
-    @parking_notices = ParkingNotice.includes(:user, :issued_by).newest_first
+    @parking_notices = ParkingNotice.includes(:issued_by, user: :slack_user).newest_first
 
     @parking_notices = @parking_notices.where(notice_type: params[:type]) if params[:type].present?
     @parking_notices = @parking_notices.where(status: params[:status]) if params[:status].present?
@@ -150,12 +150,12 @@ class ParkingNoticesController < AdminController
   private
 
   def set_parking_notice
-    @parking_notice = ParkingNotice.find(params[:id])
+    @parking_notice = ParkingNotice.includes(user: :slack_user).find(params[:id])
   end
 
   def load_form_data
     @rooms = Room.ordered
-    @users = User.ordered_by_display_name
+    @users = User.ordered_by_display_name.includes(:slack_user)
   end
 
   def parking_notice_params

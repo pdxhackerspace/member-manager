@@ -29,7 +29,7 @@
           <input type="text" id="pn_member_search" class="form-control"
                  placeholder="<%= parking_notice.permit? ? 'Search for a member...' : '(Optional) Search for a member...' %>"
                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                 value="<%= parking_notice.user&.display_name %>">
+                 value="<%= parking_notice.user&.parking_member_label %>">
           <% if parking_notice.user.present? %>
             <button type="button" id="pn_member_clear" class="btn btn-sm btn-link position-absolute top-50 end-0 translate-middle-y text-muted pe-2" title="Clear">
               <i class="bi bi-x-lg"></i>
@@ -46,11 +46,13 @@
                    data-user-name="<%= user.display_name.downcase %>"
                    data-user-email="<%= user.email.to_s.downcase %>"
                    data-username="<%= user.username.to_s.downcase %>"
-                   data-user-display="<%= user.display_name %>"
+                   data-user-display="<%= user.parking_member_label %>"
+                   data-slack-handle="<%= (user.slack_handle.presence || user.slack_user&.username).to_s.downcase %>"
                    role="button" style="cursor: pointer;">
-                <%= user.display_name %>
-                <% if user.email.present? %>
-                  <span class="text-muted small ms-1"><%= user.email %></span>
+                <%= user.username %>
+                <% slack_handle = user.slack_handle.presence || user.slack_user&.username %>
+                <% if slack_handle.present? %>
+                  <span class="text-muted small ms-1">@<%= slack_handle %></span>
                 <% end %>
               </div>
             <% end %>
@@ -193,7 +195,7 @@
 
       if (memberSearch && memberResults && memberHidden) {
         function filterMembers() {
-          var term = memberSearch.value.toLowerCase().trim();
+          var term = memberSearch.value.toLowerCase().trim().replace(/^@+/, '');
           if (term.length === 0) {
             memberResults.style.display = 'none';
             if (memberNoResults) memberNoResults.style.display = 'none';
@@ -203,10 +205,13 @@
           var items = memberResults.querySelectorAll('.pn-member-item');
           var visibleCount = 0;
           items.forEach(function(item) {
+            var display = (item.getAttribute('data-user-display') || '').toLowerCase();
             var name = item.getAttribute('data-user-name') || '';
             var email = item.getAttribute('data-user-email') || '';
             var username = item.getAttribute('data-username') || '';
-            var haystack = name + ' ' + email + ' ' + username;
+            var slackHandle = item.getAttribute('data-slack-handle') || '';
+            var haystack = display + ' ' + name + ' ' + email + ' ' + username + ' ' + slackHandle;
+            if (slackHandle) haystack += ' @' + slackHandle;
             if (haystack.includes(term)) {
               item.style.display = '';
               visibleCount++;

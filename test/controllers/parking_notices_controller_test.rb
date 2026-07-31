@@ -69,6 +69,17 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_select 'td a', text: user.parking_member_label
   end
 
+  test 'index eager loads slack_user for member labels' do
+    user = @active_permit.user
+    user.update!(slack_handle: nil)
+    slack_users(:with_dept).update!(user: user)
+
+    queries = count_slack_user_queries { get parking_notices_url }
+
+    assert_response :success
+    assert queries <= 1, "Expected at most 1 slack_users query, got #{queries}"
+  end
+
   test 'show displays member username not display name' do
     user = @active_permit.user
     user.update!(slack_handle: 'showslack')
@@ -78,6 +89,17 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match user.parking_member_label, response.body
     assert_no_match(/<dd>\s*#{Regexp.escape(user.display_name)}/, response.body)
+  end
+
+  test 'show eager loads slack_user for member label' do
+    user = @active_permit.user
+    user.update!(slack_handle: nil)
+    slack_users(:with_dept).update!(user: user)
+
+    queries = count_slack_user_queries { get parking_notice_url(@active_permit) }
+
+    assert_response :success
+    assert queries <= 1, "Expected at most 1 slack_users query, got #{queries}"
   end
 
   # --- Show ---
@@ -136,6 +158,18 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /#{Regexp.escape(user.username)}/
     assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /@searchslack/
     assert_select ".pn-member-item[data-user-id='#{user.id}']", text: /#{Regexp.escape(user.email)}/, count: 0
+  end
+
+  test 'member picker eager loads slack_user associations' do
+    users(:one).update!(slack_handle: nil)
+    users(:two).update!(slack_handle: nil)
+    slack_users(:with_dept).update!(user: users(:one))
+    slack_users(:with_other_dept).update!(user: users(:two))
+
+    queries = count_slack_user_queries { get new_parking_notice_url(type: 'permit') }
+
+    assert_response :success
+    assert queries <= 1, "Expected at most 1 slack_users query, got #{queries}"
   end
 
   test 'new renders ticket form' do
@@ -450,6 +484,18 @@ class ParkingNoticesControllerTest < ActionDispatch::IntegrationTest
       session: { email: 'admin@example.com', password: 'localpassword123' }
     }
     User.find_by('authentik_id LIKE ?', 'local:%')&.tap { |u| u.update!(is_admin: true) }
+  end
+
+  def count_slack_user_queries(&)
+    queries = []
+    callback = lambda do |*, payload|
+      sql = payload[:sql].to_s
+      queries << sql if sql.match?(/FROM "slack_users"/)
+    end
+
+    ActiveSupport::Notifications.subscribed(callback, 'sql.active_record', &)
+
+    queries.size
   end
 
   def assert_expiration_quick_buttons

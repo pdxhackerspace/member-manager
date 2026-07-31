@@ -73,7 +73,7 @@
               </td>
               <td>
                 <% if notice.user.present? %>
-                  <%= link_to notice.user.display_name, user_path(notice.user) %>
+                  <%= link_to notice.user.parking_member_label, user_path(notice.user) %>
                 <% else %>
                   <span class="text-muted">Unknown</span>
                 <% end %>

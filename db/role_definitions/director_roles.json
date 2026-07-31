@@ -1,0 +1,86 @@
+{
+  "format": "member-manager.role-definitions",
+  "version": 1,
+  "notes": [
+    "Reproduces what the three director training topics conferred before roles existed.",
+    "Before roles, holding a director training did three things: it put you on the application",
+    "notification list, and — for Executive Director only — it unmasked applicant contact details",
+    "and allowed the final approve/reject/park decision. Everything else a director did came from",
+    "is_admin, which is untouched by this file.",
+    "The privileges below are the pre-roles behaviour plus the review-desk access a director needs",
+    "to exercise it without being an administrator. Note that view_pii is Executive Director only:",
+    "that matches the old masking rule, and is the one place this file is deliberately narrower",
+    "than the seeded 'Application reviewer' bundle.",
+    "Import in replace mode. If you already ran the seed migration, detach 'Application approver'",
+    "and 'Application reviewer' from the three director topics afterwards, or those bundles will",
+    "keep conferring alongside these roles."
+  ],
+  "roles": [
+    {
+      "name": "Executive Director",
+      "description": "Owns the application queue and makes the final approve, reject, or park decision. The only office that sees applicant contact details unmasked.",
+      "privileges": [
+        "api.users.search",
+        "applications.approve",
+        "applications.configure_form",
+        "applications.create",
+        "applications.import",
+        "applications.link_member",
+        "applications.manage_initiated",
+        "applications.park_review",
+        "applications.reject",
+        "applications.review",
+        "applications.view",
+        "applications.view_pii",
+        "dashboard.admin",
+        "help.admin_faq",
+        "members.view_list",
+        "members.view_profile",
+        "queued_mail.approve",
+        "queued_mail.view",
+        "training.grant_trainer"
+      ],
+      "topics": [
+        { "name": "Executive Director", "member_source": "trained_in" }
+      ]
+    },
+    {
+      "name": "Associate Executive Director",
+      "description": "Works the application queue and votes, without the final decision. Applicant contact details stay masked, as they did before roles.",
+      "privileges": [
+        "api.users.search",
+        "applications.link_member",
+        "applications.manage_initiated",
+        "applications.review",
+        "applications.view",
+        "dashboard.admin",
+        "help.admin_faq",
+        "members.view_list",
+        "members.view_profile",
+        "training.grant_trainer"
+      ],
+      "topics": [
+        { "name": "Associate Executive Director", "member_source": "trained_in" }
+      ]
+    },
+    {
+      "name": "Assistant Executive Director",
+      "description": "Works the application queue and votes, without the final decision. Applicant contact details stay masked, as they did before roles.",
+      "privileges": [
+        "api.users.search",
+        "applications.link_member",
+        "applications.manage_initiated",
+        "applications.review",
+        "applications.view",
+        "dashboard.admin",
+        "help.admin_faq",
+        "members.view_list",
+        "members.view_profile",
+        "training.grant_trainer"
+      ],
+      "topics": [
+        { "name": "Assistant Executive Director", "member_source": "trained_in" }
+      ]
+    }
+  ]
+}

@@ -10,8 +10,9 @@ class TrainingTopicsController < AuthenticatedController
     training.subtopics.create
   ].freeze
 
-  before_action :set_training_topic, only: %i[edit update revoke_training revoke_trainer_capability]
-  before_action -> { require_privilege!(:'training.topics.manage') }, only: %i[index destroy]
+  before_action :set_training_topic, only: %i[edit update destroy revoke_training revoke_trainer_capability]
+  before_action -> { require_privilege!(:'training.topics.manage') }, only: %i[index]
+  before_action :require_destroy_permission!, only: %i[destroy]
   before_action :require_create_permission!, only: %i[create]
   before_action :require_topic_page_access!, only: %i[edit update]
   before_action :require_revoke_training_permission!, only: %i[revoke_training]
@@ -80,14 +81,14 @@ class TrainingTopicsController < AuthenticatedController
   end
 
   def destroy
-    @training_topic = TrainingTopic.find(params[:id])
+    parent = @training_topic.parent
 
     if @training_topic.trainings.any? || @training_topic.trainer_capabilities.any?
-      redirect_to training_topics_path,
+      redirect_to after_destroy_path(parent),
                   alert: 'Cannot delete training topic that has trainings or trainer capabilities.'
     else
       @training_topic.destroy
-      redirect_to training_topics_path, notice: 'Training topic deleted successfully.'
+      redirect_to after_destroy_path(parent), notice: 'Training topic deleted successfully.'
     end
   end
 
@@ -100,6 +101,7 @@ class TrainingTopicsController < AuthenticatedController
   def require_topic_page_access!
     return if can?(:'training.topics.manage')
     return if TOPIC_PAGE_PRIVILEGES.any? { |privilege| can?(privilege, topic: @training_topic) }
+    return if true_user&.may_manage_subtopic?(@training_topic)
 
     redirect_to root_path, alert: "You don't have permission to manage that training topic."
   end
@@ -115,18 +117,35 @@ class TrainingTopicsController < AuthenticatedController
     redirect_to root_path, alert: "You don't have permission to create training topics."
   end
 
-  # Topic setup (name, visibility, and where it sits in the tree) needs the global privilege.
-  # Curators reach the same page for their topics and subtopics, but only to edit descriptions.
+  # Deleting a topic is global setup, except for subtopics: a role on the parent carries
+  # authority over what hangs beneath it.
+  def require_destroy_permission!
+    return if true_user&.may_manage_subtopic?(@training_topic)
+
+    redirect_to root_path, alert: "You don't have permission to delete that training topic."
+  end
+
+  # Topic setup (visibility and where a topic sits in the tree) needs the global privilege.
+  # A role on the parent adds renaming for its subtopics, and curators can edit descriptions.
   def permitted_update_params
     return training_topic_params if can?(:'training.topics.manage')
-    return training_topic_params.slice(:description) if can?(:'training.topics.edit_details',
-                                                             topic: @training_topic)
 
-    {}
+    allowed = []
+    allowed << :description if can?(:'training.topics.edit_details', topic: @training_topic)
+    allowed << :name if true_user&.may_manage_subtopic?(@training_topic)
+
+    training_topic_params.slice(*allowed)
   end
 
   def after_create_path
     can?(:'training.topics.manage') ? training_topics_path : edit_training_topic_path(@training_topic)
+  end
+
+  # Subtopic managers cannot see the topic index, so send them back to the parent they came from.
+  def after_destroy_path(parent)
+    return training_topics_path if can?(:'training.topics.manage')
+
+    parent ? edit_training_topic_path(parent) : root_path
   end
 
   # Revoking training removes privileges, so it is gated the same way granting is: a trainer

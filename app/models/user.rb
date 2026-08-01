@@ -225,6 +225,20 @@ class User < ApplicationRecord
     topic.conferred_global_privilege_keys(member_sources: member_sources).all? { |key| can?(key) }
   end
 
+  # Renaming or deleting a topic on the strength of a parent's role. Unlike the usual
+  # one-level reach in can?, this deliberately never matches the topic that conferred it: a
+  # role attached to a parent hands out authority over its subtopics, not over itself.
+  def may_manage_subtopic?(topic)
+    return true if can?(:'training.topics.manage')
+
+    parent_id = topic.is_a?(TrainingTopic) ? topic.parent_id : TrainingTopic.where(id: topic.to_i).pick(:parent_id)
+    return false if parent_id.nil?
+
+    conferred_privileges.any? do |conferring_topic_id, privilege|
+      conferring_topic_id == parent_id && privilege.key == 'training.subtopics.manage'
+    end
+  end
+
   # Appointing or removing a trainer confers the topic's can_train roles, and the Training
   # record created alongside confers its trained_in roles, so containment covers both.
   def may_manage_trainer_capability?(topic)

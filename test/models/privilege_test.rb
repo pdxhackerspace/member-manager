@@ -33,8 +33,8 @@ class PrivilegeTest < ActiveSupport::TestCase
     Privilege.seed_defaults!
 
     assert_equal %w[training.documents.manage training.record training.respond_requests
-                    training.revoke training.subtopics.create training.topics.edit_details
-                    training.topics.manage_links],
+                    training.revoke training.subtopics.create training.subtopics.manage
+                    training.topics.edit_details training.topics.manage_links],
                  Privilege.topic_scoped.order(:key).pluck(:key)
   end
 

@@ -95,6 +95,66 @@ class SubtopicPrivilegesTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'a trained member can manage subtopics when the role is attached with trained_in' do
+    lead = sign_in_as_plain_member
+    grant_privileges(lead, 'training.topics.manage_links', member_source: 'trained_in', topic: @parent)
+
+    assert_difference 'TrainingTopicLink.count', 1 do
+      post training_topic_links_path(@subtopic),
+           params: { training_topic_link: { title: 'From a trainee', url: 'https://example.test/t' } }
+    end
+  end
+
+  test 'a subtopic manager can rename a subtopic' do
+    lead = sign_in_as_plain_member
+    grant_privileges(lead, 'training.subtopics.manage', member_source: 'trained_in', topic: @parent)
+
+    patch training_topic_path(@subtopic), params: { training_topic: { name: 'Renamed subtopic' } }
+
+    assert_equal 'Renamed subtopic', @subtopic.reload.name
+  end
+
+  test 'a subtopic manager can delete a subtopic' do
+    lead = sign_in_as_plain_member
+    grant_privileges(lead, 'training.subtopics.manage', member_source: 'trained_in', topic: @parent)
+
+    assert_difference 'TrainingTopic.count', -1 do
+      delete training_topic_path(@subtopic)
+    end
+  end
+
+  test 'a subtopic manager cannot rename or delete the parent that granted it' do
+    lead = sign_in_as_plain_member
+    grant_privileges(lead, 'training.subtopics.manage', member_source: 'trained_in', topic: @parent)
+    original_name = @parent.name
+
+    patch training_topic_path(@parent), params: { training_topic: { name: 'Renamed parent' } }
+
+    assert_equal original_name, @parent.reload.name
+
+    assert_no_difference 'TrainingTopic.count' do
+      delete training_topic_path(@parent)
+    end
+  end
+
+  test 'a subtopic manager cannot delete a topic outside their tree' do
+    lead = sign_in_as_plain_member
+    grant_privileges(lead, 'training.subtopics.manage', member_source: 'trained_in', topic: @parent)
+
+    assert_no_difference 'TrainingTopic.count' do
+      delete training_topic_path(@unrelated)
+    end
+  end
+
+  test 'a curator without subtopic manage cannot rename a subtopic' do
+    lead = sign_in_as_plain_member
+    grant_privileges(lead, 'training.topics.edit_details', member_source: 'trained_in', topic: @parent)
+
+    assert_no_difference 'TrainingTopic.count' do
+      delete training_topic_path(@subtopic)
+    end
+  end
+
   test 'the topic index renders subtopics nested under their parent' do
     sign_in_as_admin
 

@@ -85,8 +85,8 @@ class TrainingsController < AuthenticatedController
   end
 
   def remove_training
-    unless can_train_topic?(@training_topic)
-      redirect_to record_training_path, alert: "You don't have permission to manage #{@training_topic.name} training."
+    unless can_revoke_topic_training?(@training_topic)
+      redirect_to record_training_path, alert: "You don't have permission to remove #{@training_topic.name} training."
       return
     end
 
@@ -154,6 +154,13 @@ class TrainingsController < AuthenticatedController
     return true if current_user_admin?
 
     current_user&.may_record_training?(topic) || false
+  end
+
+  # Deleting a training here takes away the topic's privileges, the same operation the topic
+  # page calls revoking. Being allowed to record training is not that authority, so this asks
+  # for training.revoke rather than reusing can_train_topic?.
+  def can_revoke_topic_training?(topic)
+    true_user&.may_revoke_training?(topic) || false
   end
 
   def prepare_record_training_form

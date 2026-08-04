@@ -76,6 +76,18 @@ docker compose -f docker-compose.dev.yml --profile tools run --rm migrate
 
 The app is at [http://localhost:3000](http://localhost:3000). Configure `.env` (see `.env.development.example`); Compose still injects `DB_HOST=db` and `REDIS_URL` for services in this file.
 
+### Restoring a backup into dev
+
+```bash
+bin/dev-db-restore ~/Downloads/backup-mm.sql
+```
+
+Drops and recreates `member_manager_development`, loads the backup, applies any migrations the backup predates, and creates the local sign-in account from `LOCAL_AUTH_EMAIL` / `LOCAL_AUTH_PASSWORD`. Accepts pg_dump custom-format archives (whatever the file is named), plain SQL, and gzipped SQL.
+
+That last step matters: production authenticates through Authentik, so its backups contain no `local_accounts` rows and there is no way to sign in to a freshly restored copy. Running `db:seed` would also create the account, but it seeds training topics and other defaults on top of the production data — use this script instead.
+
+Backups are produced by a pg_dump 18 client, whose custom-format archives the PostgreSQL 16 server cannot read directly — `pg_restore` fails with `unsupported version (1.16) in file header`. The script reads the archive with an 18 client container and pipes plain SQL into the dev server, so restore it with this rather than calling `pg_restore` against the `db` container.
+
 ### Tests (Docker)
 
 Default workflow uses a thin test image and bind-mounts the repo at `/rails`. Gems are installed at container startup into a named Docker volume, so repeat runs reuse the previous bundle unless `Gemfile.lock` changed. Each test run recreates and reloads the test database before running the requested command.

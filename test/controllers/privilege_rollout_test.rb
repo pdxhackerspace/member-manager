@@ -215,6 +215,36 @@ class PrivilegeRolloutTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'training.record does not carry the power to remove training' do
+    trainer = sign_in_as_plain_member
+    grant_privileges(trainer, 'training.record', member_source: 'trained_in', topic: @topic)
+    Training.create!(trainee: @member, training_topic: @topic, trained_at: 1.day.ago)
+
+    assert_no_difference 'Training.count' do
+      delete remove_training_path(user_id: @member.id, topic_id: @topic.id)
+    end
+  end
+
+  test 'a trainer holding training.revoke can remove training' do
+    trainer = sign_in_as_plain_member
+    grant_privileges(trainer, 'training.record', 'training.revoke', member_source: 'trained_in', topic: @topic)
+    Training.create!(trainee: @member, training_topic: @topic, trained_at: 1.day.ago)
+
+    assert_difference 'Training.count', -1 do
+      delete remove_training_path(user_id: @member.id, topic_id: @topic.id)
+    end
+  end
+
+  test 'trainer capability alone does not carry the power to remove training' do
+    trainer = sign_in_as_plain_member
+    TrainerCapability.create!(user: trainer, training_topic: @topic)
+    Training.create!(trainee: @member, training_topic: @topic, trained_at: 1.day.ago)
+
+    assert_no_difference 'Training.count' do
+      delete remove_training_path(user_id: @member.id, topic_id: @topic.id)
+    end
+  end
+
   private
 
   def sign_in_as_plain_member

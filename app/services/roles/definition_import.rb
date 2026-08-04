@@ -169,20 +169,43 @@ module Roles
       end
     end
 
+    # Replace mode may only drop privileges when every key was understood, for the same reason it
+    # only prunes topic attachments against a list that fully resolved: an unrecognized key may be
+    # a misspelling of one the role holds, and dropping it would revoke access nobody asked to end.
     def resolve_privileges(role, keys, role_name)
       keys = Array(keys).map { |key| key.to_s.strip }.reject(&:empty?)
       found = Privilege.where(key: keys).to_a
       missing = keys - found.map(&:key)
       missing.each { |key| result.warnings << "Role '#{role_name}': unknown privilege '#{key}' skipped." }
 
-      replace? || role.new_record? ? found : (role.privileges.to_a | found)
+      return found if role.new_record? || (replace? && missing.empty?)
+
+      if replace?
+        result.warnings << "Role '#{role_name}': privileges it already holds left in place because " \
+                           'part of the list could not be read.'
+      end
+
+      role.privileges.to_a | found
     end
 
     def apply_topics(role, topics)
       listed = topics.is_a?(Array) ? topics : [topics].compact
-      wanted = listed.filter_map { |topic| resolve_topic(role, topic) }
+      resolved = listed.map { |topic| resolve_topic(role, topic) }
+      wanted = resolved.compact
       wanted.each { |attributes| attach_topic(role, **attributes) }
-      detach_unlisted_topics(role, wanted) if replace?
+
+      detach_unlisted_topics(role, wanted) if replace? && detachable?(role, resolved)
+    end
+
+    # Replace mode may only prune attachments when every entry was understood. A name that did
+    # not resolve might have been the one naming an attachment the role already holds — under a
+    # spelling this instance does not use — and pruning against a partial list would delete it.
+    def detachable?(role, resolved)
+      return true if resolved.all?
+
+      result.warnings << "Role '#{role.name}': existing topic attachments left in place because " \
+                         'part of the list could not be read.'
+      false
     end
 
     # A topic entry is either a bare name or an object naming the topic and the population

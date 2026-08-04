@@ -46,6 +46,17 @@ module Roles
       assert_equal ['access.manage_rfids'], role.reload.privilege_keys
     end
 
+    test 'replace mode keeps the privileges a role holds when a key does not resolve' do
+      role = Role.create!(name: 'Fob team', privileges: Privilege.where(key: 'payments.view'))
+
+      result = DefinitionImport.call(document([role_entry(privileges: %w[access.manage_rfids nonsense.key])]),
+                                     mode: 'replace')
+
+      assert_predicate result, :success?
+      assert_equal %w[access.manage_rfids payments.view], role.reload.privilege_keys.sort
+      assert(result.warnings.any? { |warning| warning.include?('left in place') })
+    end
+
     test 'merge mode leaves topic attachments the document omits alone' do
       role = Role.create!(name: 'Fob team')
       TrainingTopicRole.create!(training_topic: training_topics(:woodworking), role: role,
@@ -66,6 +77,32 @@ module Roles
 
       assert_equal 1, result.attachments_removed
       assert_equal [@topic.id], role.topic_roles.reload.map(&:training_topic_id)
+    end
+
+    test 'replace mode keeps an attachment whose topic name the file spells differently' do
+      role = Role.create!(name: 'Fob team')
+      TrainingTopicRole.create!(training_topic: training_topics(:woodworking), role: role,
+                                member_source: 'trained_in')
+
+      result = DefinitionImport.call(document([role_entry(topics: ['Wood Working'])]), mode: 'replace')
+
+      assert_predicate result, :success?
+      assert_equal 0, result.attachments_removed
+      assert_equal [training_topics(:woodworking).id], role.topic_roles.reload.map(&:training_topic_id)
+    end
+
+    test 'replace mode reports that it left attachments alone after an unresolved topic' do
+      role = Role.create!(name: 'Fob team')
+      TrainingTopicRole.create!(training_topic: training_topics(:woodworking), role: role,
+                                member_source: 'trained_in')
+
+      result = DefinitionImport.call(document([role_entry(topics: [@topic.name, 'Nowhere'])]), mode: 'replace')
+
+      assert_equal 1, result.attachments_created
+      assert_equal 0, result.attachments_removed
+      assert_equal [@topic.id, training_topics(:woodworking).id].sort,
+                   role.topic_roles.reload.map(&:training_topic_id).sort
+      assert(result.warnings.any? { |warning| warning.include?('left in place') })
     end
 
     test 'a topic entry may name the population the role is conferred to' do

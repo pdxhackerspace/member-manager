@@ -311,6 +311,19 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/data-controller="sensitive-reveal"/, response.body)
   end
 
+  # The page is reachable while impersonating only because the privilege resolves against the
+  # real account, so the contact details on it follow the same account.
+  test 'show does not mask while impersonating a member without view_pii' do
+    sign_in_as_admin
+    post impersonate_user_path(users(:one).id)
+    app = membership_application_with_sensitive_answers
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
+  end
+
   test 'vote_ai_feedback creates vote when AI feedback processed' do
     sign_in_as_admin
     app = MembershipApplication.create!(

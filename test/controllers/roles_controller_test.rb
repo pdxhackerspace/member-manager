@@ -102,6 +102,88 @@ class RolesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to roles_path
   end
 
+  test 'admin exports role definitions as a JSON attachment' do
+    sign_in_as_admin
+    role = Role.create!(name: 'Key fob manager', privileges: Privilege.where(key: 'access.manage_rfids'))
+    TrainingTopicRole.create!(training_topic: @topic, role: role, member_source: 'trained_in')
+
+    get export_roles_path
+
+    assert_response :success
+    assert_match 'attachment', response.headers['Content-Disposition']
+    exported = response.parsed_body['roles'].find { |entry| entry['name'] == 'Key fob manager' }
+    assert_equal ['access.manage_rfids'], exported['privileges']
+    assert_equal [{ 'name' => @topic.name, 'member_source' => 'trained_in' }], exported['topics']
+  end
+
+  test 'members cannot export role definitions' do
+    sign_in_as_member
+
+    get export_roles_path
+
+    assert_response :redirect
+  end
+
+  test 'admin imports pasted role definitions' do
+    sign_in_as_admin
+
+    assert_difference 'Role.count', 1 do
+      post import_roles_path, params: { json: import_json, mode: 'replace', dry_run: '0' }
+    end
+
+    assert_redirected_to roles_path
+    assert_equal ['access.manage_rfids'], Role.find_by!(name: 'Imported').privilege_keys
+  end
+
+  test 'admin imports an uploaded file' do
+    sign_in_as_admin
+    file = Rack::Test::UploadedFile.new(StringIO.new(import_json), 'application/json',
+                                        original_filename: 'roles.json')
+
+    assert_difference 'Role.count', 1 do
+      post import_roles_path, params: { file: file, mode: 'replace', dry_run: '0' }
+    end
+  end
+
+  test 'a dry run previews without saving' do
+    sign_in_as_admin
+
+    assert_no_difference 'Role.count' do
+      post import_roles_path, params: { json: import_json, mode: 'replace', dry_run: '1' }
+    end
+
+    assert_response :success
+    assert_match 'nothing was saved', response.body
+  end
+
+  test 'a bad document re-renders the form with the error' do
+    sign_in_as_admin
+
+    post import_roles_path, params: { json: '{ nope', dry_run: '0' }
+
+    assert_response :unprocessable_content
+    assert_match 'Could not parse JSON', response.body
+  end
+
+  test 'an import with skipped entries stays on the page to report them' do
+    sign_in_as_admin
+    json = { 'roles' => [{ 'name' => 'Imported', 'privileges' => ['nonsense.key'] }] }.to_json
+
+    post import_roles_path, params: { json: json, dry_run: '0' }
+
+    assert_response :success
+    assert_match 'nonsense.key', response.body
+    assert_predicate Role.find_by!(name: 'Imported').privilege_keys, :empty?
+  end
+
+  test 'members cannot import role definitions' do
+    sign_in_as_member
+
+    assert_no_difference 'Role.count' do
+      post import_roles_path, params: { json: import_json, dry_run: '0' }
+    end
+  end
+
   test 'admin attaches a role to a topic with a conferral source' do
     sign_in_as_admin
     role = Role.create!(name: 'Curator', privileges: Privilege.where(key: 'training.topics.manage_links'))
@@ -158,6 +240,14 @@ class RolesControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def import_json
+    {
+      'format' => Roles::DefinitionExport::FORMAT,
+      'roles' => [{ 'name' => 'Imported', 'privileges' => ['access.manage_rfids'],
+                    'topics' => [{ 'name' => @topic.name, 'member_source' => 'trained_in' }] }]
+    }.to_json
+  end
 
   def sign_in_as_admin
     account = local_accounts(:active_admin)

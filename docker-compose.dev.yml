@@ -29,7 +29,7 @@ x-db-env-dev: &db-env-dev
 
 services:
   db:
-    image: postgres:18-alpine
+    image: postgres:16-alpine
     container_name: membermanager-dev-postgres
     restart: unless-stopped
     environment:
@@ -40,6 +40,11 @@ services:
       - dev_postgres_data:/var/lib/postgresql/data
 #    ports:
 #      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d member_manager_development"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
 
   redis:
     image: redis:7-alpine
@@ -59,8 +64,10 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   sidekiq:
     <<: *web-common
@@ -68,8 +75,10 @@ services:
     environment:
       <<: *db-env-dev
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   migrate:
     <<: *web-common
@@ -78,7 +87,8 @@ services:
     environment:
       <<: *db-env-dev
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   dev_postgres_data:

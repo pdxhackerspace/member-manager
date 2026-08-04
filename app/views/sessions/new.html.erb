@@ -31,10 +31,16 @@
         <p class="text-muted text-center mb-3">Continue with sign-in options</p>
 
         <% if local_auth_enabled? %>
+          <% if @login_error.present? %>
+            <div class="alert alert-danger py-2 px-3 mb-3" role="alert">
+              <%= @login_error %>
+            </div>
+          <% end %>
+
           <%= form_with url: local_login_path, scope: :session, data: { turbo: false }, class: "mb-4" do |form| %>
             <div class="mb-3">
               <%= form.label :email, class: "form-label" %>
-              <%= form.email_field :email, class: "form-control", autofocus: true, required: true %>
+              <%= form.email_field :email, value: params.dig(:session, :email), class: "form-control", autofocus: true, required: true %>
             </div>
             <div class="mb-3">
               <div class="d-flex justify-content-between">

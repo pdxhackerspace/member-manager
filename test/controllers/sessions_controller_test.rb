@@ -37,6 +37,41 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_select '.alert', /Invalid email or password/
   end
 
+  test 'failed local login shows the error beside the sign-in form' do
+    post local_login_path, params: {
+      session: {
+        email: @local_account.email,
+        password: 'wrongpassword'
+      }
+    }
+
+    # A page-level flash renders far above the form and reads as no response at all.
+    assert_select '.card-body .alert-danger', /Invalid email or password/
+    assert_equal 1, response.body.scan('Invalid email or password.').size,
+                 'error should render once, not both inline and as a page-level flash'
+  end
+
+  test 'failed local login keeps the submitted email but not the password' do
+    post local_login_path, params: {
+      session: {
+        email: @local_account.email,
+        password: 'wrongpassword'
+      }
+    }
+
+    assert_select 'input[name=?][value=?]', 'session[email]', @local_account.email
+    assert_select 'input[name=?]', 'session[password]' do |inputs|
+      assert_predicate inputs.first['value'].to_s, :empty?
+    end
+  end
+
+  test 'login page renders no error before anything is submitted' do
+    get login_path
+
+    assert_response :success
+    assert_select '.alert-danger', false
+  end
+
   test 'login page renders configured branding and message' do
     setting = DefaultSetting.instance
     setting.login_branding_image.attach(

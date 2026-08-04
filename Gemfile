@@ -66,10 +66,9 @@ gem 'rqrcode', '~> 3.2'
 gem 'bcrypt', '~> 3.1'
 
 # Error tracking
-# 6.x reworks the config and tracing APIs; upgrade deliberately, not incidentally
-gem 'sentry-rails', '~> 5.0'
-gem 'sentry-ruby', '~> 5.0'
-gem 'sentry-sidekiq', '~> 5.0'
+gem 'sentry-rails', '~> 6.6'
+gem 'sentry-ruby', '~> 6.6'
+gem 'sentry-sidekiq', '~> 6.6'
 gem 'stackprof'
 
 # SSH client for Ruby scripts

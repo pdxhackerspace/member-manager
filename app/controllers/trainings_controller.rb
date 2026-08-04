@@ -120,9 +120,13 @@ class TrainingsController < AuthenticatedController
 
   private
 
+  # Directors who hold training.grant_trainer reach this page to appoint trainers even when
+  # they train nothing themselves, so trainer capability alone is not the only way in.
   def require_trainer_or_admin
     return if current_user_admin?
     return if current_user.trainer_capabilities.any?
+    return if current_user.can_for_any_topic?(:'training.record')
+    return if current_user.can?(:'training.grant_trainer')
 
     redirect_to root_path, alert: "You don't have permission to train members."
   end
@@ -140,13 +144,16 @@ class TrainingsController < AuthenticatedController
   end
 
   def trainable_topics_for_current_user
-    current_user_admin? ? TrainingTopic.order(:name) : current_user.training_topics.order(:name)
+    return TrainingTopic.order(:name) if current_user_admin?
+
+    topic_ids = current_user.training_topics.ids | current_user.topics_with_privilege(:'training.record').ids
+    TrainingTopic.where(id: topic_ids).order(:name)
   end
 
   def can_train_topic?(topic)
     return true if current_user_admin?
 
-    current_user.training_topics.include?(topic)
+    current_user&.may_record_training?(topic) || false
   end
 
   def prepare_record_training_form

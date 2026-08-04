@@ -253,7 +253,7 @@ class TrainingTopicsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as_admin
     get edit_training_topic_path(@laser_topic)
     assert_response :success
-    assert_match 'Topic Name', response.body
+    assert_match 'Topic Settings', response.body
     assert_match 'Update Topic', response.body
   end
 

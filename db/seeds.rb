@@ -48,6 +48,13 @@ end
 
 Rails.logger.debug { "Seeded #{training_topics.count} training topics." }
 
+# Seed privileges and the starter roles that bundle them
+Privilege.seed_defaults!
+Rails.logger.debug { "Seeded #{Privilege.count} privileges." }
+
+Role.seed_defaults!
+Rails.logger.debug { "Seeded #{Role.count} roles." }
+
 # Seed email templates
 EmailTemplate.seed_defaults!
 Rails.logger.debug { "Seeded #{EmailTemplate.count} email templates." }

@@ -7,10 +7,23 @@
   <% end %>
 </div>
 
-<% if current_user_admin? %>
+<% can_manage_topic = can?(:'training.topics.manage') %>
+<%# A role on the parent carries rename and delete over its subtopics; may_manage_subtopic? %>
+<%# already covers holders of the global privilege. %>
+<% can_delete_topic = true_user&.may_manage_subtopic?(@training_topic) || false %>
+<% can_edit_details = can_manage_topic || can_delete_topic ||
+                      can?(:'training.topics.edit_details', topic: @training_topic) %>
+
+<% if @training_topic.parent.present? %>
+  <div class="text-13 text-secondary mb-3">
+    Subtopic of <%= link_to @training_topic.parent.name, edit_training_topic_path(@training_topic.parent), class: "text-decoration-none" %>
+  </div>
+<% end %>
+
+<% if can_edit_details %>
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
-      <h2 class="h5 mb-3">Topic Name</h2>
+      <h2 class="h5 mb-3">Topic Settings</h2>
       <% if @training_topic.errors.any? %>
         <div class="alert alert-danger">
           <ul class="mb-0">
@@ -21,23 +34,160 @@
         </div>
       <% end %>
       <%= form_with model: @training_topic, url: training_topic_path(@training_topic), local: true, class: "row g-3" do |f| %>
-        <div class="col-md-6">
-          <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
-          <% if @training_topic.errors.key?(:name) %>
-            <div class="invalid-feedback">
-              <%= @training_topic.errors[:name].first %>
-            </div>
-          <% end %>
-        </div>
-        <div class="col-md-3 d-flex align-items-center">
-          <div class="form-check mt-1">
-            <%= f.check_box :offered_to_members, class: "form-check-input" %>
-            <%= f.label :offered_to_members, "Offered to members", class: "form-check-label" %>
+        <% if can_delete_topic %>
+          <div class="col-md-6">
+            <%= f.label :name, "Name", class: "form-label text-13" %>
+            <%= f.text_field :name, class: "form-control #{'is-invalid' if @training_topic.errors.key?(:name)}", required: true %>
+            <% if @training_topic.errors.key?(:name) %>
+              <div class="invalid-feedback">
+                <%= @training_topic.errors[:name].first %>
+              </div>
+            <% end %>
           </div>
+        <% end %>
+        <% if can_manage_topic %>
+          <div class="col-md-6">
+            <%= f.label :parent_id, "Parent topic", class: "form-label text-13" %>
+            <%= f.collection_select :parent_id, @eligible_parents, :id, :name,
+                  { include_blank: "No parent (top level)" },
+                  class: "form-select #{'is-invalid' if @training_topic.errors.key?(:parent_id)}" %>
+            <% if @training_topic.errors.key?(:parent_id) %>
+              <div class="invalid-feedback">
+                <%= @training_topic.errors[:parent_id].first %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        <div class="col-12">
+          <%= f.label :description, "Description", class: "form-label text-13" %>
+          <%= f.text_area :description, rows: 3, class: "form-control", placeholder: "What this topic covers" %>
         </div>
+        <% if can_manage_topic %>
+          <div class="col-md-6 d-flex align-items-center">
+            <div class="form-check mt-1">
+              <%= f.check_box :offered_to_members, class: "form-check-input" %>
+              <%= f.label :offered_to_members, "Offered to members", class: "form-check-label" %>
+            </div>
+          </div>
+        <% end %>
         <div class="col-md-3">
           <%= f.submit "Update Topic", class: "btn btn-primary w-100" %>
         </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if @subtopics.any? || can?(:'training.subtopics.create', topic: @training_topic) %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3"><i class="bi bi-diagram-3 me-2"></i>Subtopics</h2>
+      <% if @subtopics.any? %>
+        <ul class="list-group list-group-flush list-compact mb-3">
+          <% @subtopics.each do |subtopic| %>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <%= link_to subtopic.name, edit_training_topic_path(subtopic), class: "text-decoration-none" %>
+              <% unless subtopic.offered_to_members? %>
+                <span class="text-12 text-secondary">Not offered to members</span>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-secondary text-13">No subtopics yet.</p>
+      <% end %>
+
+      <% if can?(:'training.subtopics.create', topic: @training_topic) %>
+        <%= form_with model: TrainingTopic.new, url: training_topics_path, local: true, class: "row g-2 align-items-end" do |f| %>
+          <%= f.hidden_field :parent_id, value: @training_topic.id %>
+          <div class="col-md-8">
+            <%= f.label :name, "Add a subtopic", class: "form-label text-13" %>
+            <%= f.text_field :name, class: "form-control", placeholder: "Subtopic name", required: true %>
+          </div>
+          <div class="col-md-4">
+            <%= f.submit "Add Subtopic", class: "btn btn-outline-secondary w-100" %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<% if current_user_admin? %>
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h2 class="h5 mb-3"><i class="bi bi-shield-check me-2"></i>Roles</h2>
+      <p class="text-13 text-secondary">
+        Members who hold this topic receive the privileges in the roles below. "Trained in topic"
+        confers to everyone with a training record; "can train topic" confers only to its trainers.
+      </p>
+
+      <% if @topic_roles.any? %>
+        <div class="table-responsive mb-4">
+          <table class="table table-compact align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Role</th>
+                <th scope="col">Conferred to</th>
+                <th scope="col">Privileges</th>
+                <th scope="col" class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @topic_roles.each do |topic_role| %>
+                <tr>
+                  <td class="fw-medium">
+                    <%= link_to topic_role.role.name, edit_role_path(topic_role.role),
+                          class: 'text-body text-decoration-none' %>
+                  </td>
+                  <td class="text-12"><%= topic_role.member_source_label %></td>
+                  <td class="text-12">
+                    <% if topic_role.role.privileges.any? %>
+                      <%= topic_role.role.privileges.sort_by(&:key).map(&:label).join(', ') %>
+                    <% else %>
+                      <span class="text-secondary">None yet</span>
+                    <% end %>
+                  </td>
+                  <td class="text-end">
+                    <%= button_to 'Remove', training_topic_topic_role_path(@training_topic, topic_role),
+                          method: :delete,
+                          class: 'btn btn-sm btn-outline-secondary',
+                          form: { data: { turbo_confirm: "Stop conferring #{topic_role.role.name} from this topic?" } } %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-13 text-secondary mb-4">
+          This topic confers no privileges. Attach a role below to change that.
+        </p>
+      <% end %>
+
+      <h6 class="h-section-label mb-2">Attach a role</h6>
+      <% if @available_roles.any? %>
+        <%= form_with model: TrainingTopicRole.new, url: training_topic_topic_roles_path(@training_topic),
+              local: true, class: 'row g-2 align-items-end' do |f| %>
+          <div class="col-md-5">
+            <%= f.label :role_id, 'Role', class: 'form-label text-13' %>
+            <%= f.collection_select :role_id, @available_roles, :id, :name,
+                  { prompt: 'Choose a role' }, { class: 'form-select form-select-sm', required: true } %>
+          </div>
+          <div class="col-md-4">
+            <%= f.label :member_source, 'Conferred to', class: 'form-label text-13' %>
+            <%= f.select :member_source,
+                  [['Members trained in this topic', 'trained_in'], ['Members who can train it', 'can_train']],
+                  {}, { class: 'form-select form-select-sm' } %>
+          </div>
+          <div class="col-md-3">
+            <%= f.submit 'Attach role', class: 'btn btn-outline-secondary btn-sm w-100' %>
+          </div>
+        <% end %>
+      <% else %>
+        <p class="text-13 text-secondary mb-0">
+          No roles defined yet. <%= link_to 'Create a role', new_role_path %> first.
+        </p>
       <% end %>
     </div>
   </div>
@@ -288,7 +438,7 @@
   <% end %>
 </div>
 
-<% if current_user_admin? %>
+<% if can_delete_topic %>
   <div class="card shadow-sm border-0 mt-4">
     <div class="card-body">
       <h2 class="h5 mb-3 text-danger">Danger Zone</h2>

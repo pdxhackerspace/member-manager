@@ -1,0 +1,9 @@
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">New role</h1>
+    <div class="text-13 text-secondary mt-1">Pick the privileges this role should bundle</div>
+  </div>
+  <%= link_to 'Back to roles', roles_path, class: 'btn btn-outline-secondary btn-sm' %>
+</div>
+
+<%= render 'form', role: @role, url: roles_path, submit_label: 'Create role' %>

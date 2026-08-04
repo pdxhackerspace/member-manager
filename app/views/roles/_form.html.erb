@@ -1,0 +1,60 @@
+<%= form_with model: role, url: url, local: true do |f| %>
+  <% if role.errors.any? %>
+    <div class="alert alert-danger text-13">
+      <ul class="mb-0">
+        <% role.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <%= f.label :name, class: 'form-label text-13' %>
+      <%= f.text_field :name, class: 'form-control form-control-sm', required: true %>
+    </div>
+    <div class="col-md-8">
+      <%= f.label :description, class: 'form-label text-13' %>
+      <%= f.text_field :description, class: 'form-control form-control-sm',
+            placeholder: 'What this role is for and which topic should carry it' %>
+    </div>
+  </div>
+
+  <h2 class="h-section-label mb-2">Privileges</h2>
+  <p class="text-12 text-secondary mb-3">
+    Topic-scoped privileges apply only for the topic that confers the role. Everything else
+    applies everywhere once conferred.
+  </p>
+
+  <% @privileges_by_category.each do |category, privileges| %>
+    <div class="mb-3">
+      <div class="text-13 fw-medium mb-2"><%= category %></div>
+      <div class="row g-1">
+        <% privileges.each do |privilege| %>
+          <div class="col-md-6">
+            <div class="form-check">
+              <%= check_box_tag 'role[privilege_ids][]', privilege.id,
+                    role.privilege_ids.include?(privilege.id),
+                    id: "privilege_#{privilege.id}", class: 'form-check-input' %>
+              <label class="form-check-label text-13" for="privilege_<%= privilege.id %>">
+                <%= privilege.label %>
+                <% if privilege.topic_scoped? %>
+                  <span class="badge text-bg-info-subtle fw-normal text-11">Topic</span>
+                <% end %>
+                <div class="text-11 text-secondary"><%= privilege.key %></div>
+              </label>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%= hidden_field_tag 'role[privilege_ids][]', '' %>
+
+  <div class="d-flex gap-2 mt-4">
+    <%= f.submit submit_label, class: 'btn btn-primary btn-sm' %>
+    <%= link_to 'Cancel', roles_path, class: 'btn btn-outline-secondary btn-sm' %>
+  </div>
+<% end %>

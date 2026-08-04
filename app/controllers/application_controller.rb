@@ -6,7 +6,7 @@ class ApplicationController < ActionController::Base
   add_flash_types :success, :info
 
   helper_method :current_user, :user_signed_in?, :local_auth_enabled?, :authentik_enabled?,
-                :current_user_admin?, :true_user_admin?, :impersonating?, :true_user
+                :current_user_admin?, :true_user_admin?, :impersonating?, :true_user, :can?
 
   private
 
@@ -74,6 +74,22 @@ class ApplicationController < ActionController::Base
       redirect_to user_path(current_user), alert: 'You do not have access to that section.'
     else
       redirect_to login_path, alert: 'Admin access is required to proceed.'
+    end
+  end
+
+  # Privileges always resolve against the real logged-in user, never the impersonated one,
+  # so impersonation cannot be used to gain access. Admins pass everything.
+  def can?(privilege, topic: nil)
+    true_user&.can?(privilege, topic: topic) || false
+  end
+
+  def require_privilege!(privilege, topic: nil)
+    return if can?(privilege, topic: topic)
+
+    if current_user
+      redirect_to user_path(current_user), alert: 'You do not have access to that section.'
+    else
+      redirect_to login_path, alert: 'Please sign in to continue.'
     end
   end
 end

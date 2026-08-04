@@ -24,7 +24,8 @@
   { category: "AI & integrations", title: "AI services", desc: "Service prompts, model selections, and health checks.", path: ai_ollama_profiles_path, attention_count: @settings_attention_counts[:ai_services] },
   { category: "AI & integrations", title: "AI providers", desc: "Reusable AI provider URLs and optional API keys.", path: ai_providers_path },
   { category: "AI & integrations", title: "Member sources", desc: "Authentik, Sheets, and Slack reconciliation sources.", path: member_sources_path },
-  { category: "System", title: "Training topics", desc: "Topics members can learn or train others on.", path: training_topics_path }
+  { category: "System", title: "Training topics", desc: "Topics members can learn or train others on.", path: training_topics_path },
+  { category: "System", title: "Roles", desc: "Privilege bundles conferred by the training topics that carry them.", path: roles_path }
 ] %>
 <% categories = settings_items.map { |item| item[:category] }.uniq %>
 <% attention_items = settings_items.select { |item| item[:attention_count].to_i.positive? } %>

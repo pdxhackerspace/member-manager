@@ -3,19 +3,8 @@ class MembershipApplication < ApplicationRecord
   IN_REVIEW_STATUSES = %w[under_review needs_review].freeze
   NAGGABLE_PENDING_STATUSES = %w[submitted under_review].freeze
 
-  # Training topic name (TrainingTopic.name) — viewers with this training see applicant PII without masking.
-  EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Executive Director'.freeze
-  ASSOCIATE_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Associate Executive Director'.freeze
-  ASSISTANT_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME = 'Assistant Executive Director'.freeze
-
-  # Names must match +TrainingTopic.name+ exactly. Used to notify staff when applications need attention.
-  STAFF_APPLICATION_ALERT_TRAINING_TOPIC_NAMES = [
-    EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME,
-    ASSOCIATE_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME,
-    ASSISTANT_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME
-  ].freeze
-
-  # Form question labels whose answers are masked (with reveal control) for viewers without the training above.
+  # Form question labels whose answers are masked (with reveal control) for viewers who do not
+  # hold the applications.view_pii privilege.
   FORM_ANSWER_LABELS_CONTACT_SENSITIVE = [
     'Mailing Address',
     'Phone number',

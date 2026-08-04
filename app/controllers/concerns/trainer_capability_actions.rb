@@ -2,8 +2,8 @@ module TrainerCapabilityActions
   extend ActiveSupport::Concern
 
   def add_trainer_capability
-    unless current_user_admin?
-      redirect_to record_training_path, alert: 'Only admins can manage trainer capabilities.'
+    unless can_manage_trainer_capability?(@training_topic)
+      redirect_to record_training_path, alert: 'You do not have permission to manage trainer capabilities.'
       return
     end
 
@@ -29,8 +29,8 @@ module TrainerCapabilityActions
   end
 
   def remove_trainer_capability
-    unless current_user_admin?
-      redirect_to record_training_path, alert: 'Only admins can manage trainer capabilities.'
+    unless can_manage_trainer_capability?(@training_topic)
+      redirect_to record_training_path, alert: 'You do not have permission to manage trainer capabilities.'
       return
     end
 
@@ -47,6 +47,10 @@ module TrainerCapabilityActions
   end
 
   private
+
+  def can_manage_trainer_capability?(topic)
+    current_user&.may_manage_trainer_capability?(topic) || false
+  end
 
   def ensure_trainee_trained_for_trainer_capability
     return if Training.exists?(trainee: @trainee, training_topic: @training_topic)

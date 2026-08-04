@@ -13,10 +13,8 @@ class MembershipApplicationTest < ActiveSupport::TestCase
     end
   end
 
-  test 'submit! emails staff trained as Executive Director' do
-    topic = TrainingTopic.create!(name: MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
-    admin = users(:one)
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+  test 'submit! emails staff who can review applications' do
+    grant_privileges(users(:one), 'applications.review')
     app = MembershipApplication.create!(email: 'submit-ed-notify@example.com', status: 'draft')
 
     assert_difference 'ActionMailer::Base.deliveries.size', 1 do

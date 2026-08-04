@@ -1,7 +1,7 @@
-# Manages document uploads. Admins have full access; trainers can manage
-# documents associated with their trainable topics via the topic edit page.
+# Manages document uploads. Admins have full access; trainers and topic curators can manage
+# documents associated with the topics they look after, via the topic edit page.
 class DocumentsController < AuthenticatedController
-  before_action :require_admin!, only: %i[index]
+  before_action -> { require_privilege!(:'training.documents.view_all') }, only: %i[index]
   before_action :set_document, only: %i[show edit update destroy download]
   before_action :require_admin_or_topic_trainer!, only: %i[new create]
   before_action :require_admin_or_document_trainer!, only: %i[show edit update destroy]
@@ -85,18 +85,29 @@ class DocumentsController < AuthenticatedController
     false
   end
 
-  # Trainers can manage documents associated with their trainable topics
+  # Topics this member may attach documents to: the ones they can train, plus the ones a
+  # curator role scopes training.documents.manage to.
+  def manageable_topic_ids
+    return @manageable_topic_ids if defined?(@manageable_topic_ids)
+
+    @manageable_topic_ids = if current_user_admin?
+                              TrainingTopic.ids
+                            else
+                              current_user.training_topics.ids |
+                                current_user.topics_with_privilege(:'training.documents.manage').ids
+                            end
+  end
+
   def trainer_for_document?(document)
     return false unless current_user
     return false if document.training_topics.empty?
 
-    trainable_topic_ids = current_user.training_topics.pluck(:id)
-    document.training_topic_ids.intersect?(trainable_topic_ids)
+    document.training_topic_ids.intersect?(manageable_topic_ids)
   end
 
   def require_admin_or_topic_trainer!
     return if current_user_admin?
-    return if current_user&.trainer_capabilities&.any?
+    return if manageable_topic_ids.any?
 
     redirect_to root_path, alert: "You don't have permission to manage documents."
   end
@@ -120,8 +131,7 @@ class DocumentsController < AuthenticatedController
     return if current_user_admin?
 
     document.show_on_all_profiles = false
-    allowed_ids = current_user.training_topics.pluck(:id)
-    document.training_topic_ids = document.training_topic_ids & allowed_ids
+    document.training_topic_ids = document.training_topic_ids & manageable_topic_ids
   end
 
   def sanitized_update_params
@@ -136,18 +146,13 @@ class DocumentsController < AuthenticatedController
   def filter_trainer_topic_ids(params)
     return if params[:training_topic_ids].blank?
 
-    allowed_ids = current_user.training_topics.pluck(:id)
     params[:training_topic_ids] = params[:training_topic_ids].select do |id|
-      id.blank? || allowed_ids.include?(id.to_i)
+      id.blank? || manageable_topic_ids.include?(id.to_i)
     end
   end
 
   def available_training_topics
-    if current_user_admin?
-      TrainingTopic.order(:name)
-    else
-      current_user.training_topics.order(:name)
-    end
+    TrainingTopic.where(id: manageable_topic_ids).order(:name)
   end
 
   def set_document

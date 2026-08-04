@@ -1,0 +1,84 @@
+<% unattached = @roles.count { |role| role.topic_roles.empty? } %>
+
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Roles</h1>
+    <div class="text-13 text-secondary mt-1">
+      <span class="text-body"><%= @roles.size %></span> roles ·
+      <span class="<%= unattached.positive? ? 'text-warning' : 'text-secondary' %>"><%= unattached %></span> not attached to a topic
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to '+ New role', new_role_path, class: 'btn btn-primary btn-sm' %>
+    <%= link_to 'Training topics', training_topics_path, class: 'btn btn-outline-secondary btn-sm' %>
+  </div>
+</div>
+
+<p class="text-13 text-secondary mb-3">
+  A role bundles privileges. Attach it to a training topic and everyone who holds that topic
+  receives the bundle — there is no per-member assignment.
+</p>
+
+<% if @roles.any? %>
+  <div class="table-responsive">
+    <table class="table table-compact align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col">Role</th>
+          <th scope="col">Privileges</th>
+          <th scope="col">Attached to</th>
+          <th scope="col" class="num">Count</th>
+          <th scope="col" class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @roles.each do |role| %>
+          <tr>
+            <td>
+              <div class="fw-medium"><%= link_to role.name, edit_role_path(role), class: 'text-body text-decoration-none' %></div>
+              <% if role.description.present? %>
+                <div class="text-12 text-secondary"><%= role.description %></div>
+              <% end %>
+            </td>
+            <td class="text-12">
+              <% if role.privileges.any? %>
+                <%= role.privileges.sort_by(&:key).first(4).map(&:label).join(', ') %><%= ' …' if role.privileges.size > 4 %>
+              <% else %>
+                <span class="text-secondary">None yet</span>
+              <% end %>
+            </td>
+            <td class="text-12">
+              <% if role.topic_roles.any? %>
+                <% role.topic_roles.each do |topic_role| %>
+                  <div>
+                    <%= topic_role.training_topic.name %>
+                    <span class="text-secondary">· <%= topic_role.member_source_label.downcase %></span>
+                  </div>
+                <% end %>
+              <% else %>
+                <span class="badge text-bg-warning-subtle fw-normal">No topic</span>
+              <% end %>
+            </td>
+            <td class="num <%= 'text-secondary' if role.privileges.empty? %>"><%= role.privileges.size %></td>
+            <td class="text-end">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">&ctdot;</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><%= link_to 'Edit privileges', edit_role_path(role), class: 'dropdown-item' %></li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <%= button_to 'Delete role', role_path(role), method: :delete,
+                          class: 'dropdown-item text-danger',
+                          form: { data: { turbo_confirm: "Delete '#{role.name}'?" } } %>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="text-13 text-secondary">No roles yet. Create one to start granting privileges through topics.</div>
+<% end %>

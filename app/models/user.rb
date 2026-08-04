@@ -162,21 +162,131 @@ class User < ApplicationRecord
     is_admin?
   end
 
-  def trained_in_executive_director_topic?
-    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
+  # Does this member hold a privilege? Admins always do: is_admin is a permanent
+  # superuser bypass so misconfigured roles can never lock administrators out.
+  #
+  # Global privileges apply once any held topic confers them. Topic-scoped privileges
+  # apply only for the topic that conferred them, so callers must pass that topic.
+  def can?(privilege_key, topic: nil)
+    return true if is_admin?
+
+    key = privilege_key.to_s
+    return true if global_privilege_keys.include?(key)
     return false if topic.nil?
 
-    Training.exists?(trainee: self, training_topic: topic)
+    topic_scoped_privilege_keys(topic).include?(key)
   end
 
-  # Approve/reject membership applications: admins with Executive Director training when that topic exists.
+  def global_privilege_keys
+    @global_privilege_keys ||=
+      conferred_privileges.filter_map { |_topic_id, privilege| privilege.key if privilege.global? }.uniq
+  end
+
+  # Topic-scoped privileges apply for the topic that conferred them and for that topic's
+  # direct children: taking on a topic makes you responsible for the subtopics nested under
+  # it. Reach stops after one level, so a privilege never cascades down a whole tree.
+  def topic_scoped_privilege_keys(topic)
+    conferring_ids = privilege_conferring_topic_ids(topic)
+
+    conferred_privileges.filter_map do |conferring_topic_id, privilege|
+      privilege.key if privilege.topic_scoped? && conferring_ids.include?(conferring_topic_id)
+    end.uniq
+  end
+
+  # Does this member hold a privilege for at least one topic? Use for entry points such as
+  # navigation, where the specific topic is not known yet.
+  def can_for_any_topic?(privilege_key)
+    return true if is_admin?
+
+    key = privilege_key.to_s
+    return true if global_privilege_keys.include?(key)
+
+    conferred_privileges.any? { |_topic_id, privilege| privilege.key == key }
+  end
+
+  # Topics for which this member holds a topic-scoped privilege, including the direct
+  # subtopics those privileges reach into.
+  def topics_with_privilege(privilege_key)
+    return TrainingTopic.all if is_admin?
+
+    key = privilege_key.to_s
+    topic_ids = conferred_privileges.filter_map { |topic_id, privilege| topic_id if privilege.key == key }.uniq
+
+    TrainingTopic.where(id: topic_ids).or(TrainingTopic.where(parent_id: topic_ids))
+  end
+
+  # No-escalation rule: conferring a topic hands over its privileges, so the actor must
+  # already hold everything it would grant. Containment covers global privileges only —
+  # requiring it for topic-scoped ones would stop a director from appointing a trainer
+  # for equipment they do not curate themselves.
+  def may_confer?(topic, member_sources:)
+    return true if is_admin?
+
+    topic.conferred_global_privilege_keys(member_sources: member_sources).all? { |key| can?(key) }
+  end
+
+  # Renaming or deleting a topic on the strength of a parent's role. Unlike the usual
+  # one-level reach in can?, this deliberately never matches the topic that conferred it: a
+  # role attached to a parent hands out authority over its subtopics, not over itself.
+  def may_manage_subtopic?(topic)
+    return true if can?(:'training.topics.manage')
+
+    parent_id = topic.is_a?(TrainingTopic) ? topic.parent_id : TrainingTopic.where(id: topic.to_i).pick(:parent_id)
+    return false if parent_id.nil?
+
+    conferred_privileges.any? do |conferring_topic_id, privilege|
+      conferring_topic_id == parent_id && privilege.key == 'training.subtopics.manage'
+    end
+  end
+
+  # Appointing or removing a trainer confers the topic's can_train roles, and the Training
+  # record created alongside confers its trained_in roles, so containment covers both.
+  def may_manage_trainer_capability?(topic)
+    return false unless can?(:'training.grant_trainer')
+
+    may_confer?(topic, member_sources: TrainingTopicRole::MEMBER_SOURCES)
+  end
+
+  # Recording or revoking training for a topic, subject to the no-escalation rule.
+  def may_record_training?(topic)
+    return false unless training_topics.include?(topic) || can?(:'training.record', topic: topic)
+
+    may_confer?(topic, member_sources: %w[trained_in])
+  end
+
+  def may_revoke_training?(topic)
+    return false unless can?(:'training.revoke', topic: topic)
+
+    may_confer?(topic, member_sources: %w[trained_in])
+  end
+
+  # Privileges conferred by every topic this member holds, as [topic_id, privilege] pairs.
+  # Cached per instance; call reset_privilege_cache! after changing the member's training.
+  def conferred_privileges
+    @conferred_privileges ||= build_conferred_privileges
+  end
+
+  def reset_privilege_cache!
+    @conferred_privileges = nil
+    @global_privilege_keys = nil
+  end
+
+  # Members conferred a privilege through a role, ignoring the is_admin bypass.
+  # Used for notification routing, where admin status says nothing about job function.
+  def self.with_privilege(privilege_key)
+    attachments = TrainingTopicRole.joins(role: :privileges).where(privileges: { key: privilege_key.to_s })
+    trained = Training.where(training_topic_id: attachments.trained_in.select(:training_topic_id))
+                      .select(:trainee_id)
+    trainers = TrainerCapability.where(training_topic_id: attachments.can_train.select(:training_topic_id))
+                                .select(:user_id)
+
+    where(id: trained).or(where(id: trainers))
+  end
+
+  # Approve, reject, or park membership applications. Conferred by any topic carrying a role
+  # with applications.approve — typically an Executive Director topic.
   def can_finalize_membership_application?
-    return false unless is_admin?
-
-    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
-    return true if topic.nil?
-
-    trained_in_executive_director_topic?
+    can?(:'applications.approve')
   end
 
   # Get training topics with links that the user is trained in
@@ -540,6 +650,39 @@ class User < ApplicationRecord
   after_update_commit :enqueue_mailing_geocoding_if_needed
 
   private
+
+  # Which topics can satisfy a topic-scoped check against this one: the topic itself, plus its
+  # parent, whose privileges reach one level down into its subtopics.
+  def privilege_conferring_topic_ids(topic)
+    return [topic.id, topic.parent_id].compact if topic.is_a?(TrainingTopic)
+
+    topic_id = topic.to_i
+    [topic_id, TrainingTopic.where(id: topic_id).pick(:parent_id)].compact
+  end
+
+  def build_conferred_privileges
+    sources = held_topic_member_sources
+    return [] if sources.empty?
+
+    attachments = TrainingTopicRole.includes(role: :privileges).where(training_topic_id: sources.keys)
+    attachments.flat_map do |attachment|
+      next [] unless sources.fetch(attachment.training_topic_id, []).include?(attachment.member_source)
+
+      attachment.role.privileges.map { |privilege| [attachment.training_topic_id, privilege] }
+    end
+  end
+
+  # Which conferral sources this member satisfies for each topic they hold.
+  def held_topic_member_sources
+    sources = {}
+    trainings_as_trainee.distinct.pluck(:training_topic_id).each do |topic_id|
+      (sources[topic_id] ||= []) << 'trained_in'
+    end
+    trainer_capabilities.distinct.pluck(:training_topic_id).each do |topic_id|
+      (sources[topic_id] ||= []) << 'can_train'
+    end
+    sources
+  end
 
   # Merge an email from an external source (Slack, PayPal, Recharge, etc.)
   # If user has no email, sets it. If different, adds to extra_emails.

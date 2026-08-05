@@ -4,7 +4,10 @@ module Roles
   # Everything is keyed by name or privilege key rather than by database id, so a document
   # exported from one instance applies cleanly to another with different id sequences.
   class DefinitionExport
-    FORMAT = 'member-manager.role-definitions'.freeze
+    FORMAT = 'member-zone.role-definitions'.freeze
+    # Pre-rename value of FORMAT. Still accepted on import so documents exported
+    # before the Member Zone rename keep applying.
+    LEGACY_FORMAT = 'member-manager.role-definitions'.freeze
     VERSION = 1
 
     def self.call(...) = new(...).call

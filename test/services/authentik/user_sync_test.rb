@@ -19,9 +19,9 @@ module Authentik
       user = users(:two)
       user.update_columns(
         authentik_id: 'authentik-sync-from-test',
-        email: 'membermanager@example.com',
-        full_name: 'Member Manager Name',
-        username: 'membermanager'
+        email: 'memberzone@example.com',
+        full_name: 'Member Zone Name',
+        username: 'memberzone'
       )
 
       client = Class.new do
@@ -45,9 +45,9 @@ module Authentik
       assert_equal 'authentikusername', authentik_user.username
 
       user.reload
-      assert_equal 'membermanager@example.com', user.email
-      assert_equal 'Member Manager Name', user.full_name
-      assert_equal 'membermanager', user.username
+      assert_equal 'memberzone@example.com', user.email
+      assert_equal 'Member Zone Name', user.full_name
+      assert_equal 'memberzone', user.username
     end
 
     test 'sync_to_authentik includes slack fields in attributes' do
@@ -71,7 +71,7 @@ module Authentik
       assert_equal 'synced', result[:status]
       assert_equal(
         {
-          'member_manager_id' => user.id.to_s,
+          'member_zone_id' => user.id.to_s,
           'slack_user_id' => 'U123SLACK',
           'slack_handle' => 'alice',
           'trained_on' => [],

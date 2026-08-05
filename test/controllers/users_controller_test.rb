@@ -352,20 +352,20 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Authentik source is disabled.', flash[:alert]
   end
 
-  test 'sync to authentik redirects with alert when member manager source is disabled' do
-    member_sources(:member_manager).update!(enabled: false)
+  test 'sync to authentik redirects with alert when member zone source is disabled' do
+    member_sources(:member_zone).update!(enabled: false)
 
     post sync_all_to_authentik_users_path
     assert_redirected_to users_path
-    assert_equal 'Member Manager source is disabled.', flash[:alert]
+    assert_equal 'Member Zone source is disabled.', flash[:alert]
   end
 
-  test 'per-user sync_to_authentik redirects with alert when member manager source is disabled' do
-    member_sources(:member_manager).update!(enabled: false)
+  test 'per-user sync_to_authentik redirects with alert when member zone source is disabled' do
+    member_sources(:member_zone).update!(enabled: false)
 
     post sync_to_authentik_user_path(@user)
     assert_redirected_to user_path(@user)
-    assert_equal 'Member Manager source is disabled.', flash[:alert]
+    assert_equal 'Member Zone source is disabled.', flash[:alert]
   end
 
   test 'toggle_authentik_sync_inactive_as_active flips the setting, flags inactive members, and syncs' do

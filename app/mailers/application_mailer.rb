@@ -2,17 +2,17 @@ class ApplicationMailer < ActionMailer::Base
   default from: -> { ENV.fetch('EMAIL_FROM_ADDRESS', 'noreply@example.com') }
   layout 'mailer'
 
-  after_action :set_member_manager_mail_trace_headers
-  around_deliver :log_member_manager_mail_delivery
+  after_action :set_member_zone_mail_trace_headers
+  around_deliver :log_member_zone_mail_delivery
 
   private
 
-  def set_member_manager_mail_trace_headers
-    headers['X-MemberManager-Mailer'] = self.class.name
-    headers['X-MemberManager-Action'] = action_name.to_s
+  def set_member_zone_mail_trace_headers
+    headers['X-MemberZone-Mailer'] = self.class.name
+    headers['X-MemberZone-Action'] = action_name.to_s
   end
 
-  def log_member_manager_mail_delivery
+  def log_member_zone_mail_delivery
     yield
     log_direct_mail_delivery!('sent')
   rescue StandardError => e
@@ -22,7 +22,7 @@ class ApplicationMailer < ActionMailer::Base
   end
 
   def log_direct_mail_delivery!(event, details: nil)
-    return if message['X-MemberManager-Skip-MailLog']&.decoded.to_s == '1'
+    return if message['X-MemberZone-Skip-MailLog']&.decoded.to_s == '1'
     return if message.to.blank? || message.subject.blank?
 
     MailLogEntry.log_direct_delivery!(
@@ -53,7 +53,7 @@ class ApplicationMailer < ActionMailer::Base
 
   # Helper to get the organization name for emails
   def organization_name
-    ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
+    ENV.fetch('ORGANIZATION_NAME', 'Member Zone')
   end
 
   # Helper to get the support email

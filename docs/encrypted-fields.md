@@ -129,6 +129,13 @@ ciphertext undecryptable; changing `EMAIL_LOOKUP_HMAC_KEY` invalidates every sto
 Rotating either requires decrypting with the old key and re-encrypting with the new one in a
 single pass.
 
+> **Member Zone rename.** The passphrase-stretching salts in `SensitiveData` changed from
+> `member-manager-*` to `member-zone-*`. The salts only participate when a variable is unset
+> and the key is derived from `secret_key_base`, so a deployment that sets both variables
+> explicitly is unaffected. A deployment relying on the derived fallback gets different keys
+> after this change and can no longer read its own encrypted data — set both variables from
+> the pre-rename derived values, or re-encrypt, before deploying.
+
 ---
 
 ## Adding a new encrypted field

@@ -191,7 +191,7 @@ class EmailTemplatesController < AdminController
       member_name: user.display_name,
       member_email: user.email || 'Not provided',
       member_username: user.username || 'Not set',
-      organization_name: ENV.fetch('ORGANIZATION_NAME', 'Member Manager'),
+      organization_name: ENV.fetch('ORGANIZATION_NAME', 'Member Zone'),
       date: Date.current.strftime('%B %d, %Y'),
       app_url: ENV.fetch('APP_BASE_URL', 'http://localhost:3000')
     }.merge(extra)

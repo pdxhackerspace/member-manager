@@ -1,5 +1,5 @@
 class MemberSource < ApplicationRecord
-  SOURCE_KEYS = %w[authentik member_manager sheet slack].freeze
+  SOURCE_KEYS = %w[authentik member_zone sheet slack].freeze
   SYNC_STATUSES = %w[unknown healthy degraded failing disabled].freeze
 
   validates :key, presence: true, uniqueness: true, inclusion: { in: SOURCE_KEYS }
@@ -26,8 +26,8 @@ class MemberSource < ApplicationRecord
     case key
     when 'authentik'
       refresh_authentik_stats!
-    when 'member_manager'
-      refresh_member_manager_stats!
+    when 'member_zone'
+      refresh_member_zone_stats!
     when 'sheet'
       refresh_sheet_stats!
     when 'slack'
@@ -75,7 +75,7 @@ class MemberSource < ApplicationRecord
     configured = case key
                  when 'authentik'
                    ENV['AUTHENTIK_API_TOKEN'].present? && ENV['AUTHENTIK_API_BASE_URL'].present?
-                 when 'member_manager'
+                 when 'member_zone'
                    true # Always configured (it's the local database)
                  when 'sheet'
                    ENV['GOOGLE_SHEETS_CREDENTIALS'].present? && ENV['GOOGLE_SHEETS_ID'].present?
@@ -92,7 +92,7 @@ class MemberSource < ApplicationRecord
   def self.seed_defaults!
     [
       { key: 'authentik', name: 'Authentik', display_order: 1 },
-      { key: 'member_manager', name: 'Member Manager', display_order: 2 },
+      { key: 'member_zone', name: 'Member Zone', display_order: 2 },
       { key: 'sheet', name: 'Google Sheet', display_order: 3 },
       { key: 'slack', name: 'Slack', display_order: 4 }
     ].each do |attrs|
@@ -130,8 +130,8 @@ class MemberSource < ApplicationRecord
     end
   end
 
-  def refresh_member_manager_stats!
-    # Member Manager is the User table itself
+  def refresh_member_zone_stats!
+    # Member Zone is the User table itself
     total = User.count
     # Consider users "linked" if they have essential data (email or full_name)
     linked = User.where.not(email: [nil, '']).or(User.where.not(full_name: [nil, ''])).count

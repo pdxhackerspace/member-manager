@@ -3,7 +3,7 @@
 # Usage: docker compose -f docker-compose.test.build.yml build test
 #        docker compose -f docker-compose.test.build.yml run --rm test
 #        docker compose -f docker-compose.test.build.yml run --rm test bin/rails test test/models/member_test.rb
-name: membermanager-test
+name: memberzone-test
 
 include:
   - docker-compose.test.yml

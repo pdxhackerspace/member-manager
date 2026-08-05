@@ -308,7 +308,7 @@ class EmailTemplate < ApplicationRecord
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_username}}</td>
           </tr>
         </table>
-        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Manager</a></p>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Zone</a></p>
         <p>Please review this application and take appropriate action.</p>
       HTML
       body_text: <<~TEXT
@@ -322,7 +322,7 @@ class EmailTemplate < ApplicationRecord
         Email: {{member_email}}
         Username: {{member_username}}
 
-        Open in Member Manager: {{application_url}}
+        Open in Member Zone: {{application_url}}
 
         Please review this application and take appropriate action.
       TEXT
@@ -349,7 +349,7 @@ class EmailTemplate < ApplicationRecord
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{member_username}}</td>
           </tr>
         </table>
-        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Manager</a></p>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Zone</a></p>
       HTML
       body_text: <<~TEXT
         New membership application
@@ -362,7 +362,7 @@ class EmailTemplate < ApplicationRecord
         Email: {{member_email}}
         Username: {{member_username}}
 
-        Open in Member Manager: {{application_url}}
+        Open in Member Zone: {{application_url}}
       TEXT
     },
     'staff_application_nag' => {
@@ -387,7 +387,7 @@ class EmailTemplate < ApplicationRecord
             <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{submitted_at}}</td>
           </tr>
         </table>
-        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Manager</a></p>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Open this application in Member Zone</a></p>
         <p>Please accept, reject, or move this application along.</p>
       HTML
       body_text: <<~TEXT
@@ -401,7 +401,7 @@ class EmailTemplate < ApplicationRecord
         Email: {{member_email}}
         Submitted: {{submitted_at}}
 
-        Open in Member Manager: {{application_url}}
+        Open in Member Zone: {{application_url}}
 
         Please accept, reject, or move this application along.
       TEXT
@@ -443,7 +443,7 @@ class EmailTemplate < ApplicationRecord
         </ul>
         <p>{{contact_details}}</p>
         <p>Trainers notified: {{trainer_names}}</p>
-        <p>You can respond in Member Manager from your profile dashboard.</p>
+        <p>You can respond in Member Zone from your profile dashboard.</p>
       HTML
       body_text: <<~TEXT
         Training Request: {{training_topic}}
@@ -462,7 +462,7 @@ class EmailTemplate < ApplicationRecord
 
         Trainers notified: {{trainer_names}}
 
-        You can respond in Member Manager from your profile dashboard.
+        You can respond in Member Zone from your profile dashboard.
       TEXT
     },
     'training_completed' => {
@@ -614,7 +614,7 @@ class EmailTemplate < ApplicationRecord
       member_name: 'John Doe',
       member_email: 'john.doe@example.com',
       member_username: 'johndoe',
-      organization_name: ENV.fetch('ORGANIZATION_NAME', 'Member Manager'),
+      organization_name: ENV.fetch('ORGANIZATION_NAME', 'Member Zone'),
       date: Date.current.strftime('%B %d, %Y'),
       days_overdue: ' by 14 days',
       reason: '<p><strong>Reason:</strong> Example reason</p>',

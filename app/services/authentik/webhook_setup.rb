@@ -1,9 +1,9 @@
 module Authentik
   class WebhookSetup
-    TRANSPORT_NAME = 'MemberManager Webhook'.freeze
-    USER_POLICY_NAME = 'MemberManager User Events'.freeze
-    GROUP_POLICY_NAME = 'MemberManager Group Events'.freeze
-    RULE_NAME = 'MemberManager Notifications'.freeze
+    TRANSPORT_NAME = 'MemberZone Webhook'.freeze
+    USER_POLICY_NAME = 'MemberZone User Events'.freeze
+    GROUP_POLICY_NAME = 'MemberZone Group Events'.freeze
+    RULE_NAME = 'MemberZone Notifications'.freeze
 
     attr_reader :client, :webhook_url, :webhook_secret, :admin_group_id
 
@@ -80,7 +80,7 @@ module Authentik
     private
 
     def default_webhook_url
-      base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+      base_url = MemberZoneConfig.base_url
       return nil if base_url.blank?
 
       # Use the configured slug from IncomingWebhook if available
@@ -93,7 +93,7 @@ module Authentik
     def validate_configuration!
       if webhook_url.blank?
         raise ArgumentError,
-              'Webhook URL is required. Set MEMBER_MANAGER_BASE_URL environment variable.'
+              'Webhook URL is required. Set MEMBER_ZONE_BASE_URL environment variable.'
       end
       raise ArgumentError, 'Admin group ID is required for notification rule binding.' if admin_group_id.blank?
     end

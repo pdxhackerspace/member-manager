@@ -6,7 +6,7 @@ module Authentik
       slack_handle = user.slack_handle.presence || slack_user&.username
 
       {
-        'member_manager_id' => user.id.to_s,
+        'member_zone_id' => user.id.to_s,
         'slack_user_id' => slack_id.presence || '',
         'slack_handle' => slack_handle.presence || '',
         'trained_on' => trained_on_topics_for(user),

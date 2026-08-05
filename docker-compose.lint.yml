@@ -1,14 +1,14 @@
 # RuboCop only (no Rails app boot, no database required).
-# Quick path: uses prebuilt member_manager_rubocop:latest (bind-mounts repo at /workspace).
+# Quick path: uses prebuilt member_zone_rubocop:latest (bind-mounts repo at /workspace).
 # Build or refresh the lint image when RuboCop tooling changes:
 #   docker compose -f docker-compose.lint.build.yml build rubocop
 # Usage: docker compose -f docker-compose.lint.yml run --rm rubocop
 #        docker compose -f docker-compose.lint.yml run --rm rubocop app/models
-name: membermanager-lint
+name: memberzone-lint
 
 services:
   rubocop:
-    image: member_manager_rubocop:latest
+    image: member_zone_rubocop:latest
     volumes:
       - .:/workspace
       - ./tmp/access:/tmp/access

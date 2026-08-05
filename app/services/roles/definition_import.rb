@@ -113,7 +113,7 @@ module Roles
 
     def parse_wrapper(document)
       format = document[:format]
-      if format.present? && format != DefinitionExport::FORMAT
+      if format.present? && [DefinitionExport::FORMAT, DefinitionExport::LEGACY_FORMAT].exclude?(format)
         result.errors << "Unrecognized document format '#{format}'."
         return []
       end

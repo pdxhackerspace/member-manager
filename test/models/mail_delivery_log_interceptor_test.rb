@@ -8,8 +8,8 @@ class MailDeliveryLogInterceptorTest < ActiveSupport::TestCase
       text_part { body 'Text verification link: https://example.com/apply/verify' }
       html_part { body '<p>HTML verification link: https://example.com/apply/verify</p>' }
     end
-    mail['X-MemberManager-Mailer'] = 'MemberMailer'
-    mail['X-MemberManager-Action'] = 'application_email_verification'
+    mail['X-MemberZone-Mailer'] = 'MemberMailer'
+    mail['X-MemberZone-Action'] = 'application_email_verification'
 
     assert_difference 'MailLogEntry.count', 1 do
       MailDeliveryLogInterceptor.delivering_email(mail)

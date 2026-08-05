@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Slack
-  # Links a Slack workspace user (from OIDC +sub+) to a Member Manager +User+.
+  # Links a Slack workspace user (from OIDC +sub+) to a Member Zone +User+.
   class AccountLinker
     Result = Struct.new(:status, :message) do
       def success?

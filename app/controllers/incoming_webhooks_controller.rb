@@ -4,18 +4,18 @@ class IncomingWebhooksController < AdminController
 
   def index
     @incoming_webhooks = IncomingWebhook.order(:name)
-    @base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+    @base_url = MemberZoneConfig.base_url
   end
 
   def edit
-    @base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+    @base_url = MemberZoneConfig.base_url
   end
 
   def update
     if @incoming_webhook.update(incoming_webhook_params)
       redirect_to incoming_webhooks_path, notice: "'#{@incoming_webhook.name}' updated successfully."
     else
-      @base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+      @base_url = MemberZoneConfig.base_url
       render :edit, status: :unprocessable_content
     end
   end

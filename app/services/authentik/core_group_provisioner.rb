@@ -1,6 +1,6 @@
 module Authentik
   class CoreGroupProvisioner
-    SYSTEM_APP_NAME = 'Member Manager'.freeze
+    SYSTEM_APP_NAME = 'Member Zone'.freeze
 
     attr_reader :defaults, :application, :results
 

@@ -67,11 +67,11 @@ class SensitiveData
     end
 
     def encryption_key
-      configured_key('DATABASE_FIELD_ENCRYPTION_KEY', 'member-manager-sensitive-data-encryption')
+      configured_key('DATABASE_FIELD_ENCRYPTION_KEY', 'member-zone-sensitive-data-encryption')
     end
 
     def hmac_key
-      configured_key('EMAIL_LOOKUP_HMAC_KEY', 'member-manager-email-lookup-hmac')
+      configured_key('EMAIL_LOOKUP_HMAC_KEY', 'member-zone-email-lookup-hmac')
     end
 
     def configured_key(env_name, salt)

@@ -372,7 +372,7 @@ class MemberMailer < ApplicationMailer
   end
 
   def self.base_template_variables(user)
-    org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
+    org = ENV.fetch('ORGANIZATION_NAME', 'Member Zone')
     {
       member_name: user.display_name,
       member_email: user.email || 'Not provided',
@@ -508,7 +508,7 @@ class MemberMailer < ApplicationMailer
       detail = ERB::Util.html_escape(item.detail.to_s)
       url = ERB::Util.html_escape(item.url)
       detail_html = detail.present? ? "<br><span>#{detail}</span>" : ''
-      %(<li><strong>#{title}</strong>#{detail_html}<br><a href="#{url}">Open in Member Manager</a></li>)
+      %(<li><strong>#{title}</strong>#{detail_html}<br><a href="#{url}">Open in Member Zone</a></li>)
     end
     "<ul>#{rows.join}</ul>"
   end

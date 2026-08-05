@@ -76,6 +76,12 @@ jobs:
         if: steps.version_only_main.outputs.skip == 'true'
         run: echo "CI skipped for VERSION-only PR into main."
 
+      - name: Install libvips
+        if: steps.version_only_main.outputs.skip != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libvips
+
       - name: Set up Ruby
         if: steps.version_only_main.outputs.skip != 'true'
         uses: ruby/setup-ruby@v1

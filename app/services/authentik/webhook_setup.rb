@@ -65,10 +65,10 @@ module Authentik
     end
 
     def status
-      transport = find_transport
-      user_policy = find_user_policy
-      group_policy = find_group_policy
-      rule = find_rule
+      transport = lookup_transport
+      user_policy = lookup_user_policy
+      group_policy = lookup_group_policy
+      rule = lookup_rule
 
       {
         configured: transport.present? && rule.present?,
@@ -106,7 +106,7 @@ module Authentik
     # ========== Transport ==========
 
     def setup_transport!
-      existing = find_transport
+      existing = adopt_transport
       if existing
         Rails.logger.info("[Authentik WebhookSetup] Updating existing transport: #{existing['pk']}")
         client.update_notification_transport(
@@ -124,7 +124,14 @@ module Authentik
       end
     end
 
-    def find_transport
+    def lookup_transport
+      lookup_named_authentik_object(
+        current_name: TRANSPORT_NAME,
+        legacy_name: LEGACY_TRANSPORT_NAME
+      ) { |name| fetch_transport_by_name(name) }
+    end
+
+    def adopt_transport
       adopt_named_authentik_object(
         current_name: TRANSPORT_NAME,
         legacy_name: LEGACY_TRANSPORT_NAME
@@ -159,7 +166,7 @@ module Authentik
     # ========== Policies ==========
 
     def setup_user_policy!
-      existing = find_user_policy
+      existing = adopt_user_policy
       if existing
         Rails.logger.info("[Authentik WebhookSetup] User policy already exists: #{existing['pk']}")
         existing
@@ -174,7 +181,7 @@ module Authentik
     end
 
     def setup_group_policy!
-      existing = find_group_policy
+      existing = adopt_group_policy
       if existing
         Rails.logger.info("[Authentik WebhookSetup] Group policy already exists: #{existing['pk']}")
         existing
@@ -188,14 +195,28 @@ module Authentik
       end
     end
 
-    def find_user_policy
+    def lookup_user_policy
+      lookup_named_authentik_object(
+        current_name: USER_POLICY_NAME,
+        legacy_name: LEGACY_USER_POLICY_NAME
+      ) { |name| fetch_policy_by_name(name) }
+    end
+
+    def adopt_user_policy
       adopt_named_authentik_object(
         current_name: USER_POLICY_NAME,
         legacy_name: LEGACY_USER_POLICY_NAME
       ) { |name| fetch_policy_by_name(name) }
     end
 
-    def find_group_policy
+    def lookup_group_policy
+      lookup_named_authentik_object(
+        current_name: GROUP_POLICY_NAME,
+        legacy_name: LEGACY_GROUP_POLICY_NAME
+      ) { |name| fetch_policy_by_name(name) }
+    end
+
+    def adopt_group_policy
       adopt_named_authentik_object(
         current_name: GROUP_POLICY_NAME,
         legacy_name: LEGACY_GROUP_POLICY_NAME
@@ -233,7 +254,7 @@ module Authentik
     # ========== Notification Rule ==========
 
     def setup_notification_rule!(transport)
-      existing = find_rule
+      existing = adopt_rule
       if existing
         Rails.logger.info("[Authentik WebhookSetup] Updating existing notification rule: #{existing['pk']}")
         client.update_notification_rule(
@@ -252,7 +273,14 @@ module Authentik
       end
     end
 
-    def find_rule
+    def lookup_rule
+      lookup_named_authentik_object(
+        current_name: RULE_NAME,
+        legacy_name: LEGACY_RULE_NAME
+      ) { |name| fetch_rule_by_name(name) }
+    end
+
+    def adopt_rule
       adopt_named_authentik_object(
         current_name: RULE_NAME,
         legacy_name: LEGACY_RULE_NAME
@@ -273,6 +301,15 @@ module Authentik
 
     def fetch_rule_by_name(name)
       client.list_notification_rules(name: name).find { |r| r['name'] == name }
+    end
+
+    # Read-only: prefer the current name, fall back to the legacy name, and never mutate
+    # Authentik. Used by #status so loading the admin page does not rename objects.
+    def lookup_named_authentik_object(current_name:, legacy_name:)
+      current = yield(current_name)
+      legacy = yield(legacy_name)
+
+      current || legacy
     end
 
     # Prefer the current name, adopt a pre-rename object by renaming it in Authentik, and

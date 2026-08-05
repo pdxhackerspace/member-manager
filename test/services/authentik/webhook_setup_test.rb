@@ -46,34 +46,48 @@ module Authentik
       @setup.instance_variable_set(:@client, @client)
     end
 
-    test 'find_transport adopts and renames a pre-rename transport' do
+    test 'adopt_transport adopts and renames a pre-rename transport' do
       @client.transports = [{ 'pk' => 'transport-1', 'name' => WebhookSetup::LEGACY_TRANSPORT_NAME }]
 
-      transport = @setup.send(:find_transport)
+      transport = @setup.send(:adopt_transport)
 
       assert_equal WebhookSetup::TRANSPORT_NAME, transport['name']
       assert_equal [[:transport, 'transport-1', { name: WebhookSetup::TRANSPORT_NAME }]], @client.updates
     end
 
-    test 'find_transport prefers the current name when both exist' do
+    test 'adopt_transport prefers the current name when both exist' do
       @client.transports = [
         { 'pk' => 'current', 'name' => WebhookSetup::TRANSPORT_NAME },
         { 'pk' => 'legacy', 'name' => WebhookSetup::LEGACY_TRANSPORT_NAME }
       ]
 
-      transport = @setup.send(:find_transport)
+      transport = @setup.send(:adopt_transport)
 
       assert_equal 'current', transport['pk']
       assert_empty @client.updates
     end
 
-    test 'find_user_policy adopts and renames a pre-rename policy' do
+    test 'adopt_user_policy adopts and renames a pre-rename policy' do
       @client.policies = [{ 'pk' => 'policy-1', 'name' => WebhookSetup::LEGACY_USER_POLICY_NAME }]
 
-      policy = @setup.send(:find_user_policy)
+      policy = @setup.send(:adopt_user_policy)
 
       assert_equal WebhookSetup::USER_POLICY_NAME, policy['name']
       assert_equal [[:policy, 'policy-1', { name: WebhookSetup::USER_POLICY_NAME }]], @client.updates
+    end
+
+    test 'status reports legacy objects without renaming them in Authentik' do
+      @client.transports = [{ 'pk' => 'transport-1', 'name' => WebhookSetup::LEGACY_TRANSPORT_NAME }]
+      @client.policies = [{ 'pk' => 'policy-1', 'name' => WebhookSetup::LEGACY_USER_POLICY_NAME }]
+      @client.rules = [{ 'pk' => 'rule-1', 'name' => WebhookSetup::LEGACY_RULE_NAME }]
+
+      result = @setup.status
+
+      assert result[:configured]
+      assert_equal WebhookSetup::LEGACY_TRANSPORT_NAME, result[:transport][:name]
+      assert_equal WebhookSetup::LEGACY_USER_POLICY_NAME, result[:user_policy][:name]
+      assert_equal WebhookSetup::LEGACY_RULE_NAME, result[:rule][:name]
+      assert_empty @client.updates
     end
   end
 end

@@ -125,6 +125,54 @@ class AuthentikUserTest < ActiveSupport::TestCase
     assert_includes AuthentikUser.discrepancy_candidates, authentik_user
   end
 
+  # with_discrepancies rests on the two scopes covering every candidate between them.
+  # A pair falling through both gaps would silently vanish from the report.
+  test 'the settled and undecided scopes together cover every candidate' do
+    build_pair(authentik_email: 'same@example.com', user_email: 'same@example.com')
+    build_pair(authentik_email: 'a@example.com', user_email: 'b@example.com')
+    named, = build_pair(authentik_email: 'n@example.com', user_email: 'n@example.com')
+    named.update!(full_name: 'Someone Else')
+    partial, user = build_pair(authentik_email: 'p@example.com', user_email: 'q@example.com')
+    user.update_columns(email_lookup_digest: nil)
+    store_as_plaintext(partial, 'p@example.com')
+
+    candidates = AuthentikUser.discrepancy_candidates.pluck(:id).sort
+    covered = (AuthentikUser.confirmed_discrepancies.pluck(:id) +
+               AuthentikUser.undecided_discrepancies.pluck(:id)).sort
+
+    assert_equal candidates, covered
+    assert_empty AuthentikUser.confirmed_discrepancies.pluck(:id) &
+                 AuthentikUser.undecided_discrepancies.pluck(:id),
+                 'a pair was both settled and left undecided'
+  end
+
+  # The point of splitting the scope: a pair SQL can settle never reaches Ruby, so the
+  # index does not decrypt an address for every linked account.
+  test 'pairs SQL can settle are not left for the per-record check' do
+    matching, = build_pair(authentik_email: 'settled@example.com', user_email: 'settled@example.com')
+    differing, = build_pair(authentik_email: 'left@example.com', user_email: 'right@example.com')
+
+    assert_not_includes AuthentikUser.undecided_discrepancies, matching
+    assert_not_includes AuthentikUser.undecided_discrepancies, differing
+    assert_includes AuthentikUser.confirmed_discrepancies, differing
+  end
+
+  test 'a pair with a digest on one side and ciphertext on the other is decided in ruby' do
+    authentik_user, user = build_pair(authentik_email: 'left@example.com', user_email: 'right@example.com')
+    user.update_columns(email_lookup_digest: nil)
+
+    assert_includes AuthentikUser.undecided_discrepancies, authentik_user.reload
+    assert_includes AuthentikUser.with_discrepancies, authentik_user
+  end
+
+  test 'names differing only by a tab agree between the scope and the per-record check' do
+    authentik_user, = build_pair(authentik_email: 'tab@example.com', user_email: 'tab@example.com')
+    authentik_user.update!(full_name: "Ada Lovelace\t")
+
+    assert_equal authentik_user.has_discrepancies?,
+                 AuthentikUser.with_discrepancies.exists?(id: authentik_user.id)
+  end
+
   test 'an unlinked authentik user is never reported' do
     authentik_user = AuthentikUser.create!(authentik_id: 'ak-unlinked', email: 'nobody@example.com')
 

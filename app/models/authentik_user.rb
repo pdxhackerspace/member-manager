@@ -17,30 +17,67 @@ class AuthentikUser < ApplicationRecord
   scope :unlinked, -> { where(user_id: nil) }
   scope :active, -> { where(is_active: true) }
   scope :inactive, -> { where(is_active: false) }
-  # Narrows to the pairs that might differ. SQL cannot decrypt, so two addresses are only
-  # ever proven equal here by matching lookup digests, or by matching raw columns for rows
-  # written before the backfill that still hold plaintext. A pair that satisfies neither
-  # test is kept, which means this can over-report — a digest on one side and plaintext on
-  # the other describe the same address without matching either way — but it never drops a
-  # pair that genuinely differs.
+  # `String#strip` removes tabs and newlines as well as spaces, so SQL has to trim the
+  # same set for a pair it calls different to be one #discrepancies also calls different.
+  STRIPPED_WHITESPACE = "E' \\t\\n\\v\\f\\r'".freeze
+
+  class << self
+    # SQL cannot decrypt, so it can only settle an address pair three ways: matching
+    # lookup digests prove equality, two digests that both exist and disagree prove
+    # difference, and matching raw columns prove equality for rows written before the
+    # backfill that still hold plaintext. Anything else — a digest on one side and
+    # ciphertext on the other — it cannot judge at all.
+    def email_proven_equal
+      '(authentik_users.email_lookup_digest IS NOT NULL ' \
+        'AND authentik_users.email_lookup_digest IS NOT DISTINCT FROM users.email_lookup_digest) ' \
+        "OR #{normalized('authentik_users.email')} = #{normalized('users.email')}"
+    end
+
+    def email_proven_different
+      'authentik_users.email_lookup_digest IS NOT NULL AND users.email_lookup_digest IS NOT NULL ' \
+        'AND authentik_users.email_lookup_digest IS DISTINCT FROM users.email_lookup_digest'
+    end
+
+    def name_or_username_differs
+      "#{normalized('authentik_users.full_name')} != #{normalized('users.full_name')} " \
+        "OR #{normalized('authentik_users.username')} != #{normalized('users.username')}"
+    end
+
+    def normalized(column)
+      "LOWER(BTRIM(COALESCE(#{column}, ''), #{STRIPPED_WHITESPACE}))"
+    end
+  end
+
+  # Every pair that might differ. Kept because it is the guarantee the other scopes rest
+  # on: it can over-report, but it never drops a pair that genuinely differs.
   scope :discrepancy_candidates, lambda {
+    joins(:user).includes(:user).where("NOT (#{email_proven_equal}) OR #{name_or_username_differs}")
+  }
+
+  # Pairs SQL settles on its own — a name or username that differs, or two digests that
+  # disagree. No decryption needed, and the normalization above matches #normalize_value
+  # so these agree with #discrepancies.
+  scope :confirmed_discrepancies, lambda {
+    joins(:user).where("#{name_or_username_differs} OR (#{email_proven_different})")
+  }
+
+  # The remainder: pairs whose addresses SQL can neither match nor separate. These are
+  # the only ones that have to be decrypted, and there are none left once every row
+  # carries a lookup digest.
+  scope :undecided_discrepancies, lambda {
     joins(:user).includes(:user).where(
-      'NOT ((authentik_users.email_lookup_digest IS NOT NULL ' \
-      'AND authentik_users.email_lookup_digest IS NOT DISTINCT FROM users.email_lookup_digest) ' \
-      "OR LOWER(TRIM(COALESCE(authentik_users.email, ''))) = LOWER(TRIM(COALESCE(users.email, '')))) " \
-      "OR LOWER(TRIM(COALESCE(authentik_users.full_name, ''))) != " \
-      "LOWER(TRIM(COALESCE(users.full_name, ''))) " \
-      "OR LOWER(TRIM(COALESCE(authentik_users.username, ''))) != " \
-      "LOWER(TRIM(COALESCE(users.username, '')))"
+      "NOT (#{name_or_username_differs}) AND NOT (#{email_proven_equal}) AND NOT (#{email_proven_different})"
     )
   }
 
-  # Every candidate is confirmed by #discrepancies, so the filter, the count and the row
-  # detail cannot disagree whatever state the digest columns are in. Narrowing in the
-  # database first keeps that from costing a decrypt of every linked account.
-  scope :with_discrepancies, lambda {
-    where(id: discrepancy_candidates.select(&:has_discrepancies?).map(&:id))
-  }
+  # The filter, the count and the row detail cannot disagree whatever state the digest
+  # columns are in, because #discrepancies settles every pair SQL could not.
+  scope :with_discrepancies, -> { where(id: discrepancy_ids) }
+
+  def self.discrepancy_ids
+    confirmed_discrepancies.pluck(:id) +
+      undecided_discrepancies.select(&:has_discrepancies?).map(&:id)
+  end
 
   # Returns an array of field discrepancies between this AuthentikUser and its linked User
   def discrepancies

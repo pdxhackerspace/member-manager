@@ -1,50 +1,54 @@
-<%# Renders a table of users with their linked Slack account info %>
+<%# Members alongside their linked Slack account.
+    metadata (optional): user_id => { lapse_date:, last_slack_active: } %>
+<% metadata = local_assigns.fetch(:metadata, {}) %>
+<% show_lapse_date = local_assigns.fetch(:show_lapse_date, false) %>
 <div class="table-responsive">
-  <table class="table table-sm table-hover align-middle mb-0">
+  <table class="table table-compact mb-0 align-middle">
     <thead>
       <tr>
-        <th>Member</th>
-        <th>Slack Handle</th>
-        <th>Slack Last Active</th>
-        <th>Status</th>
-        <% if defined?(show_lapse_date) && show_lapse_date %>
-          <th>Lapsed</th>
-        <% end %>
+        <th scope="col">Member</th>
+        <th scope="col">Slack handle</th>
+        <th scope="col">Slack last active</th>
+        <th scope="col">Status</th>
+        <% if show_lapse_date %><th scope="col">Lapsed</th><% end %>
       </tr>
     </thead>
     <tbody>
-      <% entries.each do |entry| %>
-        <% user = entry.is_a?(Hash) ? entry[:user] : entry %>
-        <% su = entry.is_a?(Hash) ? entry[:slack_user] : user.slack_user %>
+      <% rows.each do |user| %>
+        <% slack_user = user.slack_user %>
         <tr>
-          <td><%= link_to user.display_name, user_path(user), class: "text-decoration-none" %></td>
+          <td class="fw-medium">
+            <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+          </td>
           <td>
-            <% if su %>
-              <span class="text-muted">@<%= su.username.presence || su.display_name %></span>
+            <% if slack_user %>
+              <span class="text-secondary">@<%= slack_user.username.presence || slack_user.display_name %></span>
             <% else %>
-              <span class="text-muted fst-italic">—</span>
+              <span class="text-secondary">—</span>
             <% end %>
           </td>
           <td>
-            <% if su&.last_active_at %>
-              <%= time_ago_in_words(su.last_active_at) %> ago
+            <% if slack_user&.last_active_at %>
+              <%= time_ago_in_words(slack_user.last_active_at) %> ago
             <% else %>
-              <span class="text-muted fst-italic">Unknown</span>
+              <span class="text-secondary">Unknown</span>
             <% end %>
           </td>
           <td>
-            <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
+            <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
+              <%= membership_status_label(user.membership_status) %>
+            </span>
             <% if user.legacy? %>
-              <span class="badge text-bg-secondary">Legacy</span>
+              <span class="badge text-bg-secondary-subtle fw-normal">Legacy</span>
             <% end %>
           </td>
-          <% if defined?(show_lapse_date) && show_lapse_date %>
+          <% if show_lapse_date %>
             <td>
-              <% lapse = entry.is_a?(Hash) ? entry[:lapse_date] : user.membership_ended_date %>
+              <% lapse = metadata.dig(user.id, :lapse_date) || user.membership_ended_date %>
               <% if lapse %>
                 <%= lapse.is_a?(Time) ? l(lapse, format: :short) : lapse %>
               <% else %>
-                <span class="text-muted fst-italic">—</span>
+                <span class="text-secondary">—</span>
               <% end %>
             </td>
           <% end %>

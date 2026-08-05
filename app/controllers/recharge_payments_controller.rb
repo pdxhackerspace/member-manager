@@ -165,7 +165,7 @@ class RechargePaymentsController < AdminController
         @all_users = User.ordered_by_display_name
 
         respond_to do |format|
-          format.html { redirect_to reports_path(tab: 'unmatched-recharge'), notice: "Linked to #{user.display_name}." }
+          format.html { redirect_to recharge_payments_path(linked: 'no'), notice: "Linked to #{user.display_name}." }
           format.turbo_stream
         end
       else
@@ -178,7 +178,7 @@ class RechargePaymentsController < AdminController
                     notice: "Linked to #{user.display_name}.#{extra_msg}"
       end
     elsif params[:from_reports] == 'true'
-      redirect_to reports_path(tab: 'unmatched-recharge'), alert: 'Cannot link: payment has no customer ID.'
+      redirect_to recharge_payments_path(linked: 'no'), alert: 'Cannot link: payment has no customer ID.'
     else
       redirect_to recharge_payment_path(@payment), alert: 'Cannot link: payment has no customer ID.'
     end

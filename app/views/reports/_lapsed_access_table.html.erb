@@ -1,18 +1,21 @@
+<%# Lapsed members who badged in after their last payment.
+    metadata: user_id => { last_payment_date:, access_count:, most_recent_at: }
+    recent_accesses: user_id => [AccessLog, ...] %>
 <div class="table-responsive">
-  <table class="table table-hover align-middle mb-0">
-    <thead class="bg-body-tertiary">
+  <table class="table table-compact mb-0 align-middle">
+    <thead>
       <tr>
-        <th style="width: 48px;"></th>
-        <th>Member</th>
-        <th>Last Payment</th>
-        <th>Accesses Since Lapse</th>
-        <th>Most Recent Access</th>
-        <th>Recent Access Details</th>
+        <th scope="col" style="width: 48px;"></th>
+        <th scope="col">Member</th>
+        <th scope="col">Last payment</th>
+        <th scope="col" class="num">Accesses since</th>
+        <th scope="col">Most recent access</th>
+        <th scope="col">Recent access details</th>
       </tr>
     </thead>
     <tbody>
-      <% entries.each do |entry| %>
-        <% user = entry[:user] %>
+      <% rows.each do |user| %>
+        <% entry = metadata[user.id] || {} %>
         <tr>
           <td>
             <%= link_to user_path(user) do %>
@@ -20,43 +23,39 @@
             <% end %>
           </td>
           <td>
-            <%= link_to user.display_name, user_path(user), class: "text-decoration-none fw-semibold" %>
+            <%= link_to user.display_name, user_path(user), class: "text-decoration-none fw-medium" %>
             <% if user.email.present? %>
-              <br><small class="text-muted"><%= user.email %></small>
+              <div class="text-12 text-secondary"><%= user.email %></div>
             <% end %>
           </td>
           <td>
-            <span class="text-danger">
-              <i class="bi bi-calendar-x me-1"></i>
-              <%= entry[:last_payment_date].strftime('%B %d, %Y') %>
-            </span>
-            <br>
-            <small class="text-muted"><%= time_ago_in_words(entry[:last_payment_date]) %> ago</small>
+            <% if entry[:last_payment_date] %>
+              <%= l(entry[:last_payment_date], format: :long) %>
+              <div class="text-12 text-secondary"><%= time_ago_in_words(entry[:last_payment_date]) %> ago</div>
+            <% else %>
+              <span class="text-secondary">—</span>
+            <% end %>
           </td>
+          <td class="num fw-medium"><%= entry[:access_count] %></td>
           <td>
-            <span class="badge text-bg-warning fs-6"><%= entry[:access_count] %></span>
-          </td>
-          <td>
-            <% most_recent = entry[:most_recent_access] %>
-            <span class="text-warning">
-              <i class="bi bi-door-open me-1"></i>
-              <%= most_recent.logged_at.strftime('%B %d, %Y %H:%M') %>
-            </span>
-            <% if most_recent.location.present? %>
-              <br><small class="text-muted"><%= most_recent.location %></small>
+            <% if entry[:most_recent_at] %>
+              <%= entry[:most_recent_at].strftime('%b %d, %Y %H:%M') %>
+            <% else %>
+              <span class="text-secondary">—</span>
             <% end %>
           </td>
           <td>
-            <% entry[:recent_accesses].each do |access| %>
-              <div class="small">
-                <span class="text-muted"><%= access.logged_at.strftime('%b %d, %Y %H:%M') %></span>
+            <% (recent_accesses[user.id] || []).each do |access| %>
+              <div class="text-12">
+                <span class="text-secondary"><%= access.logged_at.strftime('%b %d, %Y %H:%M') %></span>
                 <% if access.location.present? %>
                   <span class="text-secondary ms-1">(<%= access.location %>)</span>
                 <% end %>
               </div>
             <% end %>
-            <% if entry[:access_count] > 5 %>
-              <div class="small text-muted fst-italic">... and <%= entry[:access_count] - 5 %> more</div>
+            <% shown = (recent_accesses[user.id] || []).size %>
+            <% if entry[:access_count].to_i > shown %>
+              <div class="text-12 text-secondary fst-italic">… and <%= entry[:access_count] - shown %> more</div>
             <% end %>
           </td>
         </tr>

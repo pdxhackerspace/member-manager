@@ -482,8 +482,11 @@ Rails.application.routes.draw do
   end
 
   get "/reports", to: "reports#index", as: :reports
-  get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all
   post "/reports/update_user", to: "reports#update_user", as: :reports_update_user
+  get "/reports/charts", to: "reports#charts", as: :reports_charts
+  # Bookmarks and links from before reports became their own pages.
+  get "/reports/:key/all", to: redirect { |params, _req| "/reports/#{params[:key]}" }
+  get "/reports/:key", to: "reports#show", as: :report
   get "/member-map", to: "member_maps#show", as: :member_map
   get "/api/users/search", to: "api/users#search", as: :api_users_search
   

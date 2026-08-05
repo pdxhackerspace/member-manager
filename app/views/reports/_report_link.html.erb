@@ -1,0 +1,14 @@
+<% count = counts[report.key].to_i %>
+<%= link_to report_path(report), class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center",
+            data: { reports_search_item: true, title: report.title.downcase, description: report.description.downcase } do %>
+  <span>
+    <div class="item-title">
+      <%= report.title %>
+      <% if highlight && count.positive? %>
+        <span class="badge text-bg-warning-subtle small fw-normal"><%= count %> need attention</span>
+      <% end %>
+    </div>
+    <div class="item-desc"><%= report.description %></div>
+  </span>
+  <span class="num text-12 <%= count.zero? ? 'text-secondary' : 'text-body' %>"><%= count %></span>
+<% end %>

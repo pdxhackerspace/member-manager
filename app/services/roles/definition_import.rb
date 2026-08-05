@@ -51,6 +51,7 @@ module Roles
       @mode = MODES.include?(mode.to_s) ? mode.to_s : DEFAULT_MODE
       @dry_run = dry_run
       @result = Result.new
+      @retention_warnings = []
     end
 
     def call
@@ -72,8 +73,17 @@ module Roles
         entries.each_with_index { |entry, index| import_role(entry, index) }
         raise ActiveRecord::Rollback if @dry_run || !result.success?
       end
+
+      result.warnings.concat(@retention_warnings) if result.success?
     rescue ActiveRecord::RecordInvalid => e
       result.errors << "Could not save: #{e.record.errors.full_messages.join(', ')}"
+    end
+
+    # Records something the import deliberately kept rather than removed. Held back until the
+    # run finishes without errors: an error anywhere rolls the whole document back, and a note
+    # about what was left in place would then describe a partial apply that never happened.
+    def warn_retained(message)
+      @retention_warnings << message
     end
 
     def parse_entries
@@ -181,8 +191,8 @@ module Roles
       return found if role.new_record? || (replace? && missing.empty?)
 
       if replace?
-        result.warnings << "Role '#{role_name}': privileges it already holds left in place because " \
-                           'part of the list could not be read.'
+        warn_retained("Role '#{role_name}': privileges it already holds left in place because " \
+                      'part of the list could not be read.')
       end
 
       role.privileges.to_a | found
@@ -203,8 +213,8 @@ module Roles
     def detachable?(role, resolved)
       return true if resolved.all?
 
-      result.warnings << "Role '#{role.name}': existing topic attachments left in place because " \
-                         'part of the list could not be read.'
+      warn_retained("Role '#{role.name}': existing topic attachments left in place because " \
+                    'part of the list could not be read.')
       false
     end
 

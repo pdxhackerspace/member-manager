@@ -26,10 +26,10 @@ class TrainingCatalogController < AuthenticatedController
   end
 
   def show
-    trainers_scope = @training_topic.trainers.order(:full_name, :email)
+    trainers_scope = @training_topic.trainers.order(:full_name, :id)
     @trainers = current_user_admin? ? trainers_scope : trainers_scope.active
     @trainees = User.where(id: @training_topic.trainings.select(:trainee_id).distinct)
-                    .order(:full_name, :email)
+                    .order(:full_name, :id)
     @topic_links = @training_topic.links.order(:title)
     @topic_documents = visible_documents_for(@training_topic)
     @requestable = @training_topic.offered_to_members? &&

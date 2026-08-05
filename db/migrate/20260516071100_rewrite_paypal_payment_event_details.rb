@@ -5,8 +5,6 @@ class RewritePaypalPaymentEventDetails < ActiveRecord::Migration[8.1]
       SET details = CASE
         WHEN NULLIF(paypal_payments.payer_name, '') IS NOT NULL
           THEN 'PayPal payment from ' || paypal_payments.payer_name
-        WHEN NULLIF(paypal_payments.payer_email, '') IS NOT NULL
-          THEN 'PayPal payment from ' || paypal_payments.payer_email
         ELSE 'PayPal payment'
       END
       FROM paypal_payments

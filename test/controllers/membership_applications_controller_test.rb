@@ -30,7 +30,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match(/Imported 1 application/, flash[:notice])
 
-    app = MembershipApplication.find_by!(email: 'controller-csv-import@example.com')
+    app = MembershipApplication.by_email('controller-csv-import@example.com').first!
     assert_equal 'approved', app.status
     assert_equal 'Sam Sample', app.answer_for(@page.questions.first)&.value
   end
@@ -548,6 +548,75 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/open applications/i, flash[:alert].to_s)
   end
 
+  # The Final Decision block offers each verb on its own privilege. Showing the whole block on
+  # applications.approve alone hid Reject from members who may reject, and offered buttons that
+  # failed on submit to members who may only approve.
+  test 'the final decision block offers reject alone to a reviewer who may only reject' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.reject')
+    app = decidable_application('decision-reject-only@example.com')
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_select 'form[action=?]', reject_membership_application_path(app)
+    assert_select 'form[action=?]', approve_membership_application_path(app), count: 0
+    assert_select 'form[action=?]', delay_for_review_membership_application_path(app), count: 0
+    assert_select 'form[action=?]', mark_needs_review_membership_application_path(app), count: 0
+  end
+
+  test 'the final decision block offers approve alone to a reviewer who may only approve' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.approve')
+    app = decidable_application('decision-approve-only@example.com')
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_select 'form[action=?]', approve_membership_application_path(app)
+    assert_select 'form[action=?]', reject_membership_application_path(app), count: 0
+    assert_select 'form[action=?]', delay_for_review_membership_application_path(app), count: 0
+  end
+
+  test 'the final decision block offers parking to a reviewer who may only park' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.park_review')
+    app = decidable_application('decision-park-only@example.com')
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_select 'form[action=?]', delay_for_review_membership_application_path(app)
+    assert_select 'form[action=?]', mark_needs_review_membership_application_path(app)
+    assert_select 'form[action=?]', approve_membership_application_path(app), count: 0
+    assert_select 'form[action=?]', reject_membership_application_path(app), count: 0
+  end
+
+  test 'the final decision block offers nothing to a reviewer who may only review' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.review')
+    app = decidable_application('decision-none@example.com')
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_select 'form[action=?]', approve_membership_application_path(app), count: 0
+    assert_select 'form[action=?]', reject_membership_application_path(app), count: 0
+    assert_match(/do not have permission to approve, reject, or park/i, response.body)
+  end
+
+  test 'admins are offered every decision' do
+    sign_in_as_admin
+    app = decidable_application('decision-admin@example.com')
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_select 'form[action=?]', approve_membership_application_path(app)
+    assert_select 'form[action=?]', reject_membership_application_path(app)
+    assert_select 'form[action=?]', mark_needs_review_membership_application_path(app)
+  end
+
   test 'under review tab includes needs_review applications' do
     app = MembershipApplication.create!(
       email: 'needs-review-index@example.com',
@@ -782,6 +851,11 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # Submitted, so the Final Decision block offers the parking buttons alongside approve/reject.
+  def decidable_application(email)
+    MembershipApplication.create!(email: email, status: 'submitted', submitted_at: Time.current)
+  end
 
   def membership_application_with_sensitive_answers
     p1 = ApplicationFormPage.create!(title: 'Contact PII Page', position: 11_101)

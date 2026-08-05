@@ -1,4 +1,10 @@
 class User < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email, :mailing_address, :phone_number
+  encrypts_sensitive_string_array :extra_emails
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   belongs_to :membership_plan, optional: true # Primary plan
   has_many :user_supplementary_plans, dependent: :destroy
   has_many :supplementary_plans, through: :user_supplementary_plans, source: :membership_plan
@@ -37,11 +43,11 @@ class User < ApplicationRecord
   validates :username, uniqueness: true, allow_blank: true
   validates :email,
             allow_blank: true,
-            uniqueness: true,
             format: {
               with: URI::MailTo::EMAIL_REGEXP,
               allow_blank: true
             }
+  validates :email_lookup_digest, uniqueness: true, allow_blank: true
   validates :payment_type, inclusion: { in: %w[unknown sponsored paypal recharge kofi cash inactive] }
   enum :membership_status, {
     paying: 'paying',
@@ -55,6 +61,9 @@ class User < ApplicationRecord
   }, default: 'unknown'
 
   PROFILE_VISIBILITY_OPTIONS = %w[public members private].freeze
+
+  # Lookup digests are derived from email and carry no meaning in a member's history.
+  JOURNAL_DERIVED_ATTRIBUTES = %w[email_lookup_digest extra_email_lookup_digests].freeze
   validates :profile_visibility, inclusion: { in: PROFILE_VISIBILITY_OPTIONS }
   validates :dues_status, inclusion: { in: %w[current lapsed inactive unknown] }
   validates :mailing_latitude,
@@ -64,6 +73,7 @@ class User < ApplicationRecord
             numericality: { greater_than_or_equal_to: -180, less_than_or_equal_to: 180 },
             allow_nil: true
   validate :extra_emails_format
+  validate :email_is_unique
 
   # Submitted with admin user form: if set for guest/sponsored, sets dues_due_at to now + N months
   attr_accessor :sponsored_guest_duration_months
@@ -75,6 +85,43 @@ class User < ApplicationRecord
 
   def aliases_text=(value)
     self.aliases = value.to_s.split(',').map(&:strip).compact_blank.uniq
+  end
+
+  def self.lookup_by_email(email)
+    by_email(email).first
+  end
+
+  def self.by_email(email)
+    digest = SensitiveData.email_digest(email)
+    normalized = SensitiveData.normalize_email(email)
+    return none if digest.blank?
+
+    where(email_lookup_digest: digest).or(where('LOWER(email) = ?', normalized))
+  end
+
+  def self.by_any_email(email)
+    digest = SensitiveData.email_digest(email)
+    normalized = SensitiveData.normalize_email(email)
+    return none if digest.blank?
+
+    where(email_lookup_digest: digest)
+      .or(where('? = ANY(extra_email_lookup_digests)', digest))
+      .or(where('LOWER(email) = ?', normalized))
+      .or(where('EXISTS (SELECT 1 FROM unnest(extra_emails) AS email WHERE LOWER(email) = ?)', normalized))
+  end
+
+  def set_extra_email_lookup_digests
+    return unless has_attribute?(:extra_email_lookup_digests)
+
+    self.extra_email_lookup_digests = SensitiveData.email_digests(extra_emails)
+  end
+
+  def email_is_unique
+    return if email.blank?
+
+    relation = self.class.by_email(email)
+    relation = relation.where.not(id: id) if persisted?
+    errors.add(:email, :taken) if relation.exists?
   end
 
   # Find a user whose full_name or any alias exactly matches the given name (case-insensitive).
@@ -101,8 +148,8 @@ class User < ApplicationRecord
   scope :with_attribute, ->(key, value) { where('authentik_attributes ->> ? = ?', key.to_s, value.to_s) }
   scope :ordered_by_display_name, lambda {
     order(
-      Arel.sql("LOWER(COALESCE(NULLIF(full_name, ''), NULLIF(email, ''), authentik_id)) ASC"),
-      :email,
+      Arel.sql("LOWER(COALESCE(NULLIF(full_name, ''), NULLIF(username, ''), authentik_id)) ASC"),
+      :username,
       :authentik_id
     )
   }
@@ -281,12 +328,6 @@ class User < ApplicationRecord
                                 .select(:user_id)
 
     where(id: trained).or(where(id: trainers))
-  end
-
-  # Approve, reject, or park membership applications. Conferred by any topic carrying a role
-  # with applications.approve — typically an Executive Director topic.
-  def can_finalize_membership_application?
-    can?(:'applications.approve')
   end
 
   # Get training topics with links that the user is trained in
@@ -631,6 +672,7 @@ class User < ApplicationRecord
   before_validation :generate_username_if_blank
   before_validation :set_membership_start_date, on: :create
   before_validation :apply_sponsored_guest_duration_months
+  before_save :set_extra_email_lookup_digests
   before_save :ensure_greeting_name_mutual_exclusivity
   before_save :clear_greeting_name_if_do_not_greet
   before_save :auto_fill_greeting_name
@@ -810,13 +852,14 @@ class User < ApplicationRecord
 
   def journal_updated!
     # Skip if only noisy/internal fields changed
-    return if saved_changes.except('updated_at', 'authentik_dirty').empty?
+    return if saved_changes.except('updated_at', 'authentik_dirty', *JOURNAL_DERIVED_ATTRIBUTES).empty?
 
     # Skip journal when only change is marking as legacy (legacy false -> true).
     # We DO want a journal entry when un-marking legacy (true -> false).
     if saved_changes.key?('legacy')
       _, to = saved_changes['legacy']
-      other_changes = saved_changes.except('updated_at', 'authentik_dirty', 'legacy')
+      other_changes = saved_changes.except('updated_at', 'authentik_dirty', 'legacy',
+                                           *JOURNAL_DERIVED_ATTRIBUTES)
       return if to == true && other_changes.empty?
     end
 
@@ -836,7 +879,8 @@ class User < ApplicationRecord
   def saved_changes_to_json_hash
     # Convert saved_changes to a { attr => { from: old, to: new } } structure,
     # and filter out noisy attributes.
-    filtered = saved_changes.except('updated_at', 'created_at', 'last_synced_at', 'authentik_dirty')
+    filtered = saved_changes.except('updated_at', 'created_at', 'last_synced_at', 'authentik_dirty',
+                                    *JOURNAL_DERIVED_ATTRIBUTES)
     filtered.to_h do |attr, (from, to)|
       [attr, { 'from' => from, 'to' => to }]
     end

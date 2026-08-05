@@ -130,20 +130,20 @@ class UserTest < ActiveSupport::TestCase
     assert_equal user, User.by_name_or_alias('Example User One').first
   end
 
-  test 'can_finalize_membership_application requires the applications.approve privilege' do
+  test 'approving an application requires the applications.approve privilege' do
     member = User.create!(
       authentik_id: 'finalize-test-member',
       email: 'finalize-test-member@example.com',
       is_admin: false,
       active: true
     )
-    assert_not member.can_finalize_membership_application?
+    assert_not member.can?(:'applications.approve')
 
     grant_privileges(member, 'applications.approve')
-    assert_predicate member, :can_finalize_membership_application?
+    assert member.can?(:'applications.approve')
   end
 
-  test 'can_finalize_membership_application is true for admins without the privilege' do
+  test 'admins may approve without holding the privilege' do
     admin = User.create!(
       authentik_id: 'finalize-test-admin',
       email: 'finalize-test-admin@example.com',
@@ -151,10 +151,12 @@ class UserTest < ActiveSupport::TestCase
       active: true
     )
 
-    assert_predicate admin, :can_finalize_membership_application?
+    assert admin.can?(:'applications.approve')
   end
 
-  test 'reviewing training does not confer the power to approve' do
+  # Each verb is its own privilege: reviewing an application does not decide it, and deciding
+  # it one way does not carry the others.
+  test 'reviewing training does not confer the power to approve, reject, or park' do
     member = User.create!(
       authentik_id: 'finalize-test-reviewer',
       email: 'finalize-test-reviewer@example.com',
@@ -163,7 +165,22 @@ class UserTest < ActiveSupport::TestCase
     grant_privileges(member, 'applications.review', 'applications.view_pii')
 
     assert member.can?(:'applications.review')
-    assert_not member.can_finalize_membership_application?
+    assert_not member.can?(:'applications.approve')
+    assert_not member.can?(:'applications.reject')
+    assert_not member.can?(:'applications.park_review')
+  end
+
+  test 'rejecting does not confer approving' do
+    member = User.create!(
+      authentik_id: 'finalize-test-rejecter',
+      email: 'finalize-test-rejecter@example.com',
+      active: true
+    )
+    grant_privileges(member, 'applications.reject')
+
+    assert member.can?(:'applications.reject')
+    assert_not member.can?(:'applications.approve')
+    assert_not member.can?(:'applications.park_review')
   end
 
   test 'changing mailing address clears coordinates and queues geocoding' do

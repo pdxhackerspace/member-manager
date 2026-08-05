@@ -3,6 +3,12 @@
 # SPDX-License-Identifier: CC0-1.0
 
 class AuthentikUser < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email
+  encrypts_sensitive_json :raw_attributes
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   belongs_to :user, optional: true
 
   validates :authentik_id, presence: true, uniqueness: true
@@ -11,11 +17,17 @@ class AuthentikUser < ApplicationRecord
   scope :unlinked, -> { where(user_id: nil) }
   scope :active, -> { where(is_active: true) }
   scope :inactive, -> { where(is_active: false) }
+  # Emails are compared through their lookup digests: every row is encrypted under its own
+  # nonce, so two columns holding the same address never match as ciphertext and every
+  # linked account would look like a discrepancy. Names are folded the way #discrepancies
+  # folds them so the scope and the per-record check always agree.
   scope :with_discrepancies, lambda {
     joins(:user).where(
-      "COALESCE(authentik_users.email, '') != COALESCE(users.email, '') OR " \
-      "COALESCE(authentik_users.full_name, '') != COALESCE(users.full_name, '') OR " \
-      "COALESCE(authentik_users.username, '') != COALESCE(users.username, '')"
+      'authentik_users.email_lookup_digest IS DISTINCT FROM users.email_lookup_digest OR ' \
+      "LOWER(TRIM(COALESCE(authentik_users.full_name, ''))) != " \
+      "LOWER(TRIM(COALESCE(users.full_name, ''))) OR " \
+      "LOWER(TRIM(COALESCE(authentik_users.username, ''))) != " \
+      "LOWER(TRIM(COALESCE(users.username, '')))"
     )
   }
 

@@ -48,8 +48,10 @@ module TrainerCapabilityActions
 
   private
 
+  # Resolved against the real signed-in account, like every other privilege check: an
+  # impersonated session must not be able to appoint trainers on the target's authority.
   def can_manage_trainer_capability?(topic)
-    current_user&.may_manage_trainer_capability?(topic) || false
+    true_user&.may_manage_trainer_capability?(topic) || false
   end
 
   def ensure_trainee_trained_for_trainer_capability
@@ -57,7 +59,7 @@ module TrainerCapabilityActions
 
     Training.create!(
       trainee: @trainee,
-      trainer: current_user,
+      trainer: true_user,
       training_topic: @training_topic,
       trained_at: Time.current
     )
@@ -66,12 +68,12 @@ module TrainerCapabilityActions
   def log_trainer_capability_added
     Journal.create!(
       user: @trainee,
-      actor_user: current_user,
+      actor_user: true_user,
       action: 'trainer_capability_added',
       changes_json: {
         'trainer_capability' => {
           'topic' => @training_topic.name,
-          'granted_by' => current_user.display_name,
+          'granted_by' => true_user.display_name,
           'granted_at' => Time.current.iso8601
         }
       },
@@ -83,12 +85,12 @@ module TrainerCapabilityActions
   def log_trainer_capability_removed
     Journal.create!(
       user: @trainee,
-      actor_user: current_user,
+      actor_user: true_user,
       action: 'trainer_capability_removed',
       changes_json: {
         'trainer_capability' => {
           'topic' => @training_topic.name,
-          'revoked_by' => current_user.display_name,
+          'revoked_by' => true_user.display_name,
           'revoked_at' => Time.current.iso8601
         }
       },

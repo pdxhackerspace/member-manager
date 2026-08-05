@@ -35,7 +35,7 @@ module GoogleSheets
     end
 
     test 'merges member and access data' do
-      entry = SheetEntry.find_by(email: 'example@example.com')
+      entry = SheetEntry.by_email('example@example.com').first
       assert entry
       assert_equal 'Sample Name', entry.name
       assert_equal 'Yes', entry.rfid

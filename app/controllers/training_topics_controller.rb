@@ -166,8 +166,8 @@ class TrainingTopicsController < AuthenticatedController
 
   def load_edit_associations
     trained_user_ids = Training.where(training_topic_id: @training_topic.id).select(:trainee_id).distinct
-    @trained_users = User.where(id: trained_user_ids).order(:full_name, :email)
-    @trainer_users = @training_topic.trainers.order(:full_name, :email)
+    @trained_users = User.where(id: trained_user_ids).order(:full_name, :id)
+    @trainer_users = @training_topic.trainers.order(:full_name, :id)
     @users_for_search = User.ordered_by_display_name
     @topic_documents = @training_topic.documents.ordered
     @topic_roles = @training_topic.topic_roles.joins(:role).includes(role: :privileges).order('roles.name')

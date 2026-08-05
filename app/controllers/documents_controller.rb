@@ -86,34 +86,35 @@ class DocumentsController < AuthenticatedController
   end
 
   # Topics this member may attach documents to: the ones they can train, plus the ones a
-  # curator role scopes training.documents.manage to.
+  # curator role scopes training.documents.manage to. Read from the real signed-in account,
+  # like every other privilege check, so impersonation confers nothing.
   def manageable_topic_ids
     return @manageable_topic_ids if defined?(@manageable_topic_ids)
 
-    @manageable_topic_ids = if current_user_admin?
+    @manageable_topic_ids = if true_user_admin?
                               TrainingTopic.ids
                             else
-                              current_user.training_topics.ids |
-                                current_user.topics_with_privilege(:'training.documents.manage').ids
+                              true_user.training_topics.ids |
+                                true_user.topics_with_privilege(:'training.documents.manage').ids
                             end
   end
 
   def trainer_for_document?(document)
-    return false unless current_user
+    return false unless true_user
     return false if document.training_topics.empty?
 
     document.training_topic_ids.intersect?(manageable_topic_ids)
   end
 
   def require_admin_or_topic_trainer!
-    return if current_user_admin?
+    return if true_user_admin?
     return if manageable_topic_ids.any?
 
     redirect_to root_path, alert: "You don't have permission to manage documents."
   end
 
   def require_admin_or_document_trainer!
-    return if current_user_admin?
+    return if true_user_admin?
     return if trainer_for_document?(@document)
 
     redirect_to root_path, alert: "You don't have permission to manage this document."
@@ -128,7 +129,7 @@ class DocumentsController < AuthenticatedController
   end
 
   def restrict_trainer_permissions_on(document)
-    return if current_user_admin?
+    return if true_user_admin?
 
     document.show_on_all_profiles = false
     document.training_topic_ids = document.training_topic_ids & manageable_topic_ids
@@ -136,7 +137,7 @@ class DocumentsController < AuthenticatedController
 
   def sanitized_update_params
     update_params = document_params
-    return update_params if current_user_admin?
+    return update_params if true_user_admin?
 
     update_params.delete(:show_on_all_profiles)
     filter_trainer_topic_ids(update_params)

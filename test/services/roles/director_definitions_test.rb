@@ -43,7 +43,6 @@ module Roles
       assert director.can?(:'applications.approve')
       assert director.can?(:'applications.reject')
       assert director.can?(:'applications.park_review')
-      assert_predicate director, :can_finalize_membership_application?
     end
 
     # The old masking rule keyed on Executive Director training alone, so the deputy offices
@@ -65,7 +64,8 @@ module Roles
         assert director.can?(:'applications.review'), "#{topic_name} cannot review"
         assert director.can?(:'applications.view'), "#{topic_name} cannot reach the queue"
         assert_not director.can?(:'applications.approve'), "#{topic_name} can approve"
-        assert_not_predicate director, :can_finalize_membership_application?
+        assert_not director.can?(:'applications.reject'), "#{topic_name} can reject"
+        assert_not director.can?(:'applications.park_review'), "#{topic_name} can park"
       end
     end
 

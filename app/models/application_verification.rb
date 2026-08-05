@@ -1,4 +1,9 @@
 class ApplicationVerification < ApplicationRecord
+  include SensitiveFields
+
+  encrypts_sensitive_string :email
+  has_email_lookup :email, digest_column: :email_lookup_digest
+
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :token, presence: true, uniqueness: true
 
@@ -9,12 +14,7 @@ class ApplicationVerification < ApplicationRecord
   scope :newest_first, -> { order(created_at: :desc) }
   scope :admin_search, lambda { |query|
     raw = query.to_s.strip
-    if raw.blank?
-      all
-    else
-      pattern = "%#{ActiveRecord::Base.sanitize_sql_like(raw.downcase)}%"
-      where('LOWER(application_verifications.email) LIKE ?', pattern)
-    end
+    raw.blank? ? all : by_email(raw)
   }
 
   def expired?
@@ -35,7 +35,8 @@ class ApplicationVerification < ApplicationRecord
 
   def received_application?
     MembershipApplication.where.not(status: 'draft')
-                         .exists?(['LOWER(email) = ?', email.downcase])
+                         .merge(MembershipApplication.by_email(email))
+                         .exists?
   end
 
   def awaiting_application?
@@ -44,7 +45,7 @@ class ApplicationVerification < ApplicationRecord
 
   def submitted_application
     MembershipApplication.where.not(status: 'draft')
-                         .where('LOWER(email) = ?', email.downcase)
+                         .merge(MembershipApplication.by_email(email))
                          .newest_first
                          .first
   end

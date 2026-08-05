@@ -131,6 +131,58 @@ class PrivilegeRolloutTest < ActionDispatch::IntegrationTest
     assert_no_match(/#{hidden.name}/, response.body)
   end
 
+  test 'a hidden plan cannot be opened by id without plans.view_hidden' do
+    sign_in_as_plain_member
+    hidden = membership_plans(:monthly_standard)
+    hidden.update!(visible: false)
+
+    get membership_plan_path(hidden)
+
+    assert_response :redirect
+  end
+
+  test 'plans.view_hidden opens a hidden plan by id' do
+    staff = sign_in_as_plain_member
+    grant_privileges(staff, 'plans.view_hidden')
+    hidden = membership_plans(:monthly_standard)
+    hidden.update!(visible: false)
+
+    get membership_plan_path(hidden)
+
+    assert_response :success
+  end
+
+  test 'a member can open a hidden plan they are on' do
+    member = sign_in_as_plain_member
+    hidden = membership_plans(:monthly_standard)
+    hidden.update!(visible: false)
+    member.update!(membership_plan: hidden)
+
+    get membership_plan_path(hidden)
+
+    assert_response :success
+  end
+
+  test 'a member can open their own personal plan' do
+    member = sign_in_as_plain_member
+    personal = membership_plans(:personal_equipment_donation)
+    personal.update!(user: member)
+
+    get membership_plan_path(personal)
+
+    assert_response :success
+  end
+
+  test "a member cannot open another member's personal plan" do
+    sign_in_as_plain_member
+    personal = membership_plans(:personal_equipment_donation)
+    personal.update!(user: @member)
+
+    get membership_plan_path(personal)
+
+    assert_response :redirect
+  end
+
   # ─── Topic resources ──────────────────────────────────────────────────
 
   test 'a curator can add a link to the topic they curate' do

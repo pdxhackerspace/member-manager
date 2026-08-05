@@ -28,6 +28,7 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 | Variable | Description |
 | --- | --- |
 | `APP_BASE_URL` | Public URL of the app (used by OmniAuth), e.g. `http://localhost:3000` |
+| `GITHUB_REPOSITORY_URL` | Optional URL for the GitHub link in the page footer; omit to hide it |
 | `MEMBER_ZONE_BASE_URL` | Public base used to build incoming webhook URLs. Formerly `MEMBER_MANAGER_BASE_URL`, which is still read as a fallback |
 | `AUTHENTIK_ISSUER` | Issuer URL from the Authentik application (ends with `/application/o/<slug>/`) |
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | OAuth credentials from Authentik |

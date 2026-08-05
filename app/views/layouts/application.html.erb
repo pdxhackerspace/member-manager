@@ -233,8 +233,10 @@
     </main>
     <footer class="container py-4 text-center text-muted small">
       Version: <%= AppVersion.current %>
-      &middot;
-      <%= link_to "GitHub", "https://github.com/romkey/pdxhackerspace-member-zone", target: "_blank", rel: "noopener", class: "text-muted" %>
+      <% if (github_url = ENV['GITHUB_REPOSITORY_URL'].presence) %>
+        &middot;
+        <%= link_to "GitHub", github_url, target: "_blank", rel: "noopener", class: "text-muted" %>
+      <% end %>
     </footer>
   </body>
   <script>

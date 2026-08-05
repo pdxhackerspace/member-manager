@@ -48,6 +48,8 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 | `RECHARGE_API_KEY` | Recharge API access token |
 | `RECHARGE_API_BASE_URL` | Optional override (defaults to `https://api.rechargeapps.com`) |
 | `RECHARGE_TRANSACTIONS_LOOKBACK_DAYS` | Days of Recharge history to pull during sync (default 30) |
+| `DATABASE_FIELD_ENCRYPTION_KEY` | Key for encrypting personal data and credentials at rest — see [docs/encrypted-fields.md](docs/encrypted-fields.md) |
+| `EMAIL_LOOKUP_HMAC_KEY` | Key for deriving the email lookup digests that make encrypted addresses searchable |
 
 ## Docker & Compose
 

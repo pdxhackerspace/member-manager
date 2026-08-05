@@ -16,12 +16,16 @@ class RechargePayment < ApplicationRecord
   scope :for_user, ->(user) { where(user_id: user.id) }
   scope :search, lambda { |term|
     pattern = "%#{term.to_s.downcase}%"
+    # Encrypted emails match only on a whole address, via their lookup digest.
+    digest = SensitiveData.email_digest(term)
     left_joins(:user).where(
       "LOWER(COALESCE(recharge_payments.recharge_id, '')) LIKE :q " \
       "OR LOWER(COALESCE(recharge_payments.customer_name, '')) LIKE :q " \
       "OR LOWER(COALESCE(recharge_payments.status, '')) LIKE :q " \
-      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q",
-      q: pattern
+      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q " \
+      'OR recharge_payments.customer_email_lookup_digest = :d ' \
+      'OR users.email_lookup_digest = :d',
+      q: pattern, d: digest
     )
   }
 

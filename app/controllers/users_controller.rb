@@ -55,12 +55,14 @@ class UsersController < AuthenticatedController
 
     if params[:q].present?
       search_term = "%#{params[:q].downcase}%"
+      # Encrypted email cannot be matched by substring; a whole address still resolves
+      # through the lookup digest.
       @users = @users.where(
         "LOWER(COALESCE(full_name, '')) LIKE :p " \
         'OR LOWER(authentik_id) LIKE :p ' \
         "OR LOWER(COALESCE(username, '')) LIKE :p",
         p: search_term
-      )
+      ).or(default_users.merge(User.by_any_email(params[:q])))
     end
 
     if params[:membership_status].present?

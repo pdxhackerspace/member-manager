@@ -17,7 +17,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
 
     assert_match(/Admin Dashboard/i, response.body)
     assert_match(/Member Dashboard/i, response.body)
-    assert_match(/Find a member by name, email or username/i, response.body)
+    assert_match(/Find a member by name, full email or username/i, response.body)
     assert_match(/Recent Highlights/i, response.body)
   end
 

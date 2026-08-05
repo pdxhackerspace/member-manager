@@ -54,6 +54,29 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Sheet Entries|Authentik Users|Slack Users|PayPal|Recharge/i, response.body)
   end
 
+  # Email is encrypted, so it can only be matched as a whole address via its lookup digest.
+  test 'admin search finds a user by their whole email address' do
+    user = users(:one)
+    user.update!(email: 'findable-by-email@example.com')
+
+    sign_in_as_admin
+    get search_path, params: { q: 'findable-by-email@example.com' }
+
+    assert_response :success
+    assert_match user.display_name, response.body
+  end
+
+  test 'admin search matches the email case-insensitively' do
+    user = users(:one)
+    user.update!(email: 'findable-by-email@example.com')
+
+    sign_in_as_admin
+    get search_path, params: { q: '  FINDABLE-BY-EMAIL@Example.com ' }
+
+    assert_response :success
+    assert_match user.display_name, response.body
+  end
+
   # ── Member search – access ──────────────────────────────────────────────────
 
   test 'non-admin member can access search' do

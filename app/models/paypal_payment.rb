@@ -18,12 +18,16 @@ class PaypalPayment < ApplicationRecord
   scope :not_matching_plan, -> { where(matches_plan: false) }
   scope :search, lambda { |term|
     pattern = "%#{term.to_s.downcase}%"
+    # Encrypted emails match only on a whole address, via their lookup digest.
+    digest = SensitiveData.email_digest(term)
     left_joins(:user).where(
       "LOWER(COALESCE(paypal_payments.paypal_id, '')) LIKE :q " \
       "OR LOWER(COALESCE(paypal_payments.payer_name, '')) LIKE :q " \
       "OR LOWER(COALESCE(paypal_payments.status, '')) LIKE :q " \
-      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q",
-      q: pattern
+      "OR LOWER(COALESCE(users.full_name, '')) LIKE :q " \
+      'OR paypal_payments.payer_email_lookup_digest = :d ' \
+      'OR users.email_lookup_digest = :d',
+      q: pattern, d: digest
     )
   }
 

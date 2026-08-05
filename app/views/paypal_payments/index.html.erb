@@ -103,7 +103,7 @@
     <div class="card-body">
       <div class="d-flex gap-2">
         <%= form.text_field :q, value: params[:q], class: "form-control",
-                            placeholder: "Search by transaction ID, payer name, email, or status…",
+                            placeholder: "Search by transaction ID, payer name, full email, or status…",
                             autocomplete: "off", autocorrect: "off", autocapitalize: "off", spellcheck: "false",
                             data: { live_filter_target: "input", action: "input->live-filter#filter" } %>
         <button type="button" class="btn btn-outline-secondary <%= 'd-none' unless params[:q].present? %>"

@@ -5,9 +5,19 @@ module Reports
   # the per-user code did) and joined into the query as a VALUES list, which keeps the
   # whole rollup to a single round trip regardless of how many members are involved.
   class AccessLogAggregates
+    BOUNDS = { exclusive: '>', inclusive: '>=' }.freeze
+
     # cutoffs: { user_id => Time or nil }. A nil cutoff means "count every access log".
-    def initialize(cutoffs)
+    #
+    # bound: whether a log landing exactly on the cutoff counts. The two callers differ
+    # and the difference is deliberate — "badged in since their last payment" excludes
+    # the payment instant itself, while "badged in within the last year" includes the
+    # window's first instant, which is what the ranged `where` it replaced did.
+    def initialize(cutoffs, bound: :exclusive)
+      raise ArgumentError, "unknown bound #{bound}" unless BOUNDS.key?(bound)
+
       @cutoffs = cutoffs
+      @operator = BOUNDS.fetch(bound)
     end
 
     # => { user_id => { access_count:, most_recent_at: } }, users with no matching logs omitted
@@ -19,7 +29,7 @@ module Reports
         FROM access_logs al
         JOIN (VALUES #{values_list}) AS cutoffs(user_id, cutoff)
           ON cutoffs.user_id = al.user_id
-        WHERE cutoffs.cutoff IS NULL OR al.logged_at > cutoffs.cutoff
+        WHERE cutoffs.cutoff IS NULL OR al.logged_at #{@operator} cutoffs.cutoff
         GROUP BY al.user_id
       SQL
 
@@ -39,7 +49,7 @@ module Reports
           FROM access_logs al
           JOIN (VALUES #{values_list}) AS cutoffs(user_id, cutoff)
             ON cutoffs.user_id = al.user_id
-          WHERE cutoffs.cutoff IS NULL OR al.logged_at > cutoffs.cutoff
+          WHERE cutoffs.cutoff IS NULL OR al.logged_at #{@operator} cutoffs.cutoff
         ) ranked
         WHERE ranked.access_rank <= #{limit.to_i}
       SQL

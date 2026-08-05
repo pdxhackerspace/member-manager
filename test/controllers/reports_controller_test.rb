@@ -104,6 +104,21 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal Date.new(2025, 2, 10), entries.dig(user.id, :last_payment_date)
   end
 
+  test 'a badge-in exactly on the last payment cutoff does not count as access since lapsing' do
+    user = lapsed_member('authentik-lapsed-boundary', Date.new(2025, 1, 15))
+    AccessLog.create!(user: user, logged_at: Date.new(2025, 1, 15).end_of_day, name: 'on the cutoff')
+
+    assert_not_includes Reports::LapsedWithAccessQuery.new.entries.keys, user.id
+  end
+
+  test 'a badge-in exactly on the one-year cutoff still counts as recent' do
+    user = User.create!(authentik_id: 'authentik-legacy-boundary', full_name: 'Legacy Boundary', legacy: true)
+    query = Reports::LegacyAccessQuery.new(since: 1.year.ago, recent_access_limit: 10)
+    AccessLog.create!(user: user, logged_at: query.send(:cutoffs).fetch(user.id), name: 'on the cutoff')
+
+    assert_equal 1, query.entries.dig(user.id, :access_count)
+  end
+
   test 'lapsed members with no badge-in since their last payment are excluded' do
     user = lapsed_member('authentik-lapsed-quiet', Date.new(2025, 6, 1))
     AccessLog.create!(user: user, logged_at: Time.zone.local(2025, 5, 1, 9, 0), name: 'before only')

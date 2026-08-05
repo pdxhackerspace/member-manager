@@ -20,7 +20,7 @@ module Reports
 
     # user_id => { access_count:, most_recent_at: }, most recent access first
     def entries
-      @entries ||= AccessLogAggregates.new(cutoffs).totals
+      @entries ||= aggregates(cutoffs).totals
                                       .sort_by { |_user_id, row| row[:most_recent_at] }
                                       .reverse.to_h
     end
@@ -29,11 +29,18 @@ module Reports
       page_cutoffs = users.to_h { |user| [user.id, @since] }
       {
         metadata: entries,
-        recent_accesses: AccessLogAggregates.new(page_cutoffs).recent(limit: @recent_access_limit)
+        recent_accesses: aggregates(page_cutoffs).recent(limit: @recent_access_limit)
       }
     end
 
     private
+
+    # The window this report describes is "in the last year", so a badge-in landing
+    # exactly on the cutoff belongs inside it — matching the `logged_at: since..` range
+    # this replaced.
+    def aggregates(cutoffs)
+      AccessLogAggregates.new(cutoffs, bound: :inclusive)
+    end
 
     def cutoffs
       @cutoffs ||= User.where(legacy: true).non_service_accounts.pluck(:id).index_with { @since }

@@ -18,7 +18,9 @@ class UsersController < AuthenticatedController
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: %i[edit update]
 
-  SORTABLE_COLUMNS = %w[username full_name email membership_status payment_type last_synced_at].freeze
+  # email is absent deliberately: the column holds ciphertext, so ordering by it returns
+  # rows in an order unrelated to the addresses shown.
+  SORTABLE_COLUMNS = %w[username full_name membership_status payment_type last_synced_at].freeze
 
   def index
     # Start with all users for the "all" count
@@ -55,13 +57,14 @@ class UsersController < AuthenticatedController
 
     if params[:q].present?
       search_term = "%#{params[:q].downcase}%"
+      # Encrypted email cannot be matched by substring; a whole address still resolves
+      # through the lookup digest.
       @users = @users.where(
         "LOWER(COALESCE(full_name, '')) LIKE :p " \
-        "OR LOWER(COALESCE(email, '')) LIKE :p " \
         'OR LOWER(authentik_id) LIKE :p ' \
         "OR LOWER(COALESCE(username, '')) LIKE :p",
         p: search_term
-      )
+      ).or(default_users.merge(User.by_any_email(params[:q])))
     end
 
     if params[:membership_status].present?
@@ -1009,6 +1012,6 @@ class UsersController < AuthenticatedController
     normalized_email = email.to_s.strip.downcase
     return nil if normalized_email.blank?
 
-    User.where('LOWER(email) = ?', normalized_email).first
+    User.lookup_by_email(normalized_email)
   end
 end

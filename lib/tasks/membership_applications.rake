@@ -13,11 +13,7 @@ namespace :membership_applications do
         next
       end
 
-      user = User.where('LOWER(TRIM(email)) = ?', email).first
-      user ||= User.where(
-        'EXISTS (SELECT 1 FROM unnest(extra_emails) AS e WHERE LOWER(TRIM(e)) = ?)',
-        email
-      ).first
+      user = User.by_any_email(email).first
 
       if user
         app.update!(user: user)

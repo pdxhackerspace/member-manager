@@ -1,6 +1,10 @@
 class SheetEntry < ApplicationRecord
   include NormalizesEmail
+  include SensitiveFields
 
+  encrypts_sensitive_string :email
+  encrypts_sensitive_json :raw_attributes
+  has_email_lookup :email, digest_column: :email_lookup_digest
   normalizes_email_field :email
 
   belongs_to :user, optional: true

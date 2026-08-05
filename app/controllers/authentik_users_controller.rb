@@ -32,7 +32,8 @@ class AuthentikUsersController < AdminController
   end
 
   def show
-    @all_users = User.order(:full_name, :email) if @authentik_user.user.nil?
+    # Tie-broken on id rather than email, which is encrypted and so orders arbitrarily.
+    @all_users = User.order(:full_name, :id) if @authentik_user.user.nil?
 
     # Navigation
     ids = AuthentikUser.order(updated_at: :desc).pluck(:id)

@@ -23,7 +23,9 @@ class ApplicationLayoutTest < ActionDispatch::IntegrationTest
 
   def with_env(values)
     originals = values.keys.index_with { |key| ENV.fetch(key, nil) }
-    values.each { |key, value| ENV[key] = value }
+    values.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
     yield
   ensure
     originals.each do |key, value|

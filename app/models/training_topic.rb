@@ -118,7 +118,7 @@ class TrainingTopic < ApplicationRecord
 
   def provision_authentik_groups
     defaults = DefaultSetting.instance
-    app = Application.find_or_create_by!(name: Authentik::CoreGroupProvisioner::SYSTEM_APP_NAME)
+    app = Authentik::CoreGroupProvisioner.system_application
     slug = name.parameterize
 
     app.application_groups.find_or_create_by!(member_source: 'trained_in', training_topic: self) do |g|

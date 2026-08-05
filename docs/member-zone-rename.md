@@ -16,8 +16,18 @@ past it.
   requests the new name. Admin login breaks until Authentik matches.
 - **Point deploy targets at the renamed image**, `ghcr.io/<owner>/member-zone`. The old path
   stops receiving builds.
-- **Run migrations.** `20260806000000_rename_member_manager_source_key_to_member_zone`
-  moves `member_sources.key` from `member_manager` to `member_zone`. Data-only, reversible.
+- **Run migrations.** Both are data-only and reversible.
+  - `20260806000000_rename_member_manager_source_key_to_member_zone` moves
+    `member_sources.key` from `member_manager` to `member_zone`.
+  - `20260806000100_rename_member_manager_system_application` renames the `applications`
+    row that owns every core and training group. `Authentik::CoreGroupProvisioner` finds it
+    by name and `applications.name` has no unique index, so without this the next
+    provisioning run builds a second application, rebuilds every group under it, and leaves
+    the originals orphaned with two records pushing to the same Authentik group.
+    `CoreGroupProvisioner.system_application` also adopts the old row at runtime, which
+    covers restoring a pre-rename dump into a migrated schema.
+  - If an instance already holds both a `Member Manager` and a `Member Zone` application,
+    the migration leaves the data alone. Merge them by hand.
 
 ## Non-blocking — do soon
 

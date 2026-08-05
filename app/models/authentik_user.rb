@@ -17,18 +17,29 @@ class AuthentikUser < ApplicationRecord
   scope :unlinked, -> { where(user_id: nil) }
   scope :active, -> { where(is_active: true) }
   scope :inactive, -> { where(is_active: false) }
-  # Emails are compared through their lookup digests: every row is encrypted under its own
-  # nonce, so two columns holding the same address never match as ciphertext and every
-  # linked account would look like a discrepancy. Names are folded the way #discrepancies
-  # folds them so the scope and the per-record check always agree.
-  scope :with_discrepancies, lambda {
-    joins(:user).where(
-      'authentik_users.email_lookup_digest IS DISTINCT FROM users.email_lookup_digest OR ' \
-      "LOWER(TRIM(COALESCE(authentik_users.full_name, ''))) != " \
-      "LOWER(TRIM(COALESCE(users.full_name, ''))) OR " \
-      "LOWER(TRIM(COALESCE(authentik_users.username, ''))) != " \
+  # Narrows to the pairs that might differ. SQL cannot decrypt, so two addresses are only
+  # ever proven equal here by matching lookup digests, or by matching raw columns for rows
+  # written before the backfill that still hold plaintext. A pair that satisfies neither
+  # test is kept, which means this can over-report — a digest on one side and plaintext on
+  # the other describe the same address without matching either way — but it never drops a
+  # pair that genuinely differs.
+  scope :discrepancy_candidates, lambda {
+    joins(:user).includes(:user).where(
+      'NOT ((authentik_users.email_lookup_digest IS NOT NULL ' \
+      'AND authentik_users.email_lookup_digest IS NOT DISTINCT FROM users.email_lookup_digest) ' \
+      "OR LOWER(TRIM(COALESCE(authentik_users.email, ''))) = LOWER(TRIM(COALESCE(users.email, '')))) " \
+      "OR LOWER(TRIM(COALESCE(authentik_users.full_name, ''))) != " \
+      "LOWER(TRIM(COALESCE(users.full_name, ''))) " \
+      "OR LOWER(TRIM(COALESCE(authentik_users.username, ''))) != " \
       "LOWER(TRIM(COALESCE(users.username, '')))"
     )
+  }
+
+  # Every candidate is confirmed by #discrepancies, so the filter, the count and the row
+  # detail cannot disagree whatever state the digest columns are in. Narrowing in the
+  # database first keeps that from costing a decrypt of every linked account.
+  scope :with_discrepancies, lambda {
+    where(id: discrepancy_candidates.select(&:has_discrepancies?).map(&:id))
   }
 
   # Returns an array of field discrepancies between this AuthentikUser and its linked User

@@ -17,6 +17,13 @@ class AuthentikUserTest < ActiveSupport::TestCase
     [authentik_user, user]
   end
 
+  # Mimics a row written before the backfill, or by raw SQL: a plaintext address with no
+  # digest alongside it.
+  def store_as_plaintext(record, address)
+    record.update_columns(email: address, email_lookup_digest: nil)
+    record.reload
+  end
+
   test 'matching records are not reported as discrepancies' do
     authentik_user, = build_pair(authentik_email: 'ada@example.com', user_email: 'ada@example.com')
 
@@ -64,6 +71,58 @@ class AuthentikUserTest < ActiveSupport::TestCase
     per_record = AuthentikUser.linked.select(&:has_discrepancies?).map(&:id).sort
 
     assert_equal per_record, scoped
+  end
+
+  # Rows written before the backfill, or by raw SQL, carry a plaintext address and no
+  # digest. Comparing digests alone reads those wrong in both directions, so the scope
+  # confirms its candidates against #discrepancies.
+  test 'two plaintext addresses that differ are still reported' do
+    authentik_user, user = build_pair(authentik_email: 'left@example.com', user_email: 'right@example.com')
+    store_as_plaintext(authentik_user, 'left@example.com')
+    store_as_plaintext(user, 'right@example.com')
+
+    assert authentik_user.has_discrepancies?
+    assert_includes AuthentikUser.with_discrepancies, authentik_user
+  end
+
+  test 'a plaintext address matching an encrypted one is not reported' do
+    authentik_user, user = build_pair(authentik_email: 'same@example.com', user_email: 'same@example.com')
+    store_as_plaintext(user, 'same@example.com')
+
+    assert_empty authentik_user.discrepancies
+    assert_not_includes AuthentikUser.with_discrepancies, authentik_user
+  end
+
+  test 'the scope matches the per-record check however the address is stored' do
+    [
+      ['both encrypted, same address',      :encrypted, :encrypted, true],
+      ['both encrypted, differing',         :encrypted, :encrypted, false],
+      ['both plaintext, same address',      :plaintext, :plaintext, true],
+      ['both plaintext, differing',         :plaintext, :plaintext, false],
+      ['digest against plaintext, same',    :encrypted, :plaintext, true],
+      ['digest against plaintext, differing', :encrypted, :plaintext, false]
+    ].each_with_index do |(label, authentik_storage, user_storage, same_address), index|
+      authentik_email = "case#{index}@example.com"
+      user_email = same_address ? authentik_email : "case#{index}-other@example.com"
+
+      authentik_user, user = build_pair(authentik_email: authentik_email, user_email: user_email)
+      store_as_plaintext(authentik_user, authentik_email) if authentik_storage == :plaintext
+      store_as_plaintext(user, user_email) if user_storage == :plaintext
+      authentik_user.reload
+
+      assert_equal !same_address, authentik_user.has_discrepancies?, label
+      assert_equal authentik_user.has_discrepancies?,
+                   AuthentikUser.with_discrepancies.exists?(id: authentik_user.id),
+                   "scope disagreed with #discrepancies for: #{label}"
+    end
+  end
+
+  test 'the candidate query never drops a pair that genuinely differs' do
+    authentik_user, user = build_pair(authentik_email: 'left@example.com', user_email: 'right@example.com')
+    store_as_plaintext(user, 'right@example.com')
+
+    assert authentik_user.has_discrepancies?
+    assert_includes AuthentikUser.discrepancy_candidates, authentik_user
   end
 
   test 'an unlinked authentik user is never reported' do

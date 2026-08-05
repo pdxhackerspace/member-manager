@@ -108,7 +108,7 @@ class DashboardController < AdminController
 
   def assign_report_counts
     @report_counts = REPORT_BACKED_COUNTS.transform_values do |key|
-      Reports::Catalog.find(key).query.count
+      Reports::Catalog.find(key).build_query.count
     end
 
     @report_counts.each { |name, count| instance_variable_set(:"@#{name}_count", count) }

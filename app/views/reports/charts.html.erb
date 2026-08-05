@@ -328,6 +328,23 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', initializeCharts);
-  document.addEventListener('turbo:load', initializeCharts);
+  // Same reasoning as the reports index: these listeners sit on `document`, which Turbo
+  // never replaces, so binding them per visit would stack a rebuild of every chart on
+  // each navigation. Bind once, and build at most once per page — the canvas is new on
+  // every visit, so the flag it carries is too.
+  function initChartsOnce() {
+    var canvas = document.getElementById('activeMembersChart');
+    if (!canvas || canvas.dataset.chartsInit) return;
+
+    canvas.dataset.chartsInit = '1';
+    initializeCharts();
+  }
+
+  if (!window.__reportChartsBound) {
+    window.__reportChartsBound = true;
+    document.addEventListener('DOMContentLoaded', initChartsOnce);
+    document.addEventListener('turbo:load', initChartsOnce);
+  }
+
+  initChartsOnce();
 </script>

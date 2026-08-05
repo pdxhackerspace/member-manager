@@ -278,7 +278,7 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     DashboardController::REPORT_BACKED_COUNTS.each_value do |key|
       report = Reports::Catalog.find(key)
       assert report, "dashboard links to a report that is not in the catalog: #{key}"
-      assert_equal report.query.count, report.query.relation.count,
+      assert_equal report.build_query.count, report.build_query.relation.count,
                    "#{key} count disagrees with the rows the dashboard sends admins to"
     end
   end

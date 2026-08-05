@@ -130,8 +130,37 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     counts = Reports::Catalog.counts
 
     Reports::Catalog.reports.each do |report|
-      assert_equal report.query.relation.count, counts[report.key], "#{report.key} count disagrees with its rows"
+      assert_equal report.build_query.relation.count, counts[report.key], "#{report.key} count disagrees with its rows"
     end
+  end
+
+  # Each build_query returns a fresh, separately-memoizing object, so asking for one
+  # twice repeats the report's whole aggregate. Rendering a report used to build three:
+  # one for the sidebar count, one for the rows, one for the page locals.
+  test 'showing a report runs its expensive aggregate only once' do
+    user = lapsed_member('authentik-aggregate-once', Date.new(2025, 1, 15))
+    AccessLog.create!(user: user, logged_at: Time.zone.local(2025, 2, 1, 9, 0), name: 'after')
+
+    rollups = 0
+    subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') do |*, payload|
+      rollups += 1 if payload[:sql].to_s.include?('AS access_count')
+    end
+
+    begin
+      get report_url('lapsed-with-access')
+    ensure
+      ActiveSupport::Notifications.unsubscribe(subscriber)
+    end
+
+    assert_response :success
+    assert_equal 1, rollups
+  end
+
+  test 'sidebar counts skip the report being rendered, which works its own out' do
+    counts = Reports::Catalog.counts(except: 'dues-status-lapsed')
+
+    assert_not counts.key?('dues-status-lapsed')
+    assert_equal Reports::Catalog.reports.size - 1, counts.size
   end
 
   test 'update_user returns to the report it was invoked from' do

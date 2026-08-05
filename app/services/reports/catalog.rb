@@ -257,9 +257,11 @@ module Reports
       end
 
       # One aggregate query per report, so the sidebar and landing page can show live
-      # counts without loading a single row.
-      def counts
-        REPORTS.to_h { |report| [report.key, report.query.count] }
+      # counts without loading a single row. `except` skips a report whose count the
+      # caller is about to work out anyway by rendering it.
+      def counts(except: nil)
+        REPORTS.reject { |report| report.key == except }
+               .to_h { |report| [report.key, report.build_query.count] }
       end
     end
   end

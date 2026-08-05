@@ -3,8 +3,10 @@ class ReportsController < AdminController
 
   PER_PAGE = 25
 
-  before_action :load_counts, only: %i[index show charts]
+  # load_report first: the sidebar counts skip whichever report is on screen, because
+  # showing it works that number out anyway.
   before_action :load_report, only: :show
+  before_action :load_counts, only: %i[index show charts]
 
   # Landing page: every report as a card, grouped by category, with live counts.
   def index
@@ -12,10 +14,13 @@ class ReportsController < AdminController
     @attention = Reports::Catalog.reports.select { |report| report.attention? && @counts[report.key].to_i.positive? }
   end
 
-  # A single report. Only this report's rows are loaded.
+  # A single report. Only this report's rows are loaded, and only once — each
+  # build_query returns a fresh object, so its memoized work would start over.
   def show
-    @pagy, @rows = pagy(@report.query.relation, limit: PER_PAGE)
-    @locals = @report.locals.merge(@report.query.page_locals(@rows))
+    query = @report.build_query
+    @pagy, @rows = pagy(query.relation, limit: PER_PAGE)
+    @locals = @report.locals.merge(query.page_locals(@rows))
+    @counts[@report.key] = @pagy.count
   end
 
   def charts
@@ -35,7 +40,7 @@ class ReportsController < AdminController
   private
 
   def load_counts
-    @counts = Reports::Catalog.counts
+    @counts = Reports::Catalog.counts(except: @report&.key)
   end
 
   def load_report

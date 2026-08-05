@@ -29,7 +29,9 @@ module Reports
       @attention
     end
 
-    def query
+    # Builds a fresh query object every call — they memoize, so a caller that needs both
+    # the rows and the page locals must hold on to one rather than ask twice.
+    def build_query
       @query.call
     end
 

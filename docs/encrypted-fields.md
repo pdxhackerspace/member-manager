@@ -129,12 +129,15 @@ ciphertext undecryptable; changing `EMAIL_LOOKUP_HMAC_KEY` invalidates every sto
 Rotating either requires decrypting with the old key and re-encrypting with the new one in a
 single pass.
 
-> **Member Zone rename.** The passphrase-stretching salts in `SensitiveData` changed from
-> `member-manager-*` to `member-zone-*`. The salts only participate when a variable is unset
-> and the key is derived from `secret_key_base`, so a deployment that sets both variables
-> explicitly is unaffected. A deployment relying on the derived fallback gets different keys
-> after this change and can no longer read its own encrypted data — set both variables from
-> the pre-rename derived values, or re-encrypt, before deploying.
+> **The derivation salts are pinned and must stay that way.**
+> `SensitiveData::ENCRYPTION_KEY_SALT` and `SensitiveData::HMAC_KEY_SALT` still read
+> `member-manager-*`; the Member Zone rename deliberately skipped them. A salt is a pure
+> input to the derived key, so editing one is equivalent to rotating both keys without
+> re-encrypting: every ciphertext becomes undecryptable and every stored digest stops
+> matching, in any environment that relies on the `secret_key_base` fallback. The failure is
+> silent, because rows written before the backfill are plaintext and still read fine.
+> `test/services/sensitive_data_test.rb` pins the values so a future rename sweep cannot
+> change them by accident.
 
 ---
 

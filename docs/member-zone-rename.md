@@ -5,13 +5,6 @@ past it.
 
 ## Blocking — do before deploying
 
-- **Set `DATABASE_FIELD_ENCRYPTION_KEY` and `EMAIL_LOOKUP_HMAC_KEY` explicitly in every
-  environment.** The `SensitiveData` key-derivation salts changed from `member-manager-*`
-  to `member-zone-*`. The salts only apply when a variable is unset and the key is derived
-  from `secret_key_base` — an environment on that fallback gets different keys after the
-  deploy and cannot decrypt its own data or match any email lookup digest. Neither variable
-  was previously in any `.env` example, so assume the fallback is in use until verified.
-  See [encrypted-fields.md](encrypted-fields.md).
 - **Rename the OIDC scope in Authentik to `member_zone_admin`.** `config/initializers/omniauth.rb`
   requests the new name. Admin login breaks until Authentik matches.
 - **Point deploy targets at the renamed image**, `ghcr.io/<owner>/member-zone`. The old path
@@ -58,10 +51,18 @@ now unless noted.
 | `MemberSource.for('member_zone')` | N/A — keyed lookup after migration | Migration |
 | Email templates, text fragments, incoming webhooks, privileges, roles | Keyed by stable `key`/`webhook_type`, not display name | No change |
 | `ORGANIZATION_NAME` default | Display string only | No fork risk |
+| `SensitiveData` derivation salts | Derived keys change; all ciphertext and digests orphaned | Salts pinned to pre-rename values |
 | OIDC scope `member_zone_admin` | External Authentik config | Manual rename (blocking above) |
 
 ## Open — deliberately not renamed
 
+- **`SensitiveData` key-derivation salts** stay `member-manager-sensitive-data-encryption`
+  and `member-manager-email-lookup-hmac`, pinned as constants. These are permanent, not
+  pending work: the salt is a pure input to the key derived from `secret_key_base`, so
+  editing one rotates both keys without re-encrypting, orphaning every ciphertext and every
+  lookup digest. This holds no matter how the encryption rollout and this rename are ordered
+  across releases, including the encryption backfill running in an earlier deploy than the
+  rename. `test/services/sensitive_data_test.rb` fails if the values drift.
 - **Staging and production database names** stay `member_manager_staging` and
   `member_manager_production` (`config/database.yml`, and the `DATABASE_URL` examples in
   `.env.staging.example` / `.env.production.example`). Renaming needs an `ALTER DATABASE`
@@ -85,4 +86,5 @@ now unless noted.
 ## Not touched
 
 - Git history and changelogs.
-- `SensitiveData` ciphertext and digests — no re-encryption pass was run.
+- `SensitiveData` ciphertext and digests — no re-encryption pass was run, and none is needed
+  now that the salts are pinned.

@@ -43,6 +43,14 @@ module SensitiveFields
 
     private
 
+    # Each encryption draws a fresh nonce, so re-encoding an unchanged value produces
+    # different ciphertext and leaves the record dirty. Every writer below therefore treats
+    # assigning the value a record already holds as a no-op. Without that, normalising a
+    # field during validation is enough to make an untouched record save itself, taking its
+    # after_save callbacks — journal entries, Authentik sync flags — along with it.
+    #
+    # A column still holding plaintext is never left alone: assigning to it encrypts it,
+    # which is what lets the values written before the backfill settle over time.
     def define_sensitive_string_accessors(field_name)
       define_method(field_name) do
         SensitiveData.decode_string(self[field_name])
@@ -50,6 +58,10 @@ module SensitiveFields
 
       define_method("#{field_name}=") do |value|
         normalized = value.presence
+        stored = self[field_name]
+        settled = normalized.nil? ? stored.nil? : SensitiveData.encrypted_string?(stored)
+        next if settled && normalized == SensitiveData.decode_string(stored)
+
         self[field_name] = normalized.nil? ? nil : SensitiveData.encode_string(normalized)
       end
     end
@@ -60,6 +72,13 @@ module SensitiveFields
       end
 
       define_method("#{field_name}=") do |value|
+        stored = self[field_name]
+        settled = value.nil? ? stored.nil? : SensitiveData.encrypted_json?(stored)
+        # Round-tripped so a payload keyed by symbols compares equal to the stored one,
+        # which JSON always gives back keyed by strings.
+        incoming = value.nil? ? nil : JSON.parse(JSON.generate(value))
+        next if settled && incoming == SensitiveData.decode_json(stored)
+
         self[field_name] = value.nil? ? nil : SensitiveData.encode_json(value)
       end
     end
@@ -70,11 +89,12 @@ module SensitiveFields
       end
 
       define_method("#{field_name}=") do |values|
-        encrypted_values = Array(values).filter_map do |value|
-          normalized = value.to_s.strip.presence
-          SensitiveData.encode_string(normalized) if normalized.present?
-        end
-        self[field_name] = encrypted_values
+        normalized = Array(values).filter_map { |value| value.to_s.strip.presence }
+        stored = Array(self[field_name])
+        settled = stored.all? { |value| SensitiveData.encrypted_string?(value) }
+        next if settled && normalized == stored.map { |value| SensitiveData.decode_string(value) }
+
+        self[field_name] = normalized.map { |value| SensitiveData.encode_string(value) }
       end
     end
   end

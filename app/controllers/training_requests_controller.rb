@@ -64,8 +64,10 @@ class TrainingRequestsController < AuthenticatedController
     topic = @training_request.training_topic
     trainee = @training_request.user
 
+    # Closing the request here has to name the same account the recording branch does, which
+    # Training#clear_pending_training_requests takes from the trainer.
     if Training.exists?(trainee: trainee, training_topic: topic)
-      @training_request.respond!(current_user) if @training_request.pending?
+      @training_request.respond!(true_user) if @training_request.pending?
       redirect_back_or_to user_path(current_user),
                           notice: "#{trainee.display_name} is already trained in #{topic.name}."
       return

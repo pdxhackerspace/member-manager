@@ -91,6 +91,32 @@ class ImpersonationPrivilegesTest < ActionDispatch::IntegrationTest
     assert_equal admin, Training.find_by!(trainee: @trainee, training_topic: @topic).trainer
   end
 
+  # Both branches of mark_trained close the request; they have to agree on who closed it.
+  test 'recording training from a request names the account that acted' do
+    admin = sign_in_as_admin
+    request = TrainingRequest.create!(user: @trainee, training_topic: @topic,
+                                      share_contact_info: true, status: 'pending')
+    post impersonate_user_path(@target.id)
+
+    post mark_trained_training_request_path(request)
+
+    assert_predicate request.reload, :responded?
+    assert_equal admin, request.responded_by
+  end
+
+  test 'closing an already trained request names the account that acted' do
+    admin = sign_in_as_admin
+    Training.create!(trainee: @trainee, trainer: @target, training_topic: @topic, trained_at: 1.day.ago)
+    request = TrainingRequest.create!(user: @trainee, training_topic: @topic,
+                                      share_contact_info: true, status: 'pending')
+    post impersonate_user_path(@target.id)
+
+    post mark_trained_training_request_path(request)
+
+    assert_predicate request.reload, :responded?
+    assert_equal admin, request.responded_by
+  end
+
   private
 
   def sign_in_as_admin

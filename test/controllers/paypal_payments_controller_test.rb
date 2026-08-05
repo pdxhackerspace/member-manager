@@ -145,6 +145,29 @@ class PaypalPaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match target.paypal_id, response.body
   end
 
+  test 'link_user links the payment and returns to it' do
+    payment = PaypalPayment.create!(paypal_id: 'PAY-LINK-1', payer_id: 'PAYER-LINK-1', amount: 25,
+                                    transaction_time: Time.current)
+    user = users(:two)
+
+    post link_user_paypal_payment_path(payment), params: { user_id: user.id }
+
+    assert_redirected_to paypal_payment_path(payment)
+    assert_equal user.id, payment.reload.user_id
+    assert_equal 'PAYER-LINK-1', user.reload.paypal_account_id
+  end
+
+  test 'link_user reports payments it cannot link and returns to them' do
+    payment = PaypalPayment.create!(paypal_id: 'PAY-LINK-2', payer_id: nil, amount: 25,
+                                    transaction_time: Time.current)
+
+    post link_user_paypal_payment_path(payment), params: { user_id: users(:two).id }
+
+    assert_redirected_to paypal_payment_path(payment)
+    assert_equal 'Cannot link: payment has no payer ID.', flash[:alert]
+    assert_nil payment.reload.user_id
+  end
+
   private
 
   def sign_in_as_local_admin

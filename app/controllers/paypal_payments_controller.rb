@@ -76,39 +76,13 @@ class PaypalPaymentsController < AdminController
       # Update user's payment status
       user.on_paypal_payment_linked(@payment)
 
-      # Redirect back to reports if coming from there, otherwise to payment detail page
-      if params[:from_reports] == 'true'
-        # Reload the unmatched payments list
-        all_unmatched_paypal = []
-        PaypalPayment.where.not(payer_id: nil).where(user_id: nil).find_each do |payment|
-          matching_user = User.where(paypal_account_id: payment.payer_id).first
-          unless matching_user
-            all_unmatched_paypal << {
-              payment: payment,
-              email: payment.payer_email,
-              name: payment.payer_name
-            }
-          end
-        end
-        @unmatched_paypal_payments_count = all_unmatched_paypal.count
-        @unmatched_paypal_payments = all_unmatched_paypal.first(20)
-        @all_users = User.ordered_by_display_name
-
-        respond_to do |format|
-          format.html { redirect_to paypal_payments_path(linked: 'no'), notice: "Linked to #{user.display_name}." }
-          format.turbo_stream
-        end
-      else
-        extra_msg = if linked_count.positive?
-                      " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same payer ID."
-                    else
-                      ''
-                    end
-        redirect_to paypal_payment_path(@payment),
-                    notice: "Linked to #{user.display_name}.#{extra_msg}"
-      end
-    elsif params[:from_reports] == 'true'
-      redirect_to paypal_payments_path(linked: 'no'), alert: 'Cannot link: payment has no payer ID.'
+      extra_msg = if linked_count.positive?
+                    " Also linked #{linked_count} other payment#{'s' if linked_count != 1} with the same payer ID."
+                  else
+                    ''
+                  end
+      redirect_to paypal_payment_path(@payment),
+                  notice: "Linked to #{user.display_name}.#{extra_msg}"
     else
       redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
     end

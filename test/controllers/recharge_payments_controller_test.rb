@@ -162,6 +162,29 @@ class RechargePaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match target.recharge_id, response.body
   end
 
+  test 'link_user links the payment and returns to it' do
+    payment = RechargePayment.create!(recharge_id: 'RC-LINK-1', customer_id: 'CUST-LINK-1', amount: 30,
+                                      processed_at: Time.current)
+    user = users(:two)
+
+    post link_user_recharge_payment_path(payment), params: { user_id: user.id }
+
+    assert_redirected_to recharge_payment_path(payment)
+    assert_equal user.id, payment.reload.user_id
+    assert_equal 'CUST-LINK-1', user.reload.recharge_customer_id
+  end
+
+  test 'link_user reports payments it cannot link and returns to them' do
+    payment = RechargePayment.create!(recharge_id: 'RC-LINK-2', customer_id: nil, amount: 30,
+                                      processed_at: Time.current)
+
+    post link_user_recharge_payment_path(payment), params: { user_id: users(:two).id }
+
+    assert_redirected_to recharge_payment_path(payment)
+    assert_equal 'Cannot link: payment has no customer ID.', flash[:alert]
+    assert_nil payment.reload.user_id
+  end
+
   private
 
   def sign_in_as_local_admin

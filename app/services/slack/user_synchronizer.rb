@@ -30,11 +30,14 @@ module Slack
     def upsert_member(attrs)
       record = SlackUser.find_or_initialize_by(slack_id: attrs[:slack_id])
       record.assign_attributes(attrs)
-      record.save!
+      # A savepoint, because the whole run shares one transaction: another session claiming
+      # this address first trips the unique index on the email digest, and Postgres would
+      # otherwise leave the transaction aborted and take the rest of the sync down with it.
+      SlackUser.transaction(requires_new: true) { record.save! }
 
       # Automatically link to User if there's a match (only for real users, not bots)
       link_to_user(record, attrs) if !attrs[:is_bot] && attrs[:real_name].present?
-    rescue ActiveRecord::RecordInvalid => e
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
       @logger.error("Failed to sync Slack user #{attrs[:slack_id]}: #{e.message}")
     end
 

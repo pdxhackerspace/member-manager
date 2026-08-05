@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_05_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -468,8 +468,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
     t.datetime "last_signed_in_at"
     t.string "password_digest", null: false
     t.datetime "updated_at", null: false
-    t.index ["email"], name: "index_local_accounts_on_email", unique: true
-    t.index ["email_lookup_digest"], name: "index_local_accounts_on_email_lookup_digest"
+    t.index ["email_lookup_digest"], name: "index_local_accounts_on_email_lookup_digest", unique: true, where: "(email_lookup_digest IS NOT NULL)"
   end
 
   create_table "mail_log_entries", force: :cascade do |t|
@@ -951,8 +950,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_180000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.string "username"
-    t.index ["email"], name: "index_slack_users_on_email", unique: true, where: "(email IS NOT NULL)"
-    t.index ["email_lookup_digest"], name: "index_slack_users_on_email_lookup_digest"
+    t.index ["email_lookup_digest"], name: "index_slack_users_on_email_lookup_digest", unique: true, where: "(email_lookup_digest IS NOT NULL)"
     t.index ["raw_attributes"], name: "index_slack_users_on_raw_attributes", using: :gin
     t.index ["slack_id"], name: "index_slack_users_on_slack_id", unique: true
     t.index ["user_id"], name: "index_slack_users_on_user_id"

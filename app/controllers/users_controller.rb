@@ -18,7 +18,9 @@ class UsersController < AuthenticatedController
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: %i[edit update]
 
-  SORTABLE_COLUMNS = %w[username full_name email membership_status payment_type last_synced_at].freeze
+  # email is absent deliberately: the column holds ciphertext, so ordering by it returns
+  # rows in an order unrelated to the addresses shown.
+  SORTABLE_COLUMNS = %w[username full_name membership_status payment_type last_synced_at].freeze
 
   def index
     # Start with all users for the "all" count

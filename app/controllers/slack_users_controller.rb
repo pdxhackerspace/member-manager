@@ -1,7 +1,9 @@
 require 'csv'
 
 class SlackUsersController < AdminController
-  SORTABLE_COLUMNS = %w[display_name email is_admin is_owner is_bot deleted].freeze
+  # email is absent deliberately: the column holds ciphertext, so ordering by it returns
+  # rows in an order unrelated to the addresses shown.
+  SORTABLE_COLUMNS = %w[display_name is_admin is_owner is_bot deleted].freeze
 
   def index
     # Calculate counts from ALL slack users (before filtering)

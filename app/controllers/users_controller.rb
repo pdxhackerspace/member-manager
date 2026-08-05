@@ -366,8 +366,8 @@ class UsersController < AuthenticatedController
   end
 
   def sync_all_to_authentik
-    unless MemberSource.enabled?('member_manager')
-      redirect_to users_path, alert: 'Member Manager source is disabled.'
+    unless MemberSource.enabled?('member_zone')
+      redirect_to users_path, alert: 'Member Zone source is disabled.'
       return
     end
 
@@ -386,7 +386,7 @@ class UsersController < AuthenticatedController
     # this setting changes what their Authentik is_active value should be, so flag them
     # dirty and run a sync to reconcile Authentik with the new setting.
     affected = User.where(active: false).where.not(authentik_id: [nil, '']).update_all(authentik_dirty: true)
-    Authentik::FullSyncToAuthentikJob.perform_later if MemberSource.enabled?('member_manager')
+    Authentik::FullSyncToAuthentikJob.perform_later if MemberSource.enabled?('member_zone')
 
     status = settings.authentik_sync_inactive_as_active? ? 'active' : 'inactive'
     redirect_to users_path,
@@ -500,8 +500,8 @@ class UsersController < AuthenticatedController
   end
 
   def sync_to_authentik
-    unless MemberSource.enabled?('member_manager')
-      redirect_to user_path(@user), alert: 'Member Manager source is disabled.'
+    unless MemberSource.enabled?('member_zone')
+      redirect_to user_path(@user), alert: 'Member Zone source is disabled.'
       return
     end
 

@@ -120,7 +120,7 @@ class ParkingNoticeReceiptPdf
 
   def header_block
     t = theme
-    org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
+    org = ENV.fetch('ORGANIZATION_NAME', 'Member Zone')
 
     document.font_size(t[:org]) { document.text org, align: :center, color: '000000' }
     document.move_down t[:header_gap]

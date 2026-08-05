@@ -56,7 +56,7 @@ module Authentik
       captured_body = nil
 
       client.define_singleton_method(:get_user) do |_authentik_id|
-        { 'attributes' => { 'rfid' => 'EXISTING-RFID', 'member_manager_id' => '99' } }
+        { 'attributes' => { 'rfid' => 'EXISTING-RFID', 'member_zone_id' => '99' } }
       end
       client.define_singleton_method(:patch_json) do |_path, body|
         captured_body = body
@@ -71,7 +71,7 @@ module Authentik
       assert_equal(
         {
           'rfid' => 'EXISTING-RFID',
-          'member_manager_id' => '99',
+          'member_zone_id' => '99',
           'slack_user_id' => 'U123',
           'slack_handle' => 'alice'
         },

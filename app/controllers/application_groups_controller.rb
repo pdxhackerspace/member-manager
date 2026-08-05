@@ -101,9 +101,9 @@ class ApplicationGroupsController < AdminController
   end
 
   def sync_to_authentik
-    unless MemberSource.enabled?('member_manager')
+    unless MemberSource.enabled?('member_zone')
       redirect_to application_application_group_path(@application, @application_group),
-                  alert: 'Member Manager source is disabled.'
+                  alert: 'Member Zone source is disabled.'
       return
     end
 

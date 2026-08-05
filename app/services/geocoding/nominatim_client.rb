@@ -43,7 +43,7 @@ module Geocoding
     end
 
     def default_user_agent
-      "MemberManager/#{app_version}"
+      "MemberZone/#{app_version}"
     end
 
     def app_version

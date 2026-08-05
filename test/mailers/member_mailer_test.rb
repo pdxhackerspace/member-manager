@@ -82,9 +82,9 @@ class MemberMailerTest < ActionMailer::TestCase
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
     Rails.cache.clear
-    ActionMailer::Base.add_delivery_method :member_manager_failure, FailingDelivery
+    ActionMailer::Base.add_delivery_method :member_zone_failure, FailingDelivery
     original_delivery_method = ActionMailer::Base.delivery_method
-    ActionMailer::Base.delivery_method = :member_manager_failure
+    ActionMailer::Base.delivery_method = :member_zone_failure
 
     sent_verification_mail_count = lambda {
       MailLogEntry.where(event: 'sent', delivery_action: 'application_email_verification').count

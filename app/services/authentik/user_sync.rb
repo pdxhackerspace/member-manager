@@ -6,7 +6,7 @@ module Authentik
     # User fields stored in Authentik's attributes JSON (not top-level user fields)
     ATTRIBUTE_SYNC_FIELDS = %w[slack_id slack_handle trained_on can_train].freeze
 
-    # Mapping from MemberManager field names to Authentik field names
+    # Mapping from MemberZone field names to Authentik field names
     FIELD_MAPPING = {
       'email' => 'email',
       'full_name' => 'name',

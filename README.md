@@ -1,6 +1,6 @@
-# MemberManager
+# MemberZone
 
-MemberManager is a Rails application that keeps a local roster synchronized with an Authentik group. Users authenticate via Authentik (OpenID Connect), and the application periodically (or on-demand) refreshes the local database using the Authentik API.
+MemberZone is a Rails application that keeps a local roster synchronized with an Authentik group. Users authenticate via Authentik (OpenID Connect), and the application periodically (or on-demand) refreshes the local database using the Authentik API.
 
 ## Requirements
 
@@ -28,6 +28,8 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 | Variable | Description |
 | --- | --- |
 | `APP_BASE_URL` | Public URL of the app (used by OmniAuth), e.g. `http://localhost:3000` |
+| `GITHUB_REPOSITORY_URL` | Optional URL for the GitHub link in the page footer; omit to hide it |
+| `MEMBER_ZONE_BASE_URL` | Public base used to build incoming webhook URLs. Formerly `MEMBER_MANAGER_BASE_URL`, which is still read as a fallback |
 | `AUTHENTIK_ISSUER` | Issuer URL from the Authentik application (ends with `/application/o/<slug>/`) |
 | `AUTHENTIK_CLIENT_ID` / `AUTHENTIK_CLIENT_SECRET` | OAuth credentials from Authentik |
 | `AUTHENTIK_REDIRECT_URI` | Callback URL registered in Authentik (default `http://localhost:3000/auth/authentik/callback`) |
@@ -53,14 +55,14 @@ Set these variables in your shell, `.env`, or Docker Compose environment:
 
 ## Docker & Compose
 
-The repository ships **four** Compose files so local stacks stay predictable and Postgres instances do not clash with other projects on the same machine. Each stack sets a Compose **project name** (`name:`) so volumes are isolated. Postgres containers use fixed **container names** prefixed with `membermanager-`.
+The repository ships **four** Compose files so local stacks stay predictable and Postgres instances do not clash with other projects on the same machine. Each stack sets a Compose **project name** (`name:`) so volumes are isolated. Postgres containers use fixed **container names** prefixed with `memberzone-`.
 
 | File | Use when | Postgres |
 | --- | --- | --- |
-| [`docker-compose.dev.yml`](docker-compose.dev.yml) | Day-to-day local development (`web`, Sidekiq, live-mounted source). | Included. Container: `membermanager-dev-postgres`, published on **localhost:5432**. |
-| [`docker-compose.test.yml`](docker-compose.test.yml) | Running the test suite from Docker (prebuilt `member_manager_web:latest`, fast reruns with bind-mounted code). | Included. Container: `membermanager-test-postgres`, published on **localhost:5433** (so dev can use 5432 at the same time). Redis: `membermanager-test-redis`, **localhost:6380**. |
+| [`docker-compose.dev.yml`](docker-compose.dev.yml) | Day-to-day local development (`web`, Sidekiq, live-mounted source). | Included. Container: `memberzone-dev-postgres`, published on **localhost:5432**. |
+| [`docker-compose.test.yml`](docker-compose.test.yml) | Running the test suite from Docker (prebuilt `member_zone_web:latest`, fast reruns with bind-mounted code). | Included. Container: `memberzone-test-postgres`, published on **localhost:5433** (so dev can use 5432 at the same time). Redis: `memberzone-test-redis`, **localhost:6380**. |
 | [`docker-compose.test.build.yml`](docker-compose.test.build.yml) | Same as test stack but **builds** the app image first (use after Dockerfile changes or to create the image the first time). | Same Postgres/Redis as `docker-compose.test.yml`. |
-| [`docker-compose.lint.yml`](docker-compose.lint.yml) | RuboCop only (prebuilt `member_manager_rubocop:latest`, bind-mounted source). | Not required. RuboCop is static and does not use PostgreSQL. |
+| [`docker-compose.lint.yml`](docker-compose.lint.yml) | RuboCop only (prebuilt `member_zone_rubocop:latest`, bind-mounted source). | Not required. RuboCop is static and does not use PostgreSQL. |
 | [`docker-compose.lint.build.yml`](docker-compose.lint.build.yml) | Same as lint stack but **builds** the dedicated RuboCop image first. | Not required. |
 | [`docker-compose.server.yml`](docker-compose.server.yml) | Production- or staging-style runs (image-based app, no source mount). | **Not included.** Point `DATABASE_URL` (or `DB_HOST` and related variables) at an existing PostgreSQL server. Redis defaults to the bundled `redis` service; set `REDIS_URL` to use an external instance. |
 
@@ -84,7 +86,7 @@ The app is at [http://localhost:3000](http://localhost:3000). Configure `.env` (
 bin/dev-db-restore ~/Downloads/backup-mm.sql
 ```
 
-Drops and recreates `member_manager_development`, loads the backup, applies any migrations the backup predates, and creates the local sign-in account from `LOCAL_AUTH_EMAIL` / `LOCAL_AUTH_PASSWORD`. Accepts pg_dump custom-format archives (whatever the file is named), plain SQL, and gzipped SQL.
+Drops and recreates `member_zone_development`, loads the backup, applies any migrations the backup predates, and creates the local sign-in account from `LOCAL_AUTH_EMAIL` / `LOCAL_AUTH_PASSWORD`. Accepts pg_dump custom-format archives (whatever the file is named), plain SQL, and gzipped SQL.
 
 That last step matters: production authenticates through Authentik, so its backups contain no `local_accounts` rows and there is no way to sign in to a freshly restored copy. Running `db:seed` would also create the account, but it seeds training topics and other defaults on top of the production data — use this script instead.
 
@@ -116,7 +118,7 @@ docker compose -f docker-compose.test.build.yml run --rm test
 
 ### Lint (Docker)
 
-Same pattern: use a prebuilt `member_manager_rubocop:latest` for quick runs. Build or refresh when RuboCop versions change:
+Same pattern: use a prebuilt `member_zone_rubocop:latest` for quick runs. Build or refresh when RuboCop versions change:
 
 ```bash
 docker compose -f docker-compose.lint.build.yml build rubocop
@@ -176,7 +178,7 @@ To set admin status for users based on Authentik group membership, create a Prop
 
 1. Go to **Customization** → **Property Mappings** → **Create**
 2. Type: **OAuth/OpenID Scope Mapping**
-3. Name: "Member Manager Admin Status"
+3. Name: "Member Zone Admin Status"
 4. Expression:
    ```python
    # Check if user is in the "admins" group (replace "admins" with your group name)
@@ -188,7 +190,7 @@ To set admin status for users based on Authentik group membership, create a Prop
    }
    ```
 5. Assign this property mapping to your OAuth provider:
-   - Go to **Applications** → **Providers** → your Member Manager provider
+   - Go to **Applications** → **Providers** → your Member Zone provider
    - Add the property mapping to **Property Mappings** or **Scopes**
 
 Users in the specified group will have `is_admin` set to `true` when they log in. The application looks for the `is_admin` claim in the OAuth token.

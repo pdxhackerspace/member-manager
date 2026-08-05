@@ -7,8 +7,8 @@ module Authentik
       user.update_columns(
         authentik_id: nil,
         email: 'member-sync-authentik@example.com',
-        full_name: 'Member Manager Name',
-        username: 'membermanager',
+        full_name: 'Member Zone Name',
+        username: 'memberzone',
         active: true,
         membership_status: 'paying',
         payment_type: 'paypal',
@@ -52,8 +52,8 @@ module Authentik
 
       user.reload
       assert_equal '4242', user.authentik_id
-      assert_equal 'Member Manager Name', user.full_name
-      assert_equal 'membermanager', user.username
+      assert_equal 'Member Zone Name', user.full_name
+      assert_equal 'memberzone', user.username
       assert user.active?
       assert_equal 'paying', user.membership_status
       assert_equal 'paypal', user.payment_type

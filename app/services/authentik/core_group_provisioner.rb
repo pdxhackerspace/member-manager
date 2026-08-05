@@ -1,6 +1,23 @@
 module Authentik
   class CoreGroupProvisioner
-    SYSTEM_APP_NAME = 'Member Manager'.freeze
+    SYSTEM_APP_NAME = 'Member Zone'.freeze
+    # Pre-rename value of SYSTEM_APP_NAME.
+    LEGACY_SYSTEM_APP_NAME = 'Member Manager'.freeze
+
+    # The application every core and training group hangs off. A database written before the
+    # Member Zone rename still names it 'Member Manager', and applications.name carries no
+    # unique index, so looking it up by the new name alone would quietly create a second
+    # application and rebuild every group under it — orphaning the originals and leaving two
+    # ApplicationGroups pushing to the same Authentik group. Adopt the old row instead.
+    def self.system_application
+      existing = Application.find_by(name: SYSTEM_APP_NAME)
+      return existing if existing
+
+      legacy = Application.find_by(name: LEGACY_SYSTEM_APP_NAME)
+      return legacy.tap { |app| app.update!(name: SYSTEM_APP_NAME) } if legacy
+
+      Application.create!(name: SYSTEM_APP_NAME)
+    end
 
     attr_reader :defaults, :application, :results
 
@@ -28,7 +45,7 @@ module Authentik
     private
 
     def find_or_create_system_application
-      Application.find_or_create_by!(name: SYSTEM_APP_NAME)
+      self.class.system_application
     end
 
     def provision_static_groups

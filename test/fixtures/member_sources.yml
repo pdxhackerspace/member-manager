@@ -8,9 +8,9 @@ authentik:
   linked_count: 0
   unlinked_count: 0
 
-member_manager:
-  key: member_manager
-  name: Member Manager
+member_zone:
+  key: member_zone
+  name: Member Zone
   enabled: true
   display_order: 2
   api_configured: true

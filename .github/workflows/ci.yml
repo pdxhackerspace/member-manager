@@ -19,7 +19,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_DB: member_manager_test
+          POSTGRES_DB: member_zone_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:

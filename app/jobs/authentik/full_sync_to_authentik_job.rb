@@ -3,8 +3,8 @@ module Authentik
     queue_as :default
 
     def perform
-      unless MemberSource.enabled?('member_manager')
-        Rails.logger.info('Member Manager source is disabled — skipping sync to Authentik.')
+      unless MemberSource.enabled?('member_zone')
+        Rails.logger.info('Member Zone source is disabled — skipping sync to Authentik.')
         return
       end
 
@@ -66,7 +66,7 @@ module Authentik
 
       results
     rescue StandardError => e
-      if MemberSource.enabled?('member_manager')
+      if MemberSource.enabled?('member_zone')
         MemberSource.for('authentik').record_failed_sync!("#{e.class}: #{e.message}")
       end
       raise

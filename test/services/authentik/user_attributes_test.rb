@@ -2,7 +2,7 @@ require 'test_helper'
 
 module Authentik
   class UserAttributesTest < ActiveSupport::TestCase
-    test 'for includes member manager and slack fields' do
+    test 'for includes member zone and slack fields' do
       user = users(:two)
       user.update_columns(slack_id: 'U123SLACK', slack_handle: 'alice')
 
@@ -94,7 +94,7 @@ module Authentik
 
     def base_attributes(user)
       {
-        'member_manager_id' => user.id.to_s,
+        'member_zone_id' => user.id.to_s,
         'slack_user_id' => '',
         'slack_handle' => '',
         'trained_on' => [],

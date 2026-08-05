@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository_owner }}/member-manager
+      IMAGE_NAME: ${{ github.repository_owner }}/member-zone
       APP_VERSION: ${{ needs.preflight.outputs.version }}
     steps:
       - name: Checkout requested tag

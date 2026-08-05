@@ -1,7 +1,7 @@
 # Local development: Rails + Sidekiq + Postgres + Redis (all-in-one for humans).
 # Usage: docker compose -f docker-compose.dev.yml up --build
 #        docker compose -f docker-compose.dev.yml --profile tools run --rm migrate
-name: membermanager-dev
+name: memberzone-dev
 
 x-web-common: &web-common
   build:
@@ -9,7 +9,7 @@ x-web-common: &web-common
     pull: true
     args:
       RUBY_VERSION: "3.3.11"
-  image: member_manager_web:latest
+  image: member_zone_web:latest
   env_file:
     - .env
   volumes:
@@ -22,7 +22,7 @@ x-db-env-dev: &db-env-dev
   DB_USERNAME: postgres
   DB_PASSWORD: postgres
   DB_PORT: 5432
-  DATABASE_URL: postgres://postgres:postgres@db:5432/member_manager_development
+  DATABASE_URL: postgres://postgres:postgres@db:5432/member_zone_development
   REDIS_URL: redis://redis:6379/0
   # Bearer token for Authentik API (service account). Required at boot unless running tests.
   AUTHENTIK_API_TOKEN: ${AUTHENTIK_API_TOKEN:-}
@@ -30,10 +30,10 @@ x-db-env-dev: &db-env-dev
 services:
   db:
     image: postgres:16-alpine
-    container_name: membermanager-dev-postgres
+    container_name: memberzone-dev-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: member_manager_development
+      POSTGRES_DB: member_zone_development
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
@@ -41,14 +41,14 @@ services:
 #    ports:
 #      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d member_manager_development"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d member_zone_development"]
       interval: 2s
       timeout: 5s
       retries: 15
 
   redis:
     image: redis:7-alpine
-    container_name: membermanager-dev-redis
+    container_name: memberzone-dev-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
 #    ports:

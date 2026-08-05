@@ -31,7 +31,7 @@ module MembershipApplications
       end
 
       ActionMailer::Base.deliveries.drop(delivery_count_before).each do |mail|
-        assert_equal 'staff_new_application', mail['X-MemberManager-Action']&.decoded
+        assert_equal 'staff_new_application', mail['X-MemberZone-Action']&.decoded
         assert_match(/needs review/i, mail.subject)
       end
     end

@@ -35,9 +35,9 @@ class IncomingWebhook < ApplicationRecord
     update!(slug: new_slug)
   end
 
-  # Full webhook URL (requires MEMBER_MANAGER_BASE_URL to be set)
+  # Full webhook URL (requires MEMBER_ZONE_BASE_URL to be set)
   def webhook_url
-    base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+    base_url = MemberZoneConfig.base_url
     return nil if base_url.blank?
 
     "#{base_url.delete_suffix('/')}/webhooks/#{slug}"

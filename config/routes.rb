@@ -40,7 +40,7 @@ Rails.application.routes.draw do
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   get "/auth/failure", to: "sessions#failure"
 
-  # Link workspace Slack account to member profile (OIDC; not Member Manager login — Authentik only for login)
+  # Link workspace Slack account to member profile (OIDC; not Member Zone login — Authentik only for login)
   get "/slack/link", to: "slack_account_links#new", as: :slack_link_start
   get "/slack/link/callback", to: "slack_account_links#callback", as: :slack_link_callback
 

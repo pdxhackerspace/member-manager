@@ -85,4 +85,22 @@ class MemberSourceTest < ActiveSupport::TestCase
     assert_equal 3, source.consecutive_error_count
     assert_match(/third/, source.last_error_message)
   end
+
+  test 'seed_defaults adopts pre-rename member_zone source key' do
+    MemberSource.where(key: [MemberSource::MEMBER_ZONE_KEY, MemberSource::MEMBER_ZONE_LEGACY_KEY]).delete_all
+    legacy = MemberSource.create!(
+      key: MemberSource::MEMBER_ZONE_KEY,
+      name: 'Member Manager',
+      display_order: 2
+    )
+    legacy.update_column(:key, MemberSource::MEMBER_ZONE_LEGACY_KEY)
+
+    assert_no_difference -> { MemberSource.count } do
+      MemberSource.seed_defaults!
+    end
+
+    legacy.reload
+    assert_equal MemberSource::MEMBER_ZONE_KEY, legacy.key
+    assert_equal 'Member Zone', legacy.name
+  end
 end

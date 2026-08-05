@@ -109,13 +109,13 @@
       <h2 class="h6 mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Discrepancies Detected</h2>
     </div>
     <div class="card-body">
-      <p class="mb-3">The following fields differ between Authentik and MemberManager:</p>
+      <p class="mb-3">The following fields differ between Authentik and MemberZone:</p>
       <table class="table table-sm mb-3">
         <thead>
           <tr>
             <th>Field</th>
             <th>Authentik Value</th>
-            <th>MemberManager Value</th>
+            <th>MemberZone Value</th>
           </tr>
         </thead>
         <tbody>
@@ -132,8 +132,8 @@
         <%= button_to "Accept Authentik Values", accept_changes_authentik_user_path(@authentik_user), 
             method: :post, 
             class: "btn btn-warning",
-            data: { turbo: false, confirm: "This will update MemberManager with Authentik's values. Continue?" } %>
-        <%= button_to "Push MemberManager Values to Authentik", push_to_authentik_authentik_user_path(@authentik_user), 
+            data: { turbo: false, confirm: "This will update MemberZone with Authentik's values. Continue?" } %>
+        <%= button_to "Push MemberZone Values to Authentik", push_to_authentik_authentik_user_path(@authentik_user), 
             method: :post, 
             class: "btn btn-outline-secondary",
             data: { turbo: false } %>

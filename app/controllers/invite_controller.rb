@@ -43,7 +43,7 @@ class InviteController < ApplicationController
 
       session[:user_id] = @user.id
       redirect_to profile_setup_path,
-                  notice: "Welcome to #{ENV.fetch('ORGANIZATION_NAME', 'Member Manager')}! Let's set up your profile."
+                  notice: "Welcome to #{ENV.fetch('ORGANIZATION_NAME', 'Member Zone')}! Let's set up your profile."
     else
       render :show, status: :unprocessable_content
     end

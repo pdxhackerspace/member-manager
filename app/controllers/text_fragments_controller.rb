@@ -104,8 +104,8 @@ class TextFragmentsController < AdminController
       key: 'navbar_help',
       title: 'Navbar Help',
       content: <<~HTML
-        <h4>Member Manager Help</h4>
-        <p>Welcome to Member Manager. This page provides an overview of the system and how to use it.</p>
+        <h4>Member Zone Help</h4>
+        <p>Welcome to Member Zone. This page provides an overview of the system and how to use it.</p>
 
         <h5>Members</h5>
         <p>View and manage all members, their profiles, membership status, and payment history. Use the search bar to find members quickly.</p>
@@ -131,8 +131,8 @@ class TextFragmentsController < AdminController
       key: 'help_general',
       title: 'Help (General)',
       content: <<~HTML
-        <h4>Member Manager Help</h4>
-        <p>Welcome to Member Manager. This page provides an overview of the system and how to use it.</p>
+        <h4>Member Zone Help</h4>
+        <p>Welcome to Member Zone. This page provides an overview of the system and how to use it.</p>
 
         <h5>Members</h5>
         <p>View and manage all members, their profiles, membership status, and payment history. Use the search bar to find members quickly.</p>

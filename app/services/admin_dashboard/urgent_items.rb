@@ -82,7 +82,7 @@ module AdminDashboard
       item(
         :unread_messages,
         "#{unread_messages_count} unread #{'message'.pluralize(unread_messages_count)}",
-        'Your Member Manager inbox has unread messages.',
+        'Your Member Zone inbox has unread messages.',
         messages_path(folder: :unread)
       )
     end
@@ -124,7 +124,7 @@ module AdminDashboard
         return item(
           :authentik,
           'Authentik API integration is not configured',
-          'Set AUTHENTIK_TOKEN and a valid API base URL so Member Manager can call Authentik.',
+          'Set AUTHENTIK_TOKEN and a valid API base URL so Member Zone can call Authentik.',
           authentik_webhooks_path
         )
       end

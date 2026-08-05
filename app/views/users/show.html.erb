@@ -145,7 +145,7 @@
           <% end %>
           <li><hr class="dropdown-divider"></li>
           <li><h6 class="dropdown-header">Sync</h6></li>
-          <% if @user.authentik_id.present? && MemberSource.enabled?('member_manager') %>
+          <% if @user.authentik_id.present? && MemberSource.enabled?('member_zone') %>
             <li><%= button_to "Push to Authentik", sync_to_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
           <% else %>
             <li><span class="dropdown-item disabled">Push to Authentik</span></li>

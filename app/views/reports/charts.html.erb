@@ -1,0 +1,350 @@
+<% duration = @charts.duration %>
+<div class="row g-3">
+  <div class="col-md-3 d-none d-md-block">
+    <%= render 'report_sidebar', counts: @counts, current_key: 'charts' %>
+  </div>
+
+  <div class="col-md-9">
+    <div class="d-flex align-items-end justify-content-between mb-3">
+      <div>
+        <div class="text-12 text-secondary">
+          <%= link_to "Reports", reports_path, class: "text-decoration-none" %>
+        </div>
+        <h1 class="h-page-title mb-0">Charts</h1>
+        <div class="text-13 text-secondary mt-1">Membership and revenue over time.</div>
+      </div>
+      <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#reportNavMobile">
+        Reports
+      </button>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Active members per month</h2>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="activePrev" title="Back 3 months">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="text-secondary text-12" id="activeRange"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="activeNext" title="Forward 3 months">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body"><canvas id="activeMembersChart" height="80"></canvas></div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Revenue per month</h2>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="revenuePrev" title="Back 3 months">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="text-secondary text-12" id="revenueRange"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="revenueNext" title="Forward 3 months">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body"><canvas id="revenueChart" height="80"></canvas></div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">New &amp; lapsed members per month</h2>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="churnPrev" title="Back 3 months">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <span class="text-secondary text-12" id="churnRange"></span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="churnNext" title="Forward 3 months">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <% if @charts.churn.any? %>
+              <canvas id="churnChart" height="80"></canvas>
+            <% else %>
+              <p class="text-muted mb-0">No membership start or end date data available.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Membership duration distribution</h2>
+            <span class="text-secondary text-12">
+              <%= duration[:total] %> ended memberships
+              <% if duration[:total].positive? %>
+                &middot; median: <%= duration[:median] %> months &middot; average: <%= duration[:average] %> months
+              <% end %>
+            </span>
+          </div>
+          <div class="card-body">
+            <% if duration[:total].positive? %>
+              <canvas id="durationChart" height="80"></canvas>
+            <% else %>
+              <p class="text-muted mb-0">No ended memberships with both start and end dates.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="offcanvas offcanvas-start" tabindex="-1" id="reportNavMobile" aria-labelledby="reportNavMobileLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="reportNavMobileLabel">Reports</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <%= render 'report_sidebar', counts: @counts, current_key: 'charts' %>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  var _reportCharts = {};
+  var _windowSize = 12;
+  var _stepSize = 3;
+
+  var _activeData = <%= raw @charts.active_members.to_json %>;
+  var _revenueData = <%= raw @charts.revenue.to_json %>;
+  var _churnData = <%= raw @charts.churn.to_json %>;
+  var _durationLabels = <%= raw duration[:labels].to_json %>;
+  var _durationCounts = <%= raw duration[:counts].to_json %>;
+  var _durationTotal = <%= duration[:total] %>;
+
+  var _activeOffset, _revenueOffset, _churnOffset;
+
+  function destroyCharts() {
+    Object.keys(_reportCharts).forEach(function(key) {
+      if (_reportCharts[key]) { _reportCharts[key].destroy(); }
+    });
+    _reportCharts = {};
+  }
+
+  function initializeCharts() {
+    if (typeof Chart === 'undefined') return;
+    destroyCharts();
+
+    _activeOffset = Math.max(0, _activeData.length - _windowSize);
+    _revenueOffset = Math.max(0, _revenueData.length - _windowSize);
+    _churnOffset = Math.max(0, _churnData.length - _windowSize);
+
+    initNavChart('active', _activeData, function() { return _activeOffset; }, function(v) { _activeOffset = v; }, renderActiveChart);
+    initNavChart('revenue', _revenueData, function() { return _revenueOffset; }, function(v) { _revenueOffset = v; }, renderRevenueChart);
+    initNavChart('churn', _churnData, function() { return _churnOffset; }, function(v) { _churnOffset = v; }, renderChurnChart);
+
+    renderActiveChart();
+    renderRevenueChart();
+    renderChurnChart();
+    renderDurationChart();
+  }
+
+  function initNavChart(prefix, allData, getOffset, setOffset, renderFn) {
+    var prevBtn = document.getElementById(prefix + 'Prev');
+    var nextBtn = document.getElementById(prefix + 'Next');
+    if (!prevBtn || !nextBtn) return;
+
+    prevBtn.onclick = function() {
+      setOffset(Math.max(0, getOffset() - _stepSize));
+      renderFn();
+    };
+    nextBtn.onclick = function() {
+      setOffset(Math.min(Math.max(0, allData.length - _windowSize), getOffset() + _stepSize));
+      renderFn();
+    };
+  }
+
+  function updateNav(prefix, allData, offset) {
+    var slice = allData.slice(offset, offset + _windowSize);
+    var labels = slice.map(function(d) { return d.month; });
+    var rangeEl = document.getElementById(prefix + 'Range');
+    if (rangeEl && labels.length > 0) {
+      rangeEl.textContent = labels[0] + ' – ' + labels[labels.length - 1];
+    }
+    var prevBtn = document.getElementById(prefix + 'Prev');
+    var nextBtn = document.getElementById(prefix + 'Next');
+    if (prevBtn) prevBtn.disabled = (offset <= 0);
+    if (nextBtn) nextBtn.disabled = (offset + _windowSize >= allData.length);
+    return slice;
+  }
+
+  function renderActiveChart() {
+    var slice = updateNav('active', _activeData, _activeOffset);
+    var labels = slice.map(function(d) { return d.month; });
+    var counts = slice.map(function(d) { return d.count; });
+
+    if (_reportCharts.activeMembers) {
+      _reportCharts.activeMembers.data.labels = labels;
+      _reportCharts.activeMembers.data.datasets[0].data = counts;
+      _reportCharts.activeMembers.update();
+      return;
+    }
+    var ctx = document.getElementById('activeMembersChart');
+    if (!ctx) return;
+    _reportCharts.activeMembers = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Active members',
+          data: counts,
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+  }
+
+  function renderRevenueChart() {
+    var slice = updateNav('revenue', _revenueData, _revenueOffset);
+    var labels = slice.map(function(d) { return d.month; });
+    var paypal = slice.map(function(d) { return d.paypal; });
+    var recharge = slice.map(function(d) { return d.recharge; });
+
+    if (_reportCharts.revenue) {
+      _reportCharts.revenue.data.labels = labels;
+      _reportCharts.revenue.data.datasets[0].data = paypal;
+      _reportCharts.revenue.data.datasets[1].data = recharge;
+      _reportCharts.revenue.update();
+      return;
+    }
+    var ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+    _reportCharts.revenue = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'PayPal', data: paypal, backgroundColor: 'rgba(0, 123, 255, 0.8)', borderColor: 'rgb(0, 123, 255)', borderWidth: 1 },
+          { label: 'Recharge', data: recharge, backgroundColor: 'rgba(40, 167, 69, 0.8)', borderColor: 'rgb(40, 167, 69)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toFixed(2); } } }
+        },
+        scales: {
+          x: { stacked: false },
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(0); } } }
+        }
+      }
+    });
+  }
+
+  function renderChurnChart() {
+    if (_churnData.length === 0) return;
+    var slice = updateNav('churn', _churnData, _churnOffset);
+    var labels = slice.map(function(d) { return d.month; });
+    var newData = slice.map(function(d) { return d.new_members; });
+    var lapsedData = slice.map(function(d) { return d.lapsed_members; });
+
+    if (_reportCharts.churn) {
+      _reportCharts.churn.data.labels = labels;
+      _reportCharts.churn.data.datasets[0].data = newData;
+      _reportCharts.churn.data.datasets[1].data = lapsedData;
+      _reportCharts.churn.update();
+      return;
+    }
+    var ctx = document.getElementById('churnChart');
+    if (!ctx) return;
+    _reportCharts.churn = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'New members', data: newData, backgroundColor: 'rgba(25, 135, 84, 0.8)', borderColor: 'rgb(25, 135, 84)', borderWidth: 1 },
+          { label: 'Lapsed members', data: lapsedData, backgroundColor: 'rgba(220, 53, 69, 0.8)', borderColor: 'rgb(220, 53, 69)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Members' } },
+          x: { title: { display: true, text: 'Month' } }
+        }
+      }
+    });
+  }
+
+  function renderDurationChart() {
+    var ctx = document.getElementById('durationChart');
+    if (!ctx) return;
+    _reportCharts.duration = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: _durationLabels,
+        datasets: [{
+          label: 'Members',
+          data: _durationCounts,
+          backgroundColor: [
+            'rgba(220, 53, 69, 0.8)', 'rgba(255, 153, 0, 0.8)', 'rgba(255, 193, 7, 0.8)', 'rgba(13, 202, 240, 0.8)',
+            'rgba(25, 135, 84, 0.8)', 'rgba(13, 110, 253, 0.8)', 'rgba(102, 16, 242, 0.8)', 'rgba(111, 66, 193, 0.8)'
+          ],
+          borderColor: [
+            'rgb(220, 53, 69)', 'rgb(255, 153, 0)', 'rgb(255, 193, 7)', 'rgb(13, 202, 240)',
+            'rgb(25, 135, 84)', 'rgb(13, 110, 253)', 'rgb(102, 16, 242)', 'rgb(111, 66, 193)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c) {
+            var pct = _durationTotal > 0 ? ((c.parsed.y / _durationTotal) * 100).toFixed(1) : 0;
+            return c.parsed.y + ' members (' + pct + '%)';
+          } } }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Number of members' } },
+          x: { title: { display: true, text: 'Membership duration' } }
+        }
+      }
+    });
+  }
+
+  // Same reasoning as the reports index: these listeners sit on `document`, which Turbo
+  // never replaces, so binding them per visit would stack a rebuild of every chart on
+  // each navigation. Bind once, and build at most once per page — the canvas is new on
+  // every visit, so the flag it carries is too.
+  function initChartsOnce() {
+    var canvas = document.getElementById('activeMembersChart');
+    if (!canvas || canvas.dataset.chartsInit) return;
+
+    canvas.dataset.chartsInit = '1';
+    initializeCharts();
+  }
+
+  if (!window.__reportChartsBound) {
+    window.__reportChartsBound = true;
+    document.addEventListener('DOMContentLoaded', initChartsOnce);
+    document.addEventListener('turbo:load', initChartsOnce);
+  }
+
+  initChartsOnce();
+</script>

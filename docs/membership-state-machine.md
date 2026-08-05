@@ -1,6 +1,6 @@
 # Membership Status State Machine
 
-This document describes how membership status, dues status, and member activity changes in the MemberManager application.
+This document describes how membership status, dues status, and member activity changes in the MemberZone application.
 
 ## Overview
 

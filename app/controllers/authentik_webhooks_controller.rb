@@ -10,7 +10,7 @@ class AuthentikWebhooksController < AdminController
       @status = { configured: false, error: "Authentik API error: #{e.message}" }
     end
     @synced_groups = ApplicationGroup.with_authentik_group_id.includes(:application).order('applications.name', :name)
-    @member_manager_base_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+    @member_zone_base_url = MemberZoneConfig.base_url
   end
 
   def setup

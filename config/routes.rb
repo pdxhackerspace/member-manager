@@ -40,7 +40,7 @@ Rails.application.routes.draw do
   match "/auth/:provider/callback", to: "sessions#create", via: %i[get post]
   get "/auth/failure", to: "sessions#failure"
 
-  # Link workspace Slack account to member profile (OIDC; not Member Manager login — Authentik only for login)
+  # Link workspace Slack account to member profile (OIDC; not Member Zone login — Authentik only for login)
   get "/slack/link", to: "slack_account_links#new", as: :slack_link_start
   get "/slack/link/callback", to: "slack_account_links#callback", as: :slack_link_callback
 
@@ -482,8 +482,11 @@ Rails.application.routes.draw do
   end
 
   get "/reports", to: "reports#index", as: :reports
-  get "/reports/:report_type/all", to: "reports#view_all", as: :reports_view_all
   post "/reports/update_user", to: "reports#update_user", as: :reports_update_user
+  get "/reports/charts", to: "reports#charts", as: :reports_charts
+  # Bookmarks and links from before reports became their own pages.
+  get "/reports/:key/all", to: redirect { |params, _req| "/reports/#{params[:key]}" }
+  get "/reports/:key", to: "reports#show", as: :report
   get "/member-map", to: "member_maps#show", as: :member_map
   get "/api/users/search", to: "api/users#search", as: :api_users_search
   

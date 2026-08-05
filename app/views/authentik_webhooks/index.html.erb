@@ -76,11 +76,11 @@
             This enables real-time synchronization of member data.
           </p>
 
-          <% if @member_manager_base_url.blank? %>
+          <% if @member_zone_base_url.blank? %>
             <div class="alert alert-danger">
               <i class="bi bi-x-circle me-2"></i>
-              <strong>Missing configuration:</strong> Set the <code>MEMBER_MANAGER_BASE_URL</code> environment variable
-              to your MemberManager public URL (e.g., <code>https://members.example.org</code>).
+              <strong>Missing configuration:</strong> Set the <code>MEMBER_ZONE_BASE_URL</code> environment variable
+              to your MemberZone public URL (e.g., <code>https://members.example.org</code>).
             </div>
           <% else %>
             <%= button_to "Set Up Webhooks", setup_authentik_webhooks_path, 
@@ -156,8 +156,8 @@
         <h6>Required Environment Variables</h6>
         <ul class="small">
           <li>
-            <code>MEMBER_MANAGER_BASE_URL</code>
-            <% if @member_manager_base_url.present? %>
+            <code>MEMBER_ZONE_BASE_URL</code>
+            <% if @member_zone_base_url.present? %>
               <span class="badge text-bg-success">Set</span>
             <% else %>
               <span class="badge text-bg-danger">Missing</span>

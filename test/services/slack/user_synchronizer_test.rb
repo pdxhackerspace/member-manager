@@ -2,6 +2,12 @@ require 'test_helper'
 
 module Slack
   class UserSynchronizerTest < ActiveSupport::TestCase
+    StubClient = Struct.new(:users) do
+      def list_users
+        users
+      end
+    end
+
     test 'refreshes slack users and links matching member without copying profile data' do
       user = users(:two)
       user.update_columns(
@@ -14,15 +20,7 @@ module Slack
         avatar: nil
       )
 
-      client = Class.new do
-        def initialize(users)
-          @users = users
-        end
-
-        def list_users
-          @users
-        end
-      end.new(
+      client = StubClient.new(
         [
           {
             slack_id: 'U-MEMBER-SYNC',
@@ -55,6 +53,27 @@ module Slack
       assert_nil user.bio
       assert_nil user.avatar
       assert_empty user.aliases
+    end
+
+    # The run shares one transaction, so a duplicate address rejected by the database must not
+    # abort the members queued behind it.
+    test 'a member whose address is already taken does not stop the rest of the sync' do
+      SlackUser.create!(slack_id: 'U-INCUMBENT', email: 'contested@example.com')
+
+      client = StubClient.new(
+        [
+          { slack_id: 'U-DUPLICATE', email: 'contested@example.com', real_name: 'Duplicate Address',
+            is_bot: false, deleted: false },
+          { slack_id: 'U-FOLLOWER', email: 'follower@example.com', real_name: 'Queued Behind',
+            is_bot: false, deleted: false }
+        ]
+      )
+
+      synchronizer = Slack::UserSynchronizer.new(client: client, logger: Logger.new(File::NULL))
+
+      assert_nothing_raised { synchronizer.call }
+      assert_not SlackUser.exists?(slack_id: 'U-DUPLICATE')
+      assert SlackUser.exists?(slack_id: 'U-FOLLOWER')
     end
   end
 end

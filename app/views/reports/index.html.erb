@@ -1,1104 +1,204 @@
-<div class="mb-4">
-  <h1 class="h3 mb-1">Reports</h1>
-  <p class="text-muted mb-0">Users requiring attention.</p>
+<% total_attention = @attention.sum { |report| @counts[report.key].to_i } %>
+<% categories = @grouped.reject { |_label, reports| reports.empty? } %>
+
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Reports</h1>
+    <div class="text-13 text-secondary mt-1">
+      <span class="text-body"><%= Reports::Catalog.reports.size %></span> reports ·
+      <span class="<%= total_attention.positive? ? 'text-warning' : 'text-secondary' %>"><%= total_attention %></span> need attention
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Charts", reports_charts_path, class: "btn btn-outline-secondary btn-sm" %>
+    <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#reportsNavMobile">
+      Categories
+    </button>
+  </div>
 </div>
 
-<% 
-  active_tab = params[:tab] || 'charts'
-  tabs = [
-    { id: 'charts', name: 'Charts', count: nil },
-    { id: 'membership-status-unknown', name: 'Membership', count: @membership_status_unknown_count },
-    { id: 'payment-type-unknown', name: 'Payment', count: @payment_type_unknown_count },
-    { id: 'dues-status-unknown', name: 'Dues', count: @dues_status_unknown_count },
-    { id: 'dues-status-lapsed', name: 'Lapsed', count: @dues_status_lapsed_count },
-    { id: 'lapsed-with-access', name: 'Lapsed + Access', count: @lapsed_with_access_count },
-    { id: 'no-email', name: 'No Email', count: @no_email_count },
-    { id: 'sponsored-and-paying', name: 'Sponsored & Paying', count: @sponsored_and_paying_count },
-    { id: 'no-access', name: 'Few Access', count: @no_access_count },
-    { id: 'inactive-with-rfid', name: 'Inactive + RFID', count: @inactive_with_rfid_count },
-    { id: 'legacy-with-access', name: 'Legacy + Access', count: @legacy_with_access_count },
-    { id: 'legacy-recent-access', name: 'Legacy Recent', count: @legacy_recent_access_count },
-    { id: 'lapsed-with-slack', name: 'Lapsed + Slack', count: @lapsed_with_slack_count },
-    { id: 'legacy-with-slack', name: 'Legacy + Slack', count: @legacy_with_slack_count },
-    { id: 'lapsed-active-slack', name: 'Lapsed Active Slack', count: @lapsed_active_slack_count },
-    { id: 'legacy-active-slack', name: 'Legacy Active Slack', count: @legacy_active_slack_count },
-    { id: 'slack-inactive', name: 'Slack Inactive', count: @slack_inactive_count },
-    { id: 'active-no-email', name: 'No Email', count: @active_no_email_count }
-  ]
-%>
+<button class="form-control text-start text-secondary mb-3" data-bs-toggle="modal" data-bs-target="#reportsSearch">
+  <i class="bi bi-search me-1"></i> Search all reports...
+  <kbd class="float-end small">Cmd+K</kbd>
+</button>
 
-<ul class="nav nav-tabs mb-4" role="tablist">
-  <% tabs.each do |tab| %>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link <%= 'active' if active_tab == tab[:id] %>" 
-              id="<%= tab[:id] %>-tab" 
-              data-bs-toggle="tab" 
-              data-bs-target="#<%= tab[:id] %>-pane" 
-              type="button" 
-              role="tab" 
-              aria-controls="<%= tab[:id] %>-pane" 
-              aria-selected="<%= active_tab == tab[:id] %>">
-        <%= tab[:name] %> <span class="badge text-bg-secondary ms-1"><%= tab[:count] %></span>
-      </button>
-    </li>
+<% nav_markup = capture do %>
+  <% if @attention.any? %>
+    <a href="#" class="settings-nav-item attention" data-reports-category="needs_attention">
+      <span>Needs attention</span>
+      <span class="count"><%= total_attention %></span>
+    </a>
   <% end %>
-</ul>
+  <a href="#" class="settings-nav-item active" data-reports-category="all">
+    <span>All reports</span>
+    <span class="count"><%= Reports::Catalog.reports.size %></span>
+  </a>
+  <div class="settings-nav-divider"></div>
+  <% categories.each do |label, reports| %>
+    <a href="#" class="settings-nav-item" data-reports-category="<%= label.parameterize %>">
+      <span><%= label %></span>
+      <span class="count"><%= reports.size %></span>
+    </a>
+  <% end %>
+  <div class="settings-nav-divider"></div>
+  <%= link_to reports_charts_path, class: "settings-nav-item" do %>
+    <span>Charts</span>
+    <span class="count"><i class="bi bi-graph-up"></i></span>
+  <% end %>
+<% end %>
 
-<div class="tab-content">
-  <!-- Charts -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'charts' %>" 
-       id="charts-pane" 
-       role="tabpanel" 
-       aria-labelledby="charts-tab">
-    <div class="row g-4">
-      <!-- Active Members Chart -->
-      <div class="col-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
-            <h2 class="h5 mb-0">Active Members per Month</h2>
-            <div class="d-flex align-items-center gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="activePrev" title="Back 3 months">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <span class="text-muted small" id="activeRange"></span>
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="activeNext" title="Forward 3 months">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <canvas id="activeMembersChart" height="80"></canvas>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Revenue Chart -->
-      <div class="col-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
-            <h2 class="h5 mb-0">Revenue per Month</h2>
-            <div class="d-flex align-items-center gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="revenuePrev" title="Back 3 months">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <span class="text-muted small" id="revenueRange"></span>
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="revenueNext" title="Forward 3 months">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <canvas id="revenueChart" height="80"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- New & Lapsed Members Chart -->
-      <div class="col-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
-            <h2 class="h5 mb-0">New & Lapsed Members per Month</h2>
-            <div class="d-flex align-items-center gap-2">
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="churnPrev" title="Back 3 months">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-              <span class="text-muted small" id="churnRange"></span>
-              <button type="button" class="btn btn-sm btn-outline-secondary" id="churnNext" title="Forward 3 months">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </div>
-          </div>
-          <div class="card-body">
-            <% if @churn_data.any? %>
-              <canvas id="churnChart" height="80"></canvas>
-            <% else %>
-              <p class="text-muted mb-0">No membership start or end date data available.</p>
-            <% end %>
-          </div>
-        </div>
-      </div>
-
-      <!-- Membership Duration Chart -->
-      <div class="col-12">
-        <div class="card shadow-sm border-0">
-          <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center">
-            <h2 class="h5 mb-0">Membership Duration Distribution</h2>
-            <span class="text-muted small">
-              <%= @duration_total %> ended memberships
-              <% if @duration_total > 0 %>
-                &middot; median: <%= @duration_median %> months &middot; average: <%= @duration_avg %> months
-              <% end %>
-            </span>
-          </div>
-          <div class="card-body">
-            <% if @duration_total > 0 %>
-              <canvas id="durationChart" height="80"></canvas>
-            <% else %>
-              <p class="text-muted mb-0">No ended memberships with both start and end dates.</p>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="offcanvas offcanvas-start" tabindex="-1" id="reportsNavMobile" aria-labelledby="reportsNavMobileLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="reportsNavMobileLabel">Report categories</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
   </div>
-
-  <!-- Membership Status Unknown -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'membership-status-unknown' %>" 
-       id="membership-status-unknown-pane" 
-       role="tabpanel" 
-       aria-labelledby="membership-status-unknown-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Membership Status: Unknown (<%= @membership_status_unknown_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @membership_status_unknown.any? %>
-          <%= render partial: 'user_table', locals: { 
-            users: @membership_status_unknown, 
-            anchor: 'membership-status-unknown',
-            show_payment_type: true,
-            show_dues_status: false,
-            show_last_payment: false
-          } %>
-          <% if @membership_status_unknown_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@membership_status_unknown_count} users", 
-                  reports_view_all_path('membership-status-unknown'), 
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No users with unknown membership status.</p>
-        <% end %>
-      </div>
-    </div>
+  <div class="offcanvas-body">
+    <nav class="settings-nav"><%= nav_markup %></nav>
   </div>
-
-  <!-- Payment Type Unknown -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'payment-type-unknown' %>" 
-       id="payment-type-unknown-pane" 
-       role="tabpanel" 
-       aria-labelledby="payment-type-unknown-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Payment Type: Unknown (<%= @payment_type_unknown_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @payment_type_unknown.any? %>
-          <%= render partial: 'user_table', locals: { 
-            users: @payment_type_unknown, 
-            anchor: 'payment-type-unknown',
-            show_payment_type: true,
-            show_dues_status: false,
-            show_last_payment: false
-          } %>
-          <% if @payment_type_unknown_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@payment_type_unknown_count} users", 
-                  reports_view_all_path('payment-type-unknown'), 
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No users with unknown payment type.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dues Status Unknown -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'dues-status-unknown' %>" 
-       id="dues-status-unknown-pane" 
-       role="tabpanel" 
-       aria-labelledby="dues-status-unknown-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Dues Status: Unknown (<%= @dues_status_unknown_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @dues_status_unknown.any? %>
-          <%= render partial: 'user_table', locals: { 
-            users: @dues_status_unknown, 
-            anchor: 'dues-status-unknown',
-            show_payment_type: false,
-            show_dues_status: true,
-            show_last_payment: false
-          } %>
-          <% if @dues_status_unknown_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@dues_status_unknown_count} users", 
-                  reports_view_all_path('dues-status-unknown'), 
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No users with unknown dues status.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Dues Status Lapsed -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'dues-status-lapsed' %>" 
-       id="dues-status-lapsed-pane" 
-       role="tabpanel" 
-       aria-labelledby="dues-status-lapsed-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Dues Status: Lapsed (<%= @dues_status_lapsed_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @dues_status_lapsed.any? %>
-          <%= render partial: 'user_table', locals: { 
-            users: @dues_status_lapsed, 
-            anchor: 'dues-status-lapsed',
-            show_payment_type: false,
-            show_dues_status: true,
-            show_last_payment: true
-          } %>
-          <% if @dues_status_lapsed_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@dues_status_lapsed_count} users", 
-                  reports_view_all_path('dues-status-lapsed'), 
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No users with lapsed dues status.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lapsed Members with Access -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'lapsed-with-access' %>" 
-       id="lapsed-with-access-pane" 
-       role="tabpanel" 
-       aria-labelledby="lapsed-with-access-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Lapsed Members with Access After Lapse (<%= @lapsed_with_access_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @lapsed_with_access.any? %>
-          <p class="text-muted small mb-3">Members whose dues have lapsed but who have accessed the space after their last payment.</p>
-          <%= render partial: 'lapsed_access_table', locals: { entries: @lapsed_with_access } %>
-          <% if @lapsed_with_access_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@lapsed_with_access_count} members",
-                  reports_view_all_path('lapsed-with-access'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No lapsed members with access records after their lapse.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Members with No Email -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'no-email' %>"
-       id="no-email-pane"
-       role="tabpanel"
-       aria-labelledby="no-email-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Paying, Sponsored or Guest Members with No Email (<%= @no_email_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @no_email.any? %>
-          <p class="text-muted small mb-3">Active members (paying, sponsored, or guest) who have no email address on file.</p>
-          <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-              <thead class="bg-body-tertiary">
-                <tr>
-                  <th scope="col" style="width: 48px;"></th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Membership Status</th>
-                  <th scope="col">Payment Type</th>
-                  <th scope="col">Dues Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @no_email.each do |user| %>
-                  <tr>
-                    <td>
-                      <%= render 'shared/user_avatar', user: user %>
-                    </td>
-                    <td class="fw-semibold">
-                      <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                    </td>
-                    <td>
-                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
-                    </td>
-                    <td>
-                      <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
-                    </td>
-                    <td>
-                      <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-          <% if @no_email_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@no_email_count} members",
-                  reports_view_all_path('no-email'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">All paying, sponsored, and guest members have email addresses.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Sponsored & Paying -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'sponsored-and-paying' %>"
-       id="sponsored-and-paying-pane"
-       role="tabpanel"
-       aria-labelledby="sponsored-and-paying-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Sponsored & Paying Members (<%= @sponsored_and_paying_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @sponsored_and_paying.any? %>
-          <p class="text-muted small mb-3">Members who have the sponsored flag set but whose membership status is "paying" (they have current payments).</p>
-          <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-              <thead class="bg-body-tertiary">
-                <tr>
-                  <th scope="col" style="width: 48px;"></th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Membership Status</th>
-                  <th scope="col">Payment Type</th>
-                  <th scope="col">Dues Status</th>
-                  <th scope="col">Plan</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @sponsored_and_paying.each do |user| %>
-                  <tr>
-                    <td>
-                      <%= render 'shared/user_avatar', user: user %>
-                    </td>
-                    <td class="fw-semibold">
-                      <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                      <span class="badge text-bg-primary ms-1"><i class="bi bi-heart-fill me-1"></i>Sponsored</span>
-                    </td>
-                    <td>
-                      <% if user.email.present? %>
-                        <%= mail_to user.email %>
-                      <% else %>
-                        <span class="text-muted fst-italic">Not provided</span>
-                      <% end %>
-                    </td>
-                    <td><span class="badge text-bg-success">Paying</span></td>
-                    <td><span class="badge text-bg-info"><%= user.payment_type.humanize %></span></td>
-                    <td>
-                      <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
-                    </td>
-                    <td>
-                      <% if user.membership_plan.present? %>
-                        <%= user.membership_plan.name %>
-                      <% else %>
-                        <span class="text-muted fst-italic">None</span>
-                      <% end %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-          <% if @sponsored_and_paying_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@sponsored_and_paying_count} members",
-                  reports_view_all_path('sponsored-and-paying'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No members are both sponsored and paying.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Paying Members with Few Access Records -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'no-access' %>"
-       id="no-access-pane"
-       role="tabpanel"
-       aria-labelledby="no-access-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Paying Members with Few Access Records (<%= @no_access_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @no_access.any? %>
-          <p class="text-muted small mb-3">Members with membership status "paying" who have fewer than 3 access log entries.</p>
-          <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-              <thead class="bg-body-tertiary">
-                <tr>
-                  <th scope="col" style="width: 48px;"></th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Access Records</th>
-                  <th scope="col">Dues Status</th>
-                  <th scope="col">Payment Type</th>
-                  <th scope="col">Plan</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @no_access.each do |user| %>
-                  <tr>
-                    <td>
-                      <%= render 'shared/user_avatar', user: user %>
-                    </td>
-                    <td class="fw-semibold">
-                      <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                    </td>
-                    <td>
-                      <% if user.email.present? %>
-                        <%= mail_to user.email %>
-                      <% else %>
-                        <span class="text-muted fst-italic">Not provided</span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <% count = user.access_logs.count %>
-                      <% if count == 0 %>
-                        <span class="badge text-bg-danger">0</span>
-                      <% else %>
-                        <span class="badge text-bg-warning"><%= count %></span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
-                    </td>
-                    <td><span class="badge text-bg-info"><%= user.payment_type.humanize %></span></td>
-                    <td>
-                      <% if user.membership_plan.present? %>
-                        <%= user.membership_plan.name %>
-                      <% else %>
-                        <span class="text-muted fst-italic">None</span>
-                      <% end %>
-                    </td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-          <% if @no_access_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@no_access_count} members",
-                  reports_view_all_path('no-access'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">All paying members have at least 3 access records.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Inactive Members with RFID (would lose access) -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'inactive-with-rfid' %>"
-       id="inactive-with-rfid-pane"
-       role="tabpanel"
-       aria-labelledby="inactive-with-rfid-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Inactive Members with RFID Cards (<%= @inactive_with_rfid_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @inactive_with_rfid.any? %>
-          <p class="text-muted small mb-3">These members have RFID cards but are not active. They would lose physical access if "Sync inactive members" is turned off.</p>
-          <div class="table-responsive">
-            <table class="table mb-0 align-middle">
-              <thead class="bg-body-tertiary">
-                <tr>
-                  <th scope="col" style="width: 48px;"></th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Membership Status</th>
-                  <th scope="col">Payment Type</th>
-                  <th scope="col">Dues Status</th>
-                  <th scope="col">RFID Cards</th>
-                  <th scope="col">Plan</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @inactive_with_rfid.each do |user| %>
-                  <tr>
-                    <td>
-                      <%= render 'shared/user_avatar', user: user %>
-                    </td>
-                    <td class="fw-semibold">
-                      <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
-                    </td>
-                    <td>
-                      <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>"><%= membership_status_label(user.membership_status) %></span>
-                    </td>
-                    <td><span class="badge text-bg-secondary"><%= user.payment_type.humanize %></span></td>
-                    <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
-                    <td><%= user.rfids.size %></td>
-                    <td class="text-muted"><%= user.membership_plan&.name || "—" %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-          <% if @inactive_with_rfid_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@inactive_with_rfid_count} members",
-                  reports_view_all_path('inactive-with-rfid'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No inactive members have RFID cards.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Legacy Members with Access -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-with-access' %>"
-       id="legacy-with-access-pane"
-       role="tabpanel"
-       aria-labelledby="legacy-with-access-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Legacy Members with Access Records (<%= @legacy_with_access_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @legacy_with_access.any? %>
-          <p class="text-muted small mb-3">Members marked as legacy who have access log records, sorted by most recent access.</p>
-          <%= render partial: 'legacy_access_table', locals: { entries: @legacy_with_access } %>
-          <% if @legacy_with_access_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@legacy_with_access_count} members",
-                  reports_view_all_path('legacy-with-access'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No legacy members have access records.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Legacy Members with Recent Access -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-recent-access' %>"
-       id="legacy-recent-access-pane"
-       role="tabpanel"
-       aria-labelledby="legacy-recent-access-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Legacy Members with Recent Access (<%= @legacy_recent_access_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @legacy_recent_access.any? %>
-          <p class="text-muted small mb-3">Legacy members with access records in the last year, sorted by most recent access. Showing up to 10 recent records per member.</p>
-          <%= render partial: 'legacy_access_table', locals: { entries: @legacy_recent_access } %>
-          <% if @legacy_recent_access_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@legacy_recent_access_count} members",
-                  reports_view_all_path('legacy-recent-access'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No legacy members have access records in the last year.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lapsed Members with Slack -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'lapsed-with-slack' %>"
-       id="lapsed-with-slack-pane"
-       role="tabpanel"
-       aria-labelledby="lapsed-with-slack-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Lapsed Members with Slack Accounts (<%= @lapsed_with_slack_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @lapsed_with_slack.any? %>
-          <p class="text-muted small mb-3">Members whose dues have lapsed and who have linked Slack accounts.</p>
-          <%= render partial: 'slack_member_table', locals: { entries: @lapsed_with_slack, show_lapse_date: false } %>
-          <% if @lapsed_with_slack_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@lapsed_with_slack_count} members",
-                  reports_view_all_path('lapsed-with-slack'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No lapsed members have Slack accounts.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Legacy Members with Slack -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-with-slack' %>"
-       id="legacy-with-slack-pane"
-       role="tabpanel"
-       aria-labelledby="legacy-with-slack-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Legacy Members with Slack Accounts (<%= @legacy_with_slack_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @legacy_with_slack.any? %>
-          <p class="text-muted small mb-3">Members marked as legacy who have linked Slack accounts.</p>
-          <%= render partial: 'slack_member_table', locals: { entries: @legacy_with_slack, show_lapse_date: false } %>
-          <% if @legacy_with_slack_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@legacy_with_slack_count} members",
-                  reports_view_all_path('legacy-with-slack'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No legacy members have Slack accounts.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Lapsed Members Still Active on Slack -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'lapsed-active-slack' %>"
-       id="lapsed-active-slack-pane"
-       role="tabpanel"
-       aria-labelledby="lapsed-active-slack-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Lapsed Members Still Active on Slack (<%= @lapsed_active_slack_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @lapsed_active_slack.any? %>
-          <p class="text-muted small mb-3">Members whose dues have lapsed but who have been active on Slack after their lapse date.</p>
-          <%= render partial: 'slack_member_table', locals: { entries: @lapsed_active_slack, show_lapse_date: true } %>
-          <% if @lapsed_active_slack_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@lapsed_active_slack_count} members",
-                  reports_view_all_path('lapsed-active-slack'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No lapsed members are still active on Slack.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Legacy Members Still Active on Slack -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'legacy-active-slack' %>"
-       id="legacy-active-slack-pane"
-       role="tabpanel"
-       aria-labelledby="legacy-active-slack-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Legacy Members Still Active on Slack (<%= @legacy_active_slack_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @legacy_active_slack.any? %>
-          <p class="text-muted small mb-3">Legacy members with recent Slack activity (last_active_at is set).</p>
-          <%= render partial: 'slack_member_table', locals: { entries: @legacy_active_slack, show_lapse_date: false } %>
-          <% if @legacy_active_slack_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@legacy_active_slack_count} members",
-                  reports_view_all_path('legacy-active-slack'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">No legacy members are still active on Slack.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Slack Users Inactive for Over a Year -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'slack-inactive' %>"
-       id="slack-inactive-pane"
-       role="tabpanel"
-       aria-labelledby="slack-inactive-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Slack Users Inactive for Over a Year (<%= @slack_inactive_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @slack_inactive.any? %>
-          <p class="text-muted small mb-3">Non-deleted, non-bot Slack users who have not been active in the last year (or have no recorded activity).</p>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Slack User</th>
-                  <th>Linked Member</th>
-                  <th>Last Active</th>
-                  <th>Joined Slack</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @slack_inactive.each do |su| %>
-                  <tr>
-                    <td>
-                      <strong><%= su.display_name %></strong>
-                      <% if su.username.present? %>
-                        <span class="text-muted small ms-1">@<%= su.username %></span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <% if su.user.present? %>
-                        <%= link_to su.user.display_name, user_path(su.user), class: "text-decoration-none" %>
-                      <% else %>
-                        <span class="text-muted fst-italic">Not linked</span>
-                      <% end %>
-                    </td>
-                    <td>
-                      <% if su.last_active_at.present? %>
-                        <%= time_ago_in_words(su.last_active_at) %> ago
-                      <% else %>
-                        <span class="text-muted fst-italic">Never</span>
-                      <% end %>
-                    </td>
-                    <td><%= su.created_at.strftime('%Y-%m-%d') %></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-          <% if @slack_inactive_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@slack_inactive_count} Slack users",
-                  reports_view_all_path('slack-inactive'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">All Slack users have been active in the last year.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
-  <!-- Active Members With No Email -->
-  <div class="tab-pane fade <%= 'show active' if active_tab == 'active-no-email' %>"
-       id="active-no-email-pane"
-       role="tabpanel"
-       aria-labelledby="active-no-email-tab">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h2 class="h5 mb-0">Active Members With No Email (<%= @active_no_email_count %>)</h2>
-      </div>
-      <div class="card-body">
-        <% if @active_no_email.any? %>
-          <p class="text-muted small mb-3">Active members who have no email address on file.</p>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Member</th>
-                  <th>Membership Status</th>
-                  <th>Dues Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% @active_no_email.each do |user| %>
-                  <tr>
-                    <td><%= link_to user.display_name, user_path(user), class: "text-decoration-none" %></td>
-                    <td><span class="badge text-bg-secondary"><%= membership_status_label(user.membership_status) %></span></td>
-                    <td><span class="badge text-bg-secondary"><%= user.dues_status.humanize %></span></td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
-          </div>
-          <% if @active_no_email_count > 20 %>
-            <div class="mt-3 text-center">
-              <%= link_to "View all #{@active_no_email_count} members",
-                  reports_view_all_path('active-no-email'),
-                  class: "btn btn-outline-primary" %>
-            </div>
-          <% end %>
-        <% else %>
-          <p class="text-muted mb-0">All active members have an email address.</p>
-        <% end %>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<div class="row g-3">
+  <div class="col-md-3 d-none d-md-block">
+    <nav class="settings-nav" style="position: sticky; top: 1rem;">
+      <%= nav_markup %>
+    </nav>
+  </div>
+  <div class="col-md-9">
+    <% if @attention.any? %>
+      <section class="d-none" data-reports-section="needs_attention">
+        <h2 class="h-section-label mb-2">Needs attention</h2>
+        <div class="list-group list-compact mb-3">
+          <%= render partial: 'report_link', collection: @attention, as: :report,
+                     locals: { counts: @counts, highlight: true } %>
+        </div>
+      </section>
+    <% end %>
+
+    <% categories.each do |label, reports| %>
+      <section data-reports-section="<%= label.parameterize %>">
+        <h2 class="h-section-label mb-2"><%= label %></h2>
+        <div class="list-group list-compact mb-3">
+          <%= render partial: 'report_link', collection: reports, as: :report,
+                     locals: { counts: @counts, highlight: false } %>
+        </div>
+      </section>
+    <% end %>
+  </div>
+</div>
+
+<div class="modal fade" id="reportsSearch" tabindex="-1" aria-labelledby="reportsSearchLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reportsSearchLabel">Search reports</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="search" class="form-control form-control-sm mb-3" id="reportsSearchInput" placeholder="Type a report name or what it shows..." autocomplete="off">
+        <div class="list-group list-compact" id="reportsSearchResults">
+          <% Reports::Catalog.reports.each do |report| %>
+            <%= link_to report_path(report), class: "list-group-item list-group-item-action d-flex justify-content-between align-items-center",
+                        data: { reports_search_result: true, title: report.title.downcase, description: report.description.downcase } do %>
+              <span>
+                <div class="item-title"><%= report.title %></div>
+                <div class="item-desc"><%= Reports::Catalog::CATEGORIES[report.category] %> · <%= report.description %></div>
+              </span>
+              <span class="text-secondary text-12 num"><%= @counts[report.key] %></span>
+            <% end %>
+          <% end %>
+        </div>
+        <div class="text-center text-secondary py-5 d-none" id="reportsSearchEmpty">
+          <div class="text-13 mb-1">No results</div>
+          <div class="text-12">Try a different member, payment, or Slack term</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-  var _reportCharts = {};
+  (function() {
+    function initReportsIndex() {
+      var navItems = document.querySelectorAll('[data-reports-category]');
+      var sections = document.querySelectorAll('[data-reports-section]');
+      var searchInput = document.getElementById('reportsSearchInput');
+      var searchResults = document.querySelectorAll('[data-reports-search-result]');
+      var searchEmpty = document.getElementById('reportsSearchEmpty');
 
-  function destroyCharts() {
-    Object.keys(_reportCharts).forEach(function(key) {
-      if (_reportCharts[key]) { _reportCharts[key].destroy(); }
-    });
-    _reportCharts = {};
-  }
+      function showCategory(category) {
+        navItems.forEach(function(item) {
+          item.classList.toggle('active', item.getAttribute('data-reports-category') === category);
+        });
+        sections.forEach(function(section) {
+          var sectionCategory = section.getAttribute('data-reports-section');
+          var isAttention = sectionCategory === 'needs_attention';
+          var visible = category === 'all' ? !isAttention : sectionCategory === category;
+          section.classList.toggle('d-none', !visible);
+        });
+      }
 
-  function setupReportsPage() {
-    destroyCharts();
-
-    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
-    tabButtons.forEach(function(button) {
-      button.addEventListener('shown.bs.tab', function(event) {
-        const tabId = event.target.getAttribute('data-bs-target').replace('#', '').replace('-pane', '');
-        const url = new URL(window.location);
-        url.searchParams.set('tab', tabId);
-        window.history.pushState({}, '', url);
-
-        if (tabId === 'charts') {
-          initializeCharts();
-        }
+      navItems.forEach(function(item) {
+        item.addEventListener('click', function(event) {
+          event.preventDefault();
+          showCategory(item.getAttribute('data-reports-category'));
+          var openOffcanvas = document.querySelector('.offcanvas.show');
+          if (openOffcanvas && window.bootstrap) {
+            window.bootstrap.Offcanvas.getInstance(openOffcanvas).hide();
+          }
+        });
       });
-    });
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam = urlParams.get('tab') || 'charts';
-    const tabButton = document.querySelector('[data-bs-target="#' + tabParam + '-pane"]');
-    if (tabButton) {
-      const tab = new bootstrap.Tab(tabButton);
-      tab.show();
-      if (tabParam === 'charts') {
-        setTimeout(initializeCharts, 100);
+      function filterSearch() {
+        var query = (searchInput.value || '').trim().toLowerCase();
+        var visible = 0;
+        searchResults.forEach(function(result) {
+          var haystack = result.getAttribute('data-title') + ' ' + result.getAttribute('data-description');
+          var matches = query.length === 0 || haystack.indexOf(query) !== -1;
+          result.classList.toggle('d-none', !matches);
+          if (matches) visible += 1;
+        });
+        if (searchEmpty) searchEmpty.classList.toggle('d-none', visible !== 0);
       }
-    } else {
-      const chartsTab = document.querySelector('[data-bs-target="#charts-pane"]');
-      if (chartsTab) {
-        const tab = new bootstrap.Tab(chartsTab);
-        tab.show();
-        setTimeout(initializeCharts, 100);
-      }
+
+      if (searchInput) searchInput.addEventListener('input', filterSearch);
     }
-  }
 
-  document.addEventListener('DOMContentLoaded', setupReportsPage);
-  document.addEventListener('turbo:load', setupReportsPage);
+    // Turbo replaces the body but not `document`, so anything bound here outlives the
+    // page. Bind once per browser session and look elements up when the handler runs,
+    // rather than closing over the ones that happen to be on screen now — a stale
+    // closure would go on swallowing Cmd+K long after its modal was gone.
+    function openSearchOnShortcut(event) {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
 
-  var _windowSize = 12;
-  var _stepSize = 3;
+      var modal = document.getElementById('reportsSearch');
+      if (!modal || !window.bootstrap) return;
 
-  // --- Data ---
-  var _activeData = <%= raw @active_members_chart_data.to_json %>;
-  var _revenueData = <%= raw @revenue_chart_data.to_json %>;
-  var _churnData = <%= raw @churn_data.to_json %>;
-
-  // --- Offsets (default to most recent window) ---
-  var _activeOffset, _revenueOffset, _churnOffset;
-
-  function initializeCharts() {
-    destroyCharts();
-
-    _activeOffset = Math.max(0, _activeData.length - _windowSize);
-    _revenueOffset = Math.max(0, _revenueData.length - _windowSize);
-    _churnOffset = Math.max(0, _churnData.length - _windowSize);
-
-    initNavChart('active', _activeData, function() { return _activeOffset; }, function(v) { _activeOffset = v; }, renderActiveChart);
-    initNavChart('revenue', _revenueData, function() { return _revenueOffset; }, function(v) { _revenueOffset = v; }, renderRevenueChart);
-    initNavChart('churn', _churnData, function() { return _churnOffset; }, function(v) { _churnOffset = v; }, renderChurnChart);
-
-    renderActiveChart();
-    renderRevenueChart();
-    renderChurnChart();
-    renderDurationChart();
-  }
-
-  function initNavChart(prefix, allData, getOffset, setOffset, renderFn) {
-    var prevBtn = document.getElementById(prefix + 'Prev');
-    var nextBtn = document.getElementById(prefix + 'Next');
-    if (!prevBtn || !nextBtn) return;
-
-    prevBtn.onclick = function() {
-      setOffset(Math.max(0, getOffset() - _stepSize));
-      renderFn();
-    };
-    nextBtn.onclick = function() {
-      setOffset(Math.min(Math.max(0, allData.length - _windowSize), getOffset() + _stepSize));
-      renderFn();
-    };
-  }
-
-  function updateNav(prefix, allData, offset) {
-    var slice = allData.slice(offset, offset + _windowSize);
-    var labels = slice.map(function(d) { return d.month; });
-    var rangeEl = document.getElementById(prefix + 'Range');
-    if (rangeEl && labels.length > 0) {
-      rangeEl.textContent = labels[0] + ' \u2013 ' + labels[labels.length - 1];
+      event.preventDefault();
+      window.bootstrap.Modal.getOrCreateInstance(modal).show();
+      setTimeout(function() {
+        var input = document.getElementById('reportsSearchInput');
+        if (input) input.focus();
+      }, 150);
     }
-    var prevBtn = document.getElementById(prefix + 'Prev');
-    var nextBtn = document.getElementById(prefix + 'Next');
-    if (prevBtn) prevBtn.disabled = (offset <= 0);
-    if (nextBtn) nextBtn.disabled = (offset + _windowSize >= allData.length);
-    return slice;
-  }
 
-  // --- Active Members ---
-  function renderActiveChart() {
-    var slice = updateNav('active', _activeData, _activeOffset);
-    var labels = slice.map(function(d) { return d.month; });
-    var counts = slice.map(function(d) { return d.count; });
+    // The page's own elements are replaced on every navigation, so they need rebinding
+    // each time — but only once per page: Turbo fires turbo:load on the first visit too,
+    // and DOMContentLoaded would otherwise bind everything a second time.
+    function initOnce() {
+      var root = document.getElementById('reportsSearch');
+      if (!root || root.dataset.reportsInit) return;
 
-    if (_reportCharts.activeMembers) {
-      _reportCharts.activeMembers.data.labels = labels;
-      _reportCharts.activeMembers.data.datasets[0].data = counts;
-      _reportCharts.activeMembers.update();
-      return;
+      root.dataset.reportsInit = '1';
+      initReportsIndex();
     }
-    var ctx = document.getElementById('activeMembersChart');
-    if (!ctx || typeof Chart === 'undefined') return;
-    _reportCharts.activeMembers = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Active Members',
-          data: counts,
-          borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.2)',
-          tension: 0.1,
-          fill: true
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-      }
-    });
-  }
 
-  // --- Revenue ---
-  function renderRevenueChart() {
-    var slice = updateNav('revenue', _revenueData, _revenueOffset);
-    var labels = slice.map(function(d) { return d.month; });
-    var paypal = slice.map(function(d) { return d.paypal; });
-    var recharge = slice.map(function(d) { return d.recharge; });
-
-    if (_reportCharts.revenue) {
-      _reportCharts.revenue.data.labels = labels;
-      _reportCharts.revenue.data.datasets[0].data = paypal;
-      _reportCharts.revenue.data.datasets[1].data = recharge;
-      _reportCharts.revenue.update();
-      return;
+    if (!window.__reportsIndexBound) {
+      window.__reportsIndexBound = true;
+      document.addEventListener('keydown', openSearchOnShortcut);
+      document.addEventListener('DOMContentLoaded', initOnce);
+      document.addEventListener('turbo:load', initOnce);
     }
-    var ctx = document.getElementById('revenueChart');
-    if (!ctx || typeof Chart === 'undefined') return;
-    _reportCharts.revenue = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'PayPal', data: paypal, backgroundColor: 'rgba(0, 123, 255, 0.8)', borderColor: 'rgb(0, 123, 255)', borderWidth: 1 },
-          { label: 'Recharge', data: recharge, backgroundColor: 'rgba(40, 167, 69, 0.8)', borderColor: 'rgb(40, 167, 69)', borderWidth: 1 }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        plugins: {
-          legend: { display: true, position: 'top' },
-          tooltip: { mode: 'index', intersect: false, callbacks: { label: function(c) { return c.dataset.label + ': $' + c.parsed.y.toFixed(2); } } }
-        },
-        scales: {
-          x: { stacked: false },
-          y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(0); } } }
-        }
-      }
-    });
-  }
 
-  // --- New & Lapsed ---
-  function renderChurnChart() {
-    if (_churnData.length === 0) return;
-    var slice = updateNav('churn', _churnData, _churnOffset);
-    var labels = slice.map(function(d) { return d.month; });
-    var newData = slice.map(function(d) { return d.new_members; });
-    var lapsedData = slice.map(function(d) { return d.lapsed_members; });
-
-    if (_reportCharts.churn) {
-      _reportCharts.churn.data.labels = labels;
-      _reportCharts.churn.data.datasets[0].data = newData;
-      _reportCharts.churn.data.datasets[1].data = lapsedData;
-      _reportCharts.churn.update();
-      return;
-    }
-    var ctx = document.getElementById('churnChart');
-    if (!ctx || typeof Chart === 'undefined') return;
-    _reportCharts.churn = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'New Members', data: newData, backgroundColor: 'rgba(25, 135, 84, 0.8)', borderColor: 'rgb(25, 135, 84)', borderWidth: 1 },
-          { label: 'Lapsed Members', data: lapsedData, backgroundColor: 'rgba(220, 53, 69, 0.8)', borderColor: 'rgb(220, 53, 69)', borderWidth: 1 }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        plugins: { legend: { display: true, position: 'top' }, tooltip: { mode: 'index', intersect: false } },
-        scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Members' } },
-          x: { title: { display: true, text: 'Month' } }
-        }
-      }
-    });
-  }
-
-  // --- Duration (static, no nav) ---
-  function renderDurationChart() {
-    var ctx = document.getElementById('durationChart');
-    if (!ctx || typeof Chart === 'undefined') return;
-    _reportCharts.duration = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: <%= raw @duration_labels.to_json %>,
-        datasets: [{
-          label: 'Members',
-          data: <%= raw @duration_counts.to_json %>,
-          backgroundColor: [
-            'rgba(220, 53, 69, 0.8)', 'rgba(255, 153, 0, 0.8)', 'rgba(255, 193, 7, 0.8)', 'rgba(13, 202, 240, 0.8)',
-            'rgba(25, 135, 84, 0.8)', 'rgba(13, 110, 253, 0.8)', 'rgba(102, 16, 242, 0.8)', 'rgba(111, 66, 193, 0.8)'
-          ],
-          borderColor: [
-            'rgb(220, 53, 69)', 'rgb(255, 153, 0)', 'rgb(255, 193, 7)', 'rgb(13, 202, 240)',
-            'rgb(25, 135, 84)', 'rgb(13, 110, 253)', 'rgb(102, 16, 242)', 'rgb(111, 66, 193)'
-          ],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: function(c) {
-            var total = <%= @duration_total %>;
-            var pct = total > 0 ? ((c.parsed.y / total) * 100).toFixed(1) : 0;
-            return c.parsed.y + ' members (' + pct + '%)';
-          } } }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 }, title: { display: true, text: 'Number of Members' } },
-          x: { title: { display: true, text: 'Membership Duration' } }
-        }
-      }
-    });
-  }
+    initOnce();
+  })();
 </script>

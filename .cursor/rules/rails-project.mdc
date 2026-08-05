@@ -1,9 +1,9 @@
 ---
-description: Core Rails project conventions for MemberManager
+description: Core Rails project conventions for MemberZone
 alwaysApply: true
 ---
 
-# MemberManager Project Conventions
+# MemberZone Project Conventions
 
 - **Stack:** Rails 8.1, Ruby 3.3.11, PostgreSQL 16, Redis 7, Sidekiq 7
 - **Frontend:** Bootstrap 5.3 via cssbundling-rails, Stimulus, Turbo, importmap-rails

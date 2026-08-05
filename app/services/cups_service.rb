@@ -63,7 +63,7 @@ class CupsService
       test_print_data(cups_printer_name, cups_printer_server),
       cups_printer_name,
       cups_printer_server: cups_printer_server,
-      filename: 'member_manager_test_print.txt'
+      filename: 'member_zone_test_print.txt'
     )
   end
 
@@ -121,7 +121,7 @@ class CupsService
 
   def self.test_print_data(cups_printer_name, cups_printer_server)
     <<~TEXT
-      MemberManager test print
+      MemberZone test print
 
       Destination: #{cups_destination(cups_printer_name, cups_printer_server)}
       Sent at: #{Time.current}

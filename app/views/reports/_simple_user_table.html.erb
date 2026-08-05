@@ -1,0 +1,47 @@
+<%# Read-only member list. `columns` picks which extra columns a report shows. %>
+<% columns = local_assigns.fetch(:columns, []) %>
+<div class="table-responsive">
+  <table class="table table-compact mb-0 align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Member</th>
+        <th scope="col">Email</th>
+        <% if columns.include?(:membership_status) %><th scope="col">Status</th><% end %>
+        <% if columns.include?(:dues_status) %><th scope="col">Dues</th><% end %>
+        <% if columns.include?(:rfids) %><th scope="col">Key fobs</th><% end %>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.each do |user| %>
+        <tr>
+          <td class="fw-medium">
+            <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
+            <% if user.legacy? %>
+              <span class="badge text-bg-secondary-subtle ms-1 fw-normal">Legacy</span>
+            <% end %>
+          </td>
+          <td>
+            <% if user.email.present? %>
+              <%= mail_to user.email %>
+            <% else %>
+              <span class="text-secondary">—</span>
+            <% end %>
+          </td>
+          <% if columns.include?(:membership_status) %>
+            <td>
+              <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
+                <%= membership_status_label(user.membership_status) %>
+              </span>
+            </td>
+          <% end %>
+          <% if columns.include?(:dues_status) %>
+            <td><%= user.dues_status.humanize %></td>
+          <% end %>
+          <% if columns.include?(:rfids) %>
+            <td class="num"><%= user.rfids.size %></td>
+          <% end %>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

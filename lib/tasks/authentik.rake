@@ -11,10 +11,10 @@ namespace :authentik do
       puts 'Setting up Authentik webhook configuration...'
       puts
 
-      webhook_url = ENV.fetch('MEMBER_MANAGER_BASE_URL', nil)
+      webhook_url = MemberZoneConfig.base_url
       if webhook_url.blank?
-        puts 'ERROR: MEMBER_MANAGER_BASE_URL environment variable is required.'
-        puts 'Set it to your MemberManager public URL (e.g., https://members.example.org)'
+        puts 'ERROR: MEMBER_ZONE_BASE_URL environment variable is required.'
+        puts 'Set it to your MemberZone public URL (e.g., https://members.example.org)'
         exit 1
       end
 

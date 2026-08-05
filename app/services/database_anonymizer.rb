@@ -20,7 +20,10 @@ module DatabaseAnonymizer
 
   ANON_DOMAIN = 'anon.invalid'
 
-  DUMP_MARKER = 'membermanager:anonymized_export v1'
+  DUMP_MARKER = 'memberzone:anonymized_export v1'
+  # Pre-rename value of DUMP_MARKER. Still accepted on restore so dumps taken
+  # before the Member Zone rename remain usable.
+  LEGACY_DUMP_MARKER = 'membermanager:anonymized_export v1'
 
   FIRST_NAMES = %w[
     Jordan Riley Morgan Casey Taylor Avery Cameron Sage Quinn Reese Drew Blair Parker Skyler
@@ -51,7 +54,7 @@ module DatabaseAnonymizer
       env = self.class.pg_env(parts)
 
       begin
-        Dir.mktmpdir('member_manager_anon') do |workdir|
+        Dir.mktmpdir('member_zone_anon') do |workdir|
           raw_dump = File.join(workdir, 'raw.sql')
 
           Rails.logger.info('[anonymized_db] Creating temporary database...')
@@ -143,11 +146,13 @@ module DatabaseAnonymizer
     end
 
     def self.dump_has_marker?(path)
-      if path.to_s.end_with?('.gz')
-        Zlib::GzipReader.open(path) { |z| z.read(512).to_s.include?(DUMP_MARKER) }
-      else
-        File.read(path, 512).to_s.include?(DUMP_MARKER)
-      end
+      head = if path.to_s.end_with?('.gz')
+               Zlib::GzipReader.open(path) { |z| z.read(512).to_s }
+             else
+               File.read(path, 512).to_s
+             end
+
+      head.include?(DUMP_MARKER) || head.include?(LEGACY_DUMP_MARKER)
     end
 
     def self.run!(path:)

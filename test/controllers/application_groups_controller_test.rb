@@ -157,12 +157,12 @@ class ApplicationGroupsControllerTest < ActionDispatch::IntegrationTest
 
   # ─── Disabled Source Guards ──────────────────────────────────────
 
-  test 'sync_to_authentik redirects with alert when member manager source is disabled' do
-    member_sources(:member_manager).update!(enabled: false)
+  test 'sync_to_authentik redirects with alert when member zone source is disabled' do
+    member_sources(:member_zone).update!(enabled: false)
 
     post sync_to_authentik_application_application_group_path(@application, @application_group)
     assert_redirected_to application_application_group_path(@application, @application_group)
-    assert_equal 'Member Manager source is disabled.', flash[:alert]
+    assert_equal 'Member Zone source is disabled.', flash[:alert]
   end
 
   test 'should destroy application group' do

@@ -4,7 +4,7 @@ Rails.application.config.x.slack = ActiveSupport::InheritableOptions.new(
 )
 
 # Sign in with Slack (OpenID Connect) — used only to link a workspace Slack user id to a member
-# after they are already logged in via Authentik. Not used for Member Manager login.
+# after they are already logged in via Authentik. Not used for Member Zone login.
 Rails.application.config.x.slack_oidc = ActiveSupport::InheritableOptions.new(
   client_id: ENV["SLACK_OIDC_CLIENT_ID"],
   client_secret: ENV["SLACK_OIDC_CLIENT_SECRET"],

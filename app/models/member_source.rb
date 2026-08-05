@@ -1,8 +1,18 @@
 class MemberSource < ApplicationRecord
-  SOURCE_KEYS = %w[authentik member_manager sheet slack].freeze
+  SOURCE_KEYS = %w[authentik member_zone sheet slack].freeze
+  MEMBER_ZONE_KEY = 'member_zone'.freeze
+  # Pre-rename value of MEMBER_ZONE_KEY.
+  MEMBER_ZONE_LEGACY_KEY = 'member_manager'.freeze
+  # Keys an existing row may hold, as opposed to the keys a new row may be created with.
+  ACCEPTED_KEYS = (SOURCE_KEYS + [MEMBER_ZONE_LEGACY_KEY]).freeze
   SYNC_STATUSES = %w[unknown healthy degraded failing disabled].freeze
 
-  validates :key, presence: true, uniqueness: true, inclusion: { in: SOURCE_KEYS }
+  validates :key, presence: true, uniqueness: true
+  # A row written before the rename holds a key that is no longer offered. It stays valid
+  # so that record_sync!, refresh_statistics! and the rest can still write to it — every
+  # one of those goes through update! and would otherwise raise — but nothing new may be
+  # created under the old spelling.
+  validates :key, inclusion: { in: ->(source) { source.new_record? ? SOURCE_KEYS : ACCEPTED_KEYS } }
   validates :name, presence: true
   validates :sync_status, inclusion: { in: SYNC_STATUSES }
 
@@ -10,24 +20,47 @@ class MemberSource < ApplicationRecord
   scope :ordered, -> { order(:display_order, :name) }
 
   def self.enabled?(key)
-    find_by(key: key)&.enabled? != false
+    lookup(key)&.enabled? != false
+  end
+
+  # A database written before the Member Zone rename still stores `member_manager`, so
+  # the local source has to be found under either spelling. Matching only the new key
+  # would read a disabled legacy row as enabled — the absent-record default — and let
+  # Authentik pushes run after an admin had turned them off.
+  def self.lookup(key)
+    return find_by(key: key) unless member_zone_key?(key)
+
+    find_by(key: MEMBER_ZONE_KEY) || find_by(key: MEMBER_ZONE_LEGACY_KEY)
+  end
+
+  def self.member_zone_key?(key)
+    [MEMBER_ZONE_KEY, MEMBER_ZONE_LEGACY_KEY].include?(key.to_s)
   end
 
   # Find or create source by key
   def self.for(key)
-    find_or_create_by!(key: key) do |source|
+    existing = lookup(key)
+    return existing if existing
+
+    create!(key: key) do |source|
       source.name = key.titleize.gsub('_', ' ')
       source.display_order = SOURCE_KEYS.index(key) || 99
     end
   end
 
+  # The canonical key for this row, so a legacy `member_manager` row behaves like the
+  # `member_zone` row it will become at the next seed.
+  def canonical_key
+    self.class.member_zone_key?(key) ? MEMBER_ZONE_KEY : key
+  end
+
   # Refresh statistics from actual data
   def refresh_statistics!
-    case key
+    case canonical_key
     when 'authentik'
       refresh_authentik_stats!
-    when 'member_manager'
-      refresh_member_manager_stats!
+    when MEMBER_ZONE_KEY
+      refresh_member_zone_stats!
     when 'sheet'
       refresh_sheet_stats!
     when 'slack'
@@ -72,10 +105,10 @@ class MemberSource < ApplicationRecord
 
   # Check if API is configured based on environment variables
   def check_api_configuration!
-    configured = case key
+    configured = case canonical_key
                  when 'authentik'
                    ENV['AUTHENTIK_API_TOKEN'].present? && ENV['AUTHENTIK_API_BASE_URL'].present?
-                 when 'member_manager'
+                 when MEMBER_ZONE_KEY
                    true # Always configured (it's the local database)
                  when 'sheet'
                    ENV['GOOGLE_SHEETS_CREDENTIALS'].present? && ENV['GOOGLE_SHEETS_ID'].present?
@@ -92,16 +125,26 @@ class MemberSource < ApplicationRecord
   def self.seed_defaults!
     [
       { key: 'authentik', name: 'Authentik', display_order: 1 },
-      { key: 'member_manager', name: 'Member Manager', display_order: 2 },
+      { key: MEMBER_ZONE_KEY, name: 'Member Zone', display_order: 2 },
       { key: 'sheet', name: 'Google Sheet', display_order: 3 },
       { key: 'slack', name: 'Slack', display_order: 4 }
     ].each do |attrs|
-      source = find_or_initialize_by(key: attrs[:key])
+      source = if attrs[:key] == MEMBER_ZONE_KEY
+                 find_or_initialize_member_zone_source
+               else
+                 find_or_initialize_by(key: attrs[:key])
+               end
       source.assign_attributes(attrs)
       source.save!
       source.check_api_configuration!
       source.refresh_statistics!
     end
+  end
+
+  # member_sources.key is uniquely indexed. A database written before the Member Zone rename
+  # still holds member_manager; seeding by the new key alone would insert a second row.
+  def self.find_or_initialize_member_zone_source
+    lookup(MEMBER_ZONE_KEY) || new(key: MEMBER_ZONE_KEY)
   end
 
   private
@@ -130,8 +173,8 @@ class MemberSource < ApplicationRecord
     end
   end
 
-  def refresh_member_manager_stats!
-    # Member Manager is the User table itself
+  def refresh_member_zone_stats!
+    # Member Zone is the User table itself
     total = User.count
     # Consider users "linked" if they have essential data (email or full_name)
     linked = User.where.not(email: [nil, '']).or(User.where.not(full_name: [nil, ''])).count

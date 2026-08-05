@@ -136,7 +136,7 @@ class ParkingNoticePdf
   end
 
   def footer
-    org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
+    org = ENV.fetch('ORGANIZATION_NAME', 'Member Zone')
 
     repeat(:all) do
       bounding_box([0, 30], width: bounds.width, height: 30) do

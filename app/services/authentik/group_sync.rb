@@ -190,9 +190,9 @@ module Authentik
 
     def build_attributes
       {
-        'member_manager_application' => application_group.application.name,
-        'member_manager_group_id' => application_group.id,
-        'member_manager_synced_at' => Time.current.iso8601
+        'member_zone_application' => application_group.application.name,
+        'member_zone_group_id' => application_group.id,
+        'member_zone_synced_at' => Time.current.iso8601
       }
     end
   end

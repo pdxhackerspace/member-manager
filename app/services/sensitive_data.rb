@@ -2,6 +2,14 @@ class SensitiveData
   STRING_PREFIX = 'enc:v1:'.freeze
   JSON_MARKER = '__encrypted_v1__'.freeze
 
+  # Salts for the secret_key_base fallback, deliberately left at their pre-rename values.
+  # They are internal and never displayed, and the derived key is a pure function of them:
+  # changing a salt silently orphans every encrypted column and every lookup digest in any
+  # deployment that has not set the keys explicitly. Renaming them buys nothing and cannot
+  # be undone once rows are written, so they do not follow the Member Zone rename.
+  ENCRYPTION_KEY_SALT = 'member-manager-sensitive-data-encryption'.freeze
+  HMAC_KEY_SALT = 'member-manager-email-lookup-hmac'.freeze
+
   class << self
     def encrypt(value)
       return nil if value.nil?
@@ -67,11 +75,11 @@ class SensitiveData
     end
 
     def encryption_key
-      configured_key('DATABASE_FIELD_ENCRYPTION_KEY', 'member-manager-sensitive-data-encryption')
+      configured_key('DATABASE_FIELD_ENCRYPTION_KEY', ENCRYPTION_KEY_SALT)
     end
 
     def hmac_key
-      configured_key('EMAIL_LOOKUP_HMAC_KEY', 'member-manager-email-lookup-hmac')
+      configured_key('EMAIL_LOOKUP_HMAC_KEY', HMAC_KEY_SALT)
     end
 
     def configured_key(env_name, salt)

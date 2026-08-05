@@ -14,7 +14,7 @@ Keep `README.md` as the authoritative project overview. Update it when:
 
 ## Required Sections
 
-1. **Project overview** — what MemberManager does
+1. **Project overview** — what MemberZone does
 2. **Requirements** — Ruby, Node, PostgreSQL, Redis versions
 3. **Setup** — clone, env config, Docker Compose, database setup
 4. **Running locally** — `docker compose -f docker-compose.dev.yml up`, accessing the app

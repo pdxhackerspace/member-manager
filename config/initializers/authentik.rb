@@ -30,7 +30,7 @@ end
 unless Rails.env.test? || ENV['SECRET_KEY_BASE_DUMMY'].present?
   token = ENV.fetch('AUTHENTIK_API_TOKEN', '').strip
   if token.blank?
-    msg = 'MemberManager: AUTHENTIK_API_TOKEN is missing or empty. Set it to your Authentik service ' \
+    msg = 'MemberZone: AUTHENTIK_API_TOKEN is missing or empty. Set it to your Authentik service ' \
           'account API token. The app will send it as Authorization: Bearer. Refusing to start.'
     Rails.logger.error(msg)
     warn(msg)

@@ -62,7 +62,7 @@ module TextFragments
         f.adapter Faraday.default_adapter
         f.options.timeout = 30
         f.options.open_timeout = 10
-        f.headers['User-Agent'] = 'MemberManager TextFragmentSync/1.0'
+        f.headers['User-Agent'] = 'MemberZone TextFragmentSync/1.0'
       end
     end
   end

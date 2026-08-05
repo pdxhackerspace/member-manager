@@ -27,16 +27,16 @@ class DisabledSourceSyncJobsTest < ActiveJob::TestCase
 
   # ─── Authentik::FullSyncToAuthentikJob ─────────────────────────
 
-  test 'Authentik::FullSyncToAuthentikJob skips when member_manager source is disabled' do
-    member_sources(:member_manager).update!(enabled: false)
+  test 'Authentik::FullSyncToAuthentikJob skips when member_zone source is disabled' do
+    member_sources(:member_zone).update!(enabled: false)
 
     assert_nil Authentik::FullSyncToAuthentikJob.perform_now
   end
 
   # ─── Authentik::ApplicationGroupMembershipSyncJob ──────────────
 
-  test 'Authentik::ApplicationGroupMembershipSyncJob skips when member_manager source is disabled' do
-    member_sources(:member_manager).update!(enabled: false)
+  test 'Authentik::ApplicationGroupMembershipSyncJob skips when member_zone source is disabled' do
+    member_sources(:member_zone).update!(enabled: false)
 
     assert_nil Authentik::ApplicationGroupMembershipSyncJob.perform_now(%w[sheet slack])
   end

@@ -5,8 +5,8 @@ module Authentik
     def perform(member_sources)
       return unless api_configured?
 
-      unless MemberSource.enabled?('member_manager')
-        Rails.logger.info('Member Manager source is disabled — skipping application group membership sync.')
+      unless MemberSource.enabled?('member_zone')
+        Rails.logger.info('Member Zone source is disabled — skipping application group membership sync.')
         return
       end
 

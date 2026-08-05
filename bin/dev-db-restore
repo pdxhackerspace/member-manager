@@ -5,12 +5,12 @@
 #   bin/dev-db-restore --force backup.dump      # skip the confirmation prompt
 #
 # Accepts pg_dump custom-format archives (regardless of file extension), plain
-# SQL, and gzipped plain SQL. Drops and recreates member_manager_development,
+# SQL, and gzipped plain SQL. Drops and recreates member_zone_development,
 # restores, then applies any migrations the backup predates.
 set -euo pipefail
 
 COMPOSE_FILE="docker-compose.dev.yml"
-DB_NAME="member_manager_development"
+DB_NAME="member_zone_development"
 DB_USER="postgres"
 
 # Backups are taken with pg_dump 18, whose custom-format archives (v1.16) the

@@ -42,7 +42,7 @@ class InvitationsController < AdminController
 
   def enqueue_invitation_email(invitation)
     template = EmailTemplate.find_enabled('member_invitation')
-    org = ENV.fetch('ORGANIZATION_NAME', 'Member Manager')
+    org = ENV.fetch('ORGANIZATION_NAME', 'Member Zone')
 
     variables = {
       organization_name: org,

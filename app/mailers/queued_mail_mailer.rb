@@ -1,5 +1,5 @@
 class QueuedMailMailer < ApplicationMailer
-  skip_after_action :set_member_manager_mail_trace_headers
+  skip_after_action :set_member_zone_mail_trace_headers
   after_action :mark_skip_duplicate_mail_log
 
   def deliver_queued(queued_mail)
@@ -15,6 +15,6 @@ class QueuedMailMailer < ApplicationMailer
   private
 
   def mark_skip_duplicate_mail_log
-    headers['X-MemberManager-Skip-MailLog'] = '1'
+    headers['X-MemberZone-Skip-MailLog'] = '1'
   end
 end

@@ -141,7 +141,7 @@ class TrainingRequestsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to user_path(User.find_by(authentik_id: "local:#{local_accounts(:regular_member).id}"))
   end
 
-  test 'trainer can respond to request in member manager' do
+  test 'trainer can respond to request in member zone' do
     trainer = sign_in_as_trainer
     TrainerCapability.find_or_create_by!(user: trainer, training_topic: training_topics(:laser_cutting))
     request = training_requests(:pending_laser_request)

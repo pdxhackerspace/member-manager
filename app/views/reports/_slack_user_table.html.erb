@@ -1,0 +1,40 @@
+<%# Slack accounts rather than members — the only report whose rows are SlackUser records. %>
+<div class="table-responsive">
+  <table class="table table-compact mb-0 align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Slack user</th>
+        <th scope="col">Linked member</th>
+        <th scope="col">Last active</th>
+        <th scope="col">Joined Slack</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.each do |slack_user| %>
+        <tr>
+          <td class="fw-medium">
+            <%= slack_user.display_name %>
+            <% if slack_user.username.present? %>
+              <span class="text-secondary ms-1">@<%= slack_user.username %></span>
+            <% end %>
+          </td>
+          <td>
+            <% if slack_user.user %>
+              <%= link_to slack_user.user.display_name, user_path(slack_user.user), class: "text-decoration-none" %>
+            <% else %>
+              <span class="text-secondary">Not linked</span>
+            <% end %>
+          </td>
+          <td>
+            <% if slack_user.last_active_at.present? %>
+              <%= time_ago_in_words(slack_user.last_active_at) %> ago
+            <% else %>
+              <span class="text-secondary">Never</span>
+            <% end %>
+          </td>
+          <td><%= l(slack_user.created_at.to_date, format: :long) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

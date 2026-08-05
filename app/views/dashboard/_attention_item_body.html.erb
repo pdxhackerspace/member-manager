@@ -297,7 +297,7 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_view_all_path('lapsed-with-access'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('lapsed-with-access'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @lapsed_with_access_count %></strong> lapsed <%= 'member'.pluralize(@lapsed_with_access_count) %> using access control
       <% end %>
     </div>
@@ -311,7 +311,7 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_view_all_path('legacy-recent-access'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('legacy-recent-access'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @legacy_recent_access_count %></strong> legacy <%= 'member'.pluralize(@legacy_recent_access_count) %> using access control in the last year
       <% end %>
     </div>
@@ -325,7 +325,7 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_path(tab: 'lapsed-with-slack'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('lapsed-with-slack'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @lapsed_with_slack_count %></strong> lapsed <%= 'member'.pluralize(@lapsed_with_slack_count) %> with Slack accounts
       <% end %>
     </div>
@@ -339,7 +339,7 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_path(tab: 'legacy-with-slack'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('legacy-with-slack'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @legacy_with_slack_count %></strong> legacy <%= 'member'.pluralize(@legacy_with_slack_count) %> with Slack accounts
       <% end %>
     </div>
@@ -353,7 +353,7 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_path(tab: 'lapsed-active-slack'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('lapsed-active-slack'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @lapsed_active_slack_count %></strong> lapsed <%= 'member'.pluralize(@lapsed_active_slack_count) %> still active on Slack
       <% end %>
     </div>
@@ -367,7 +367,7 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_path(tab: 'legacy-active-slack'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('legacy-active-slack'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @legacy_active_slack_count %></strong> legacy <%= 'member'.pluralize(@legacy_active_slack_count) %> still active on Slack
       <% end %>
     </div>
@@ -381,22 +381,22 @@ when :unread_messages %>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_path(tab: 'slack-inactive'), class: "text-decoration-none fw-semibold" do %>
+      <%= link_to report_path('slack-inactive'), class: "text-decoration-none fw-semibold" do %>
         <strong><%= @slack_inactive_count %></strong> Slack <%= 'user'.pluralize(@slack_inactive_count) %> inactive for over a year
       <% end %>
     </div>
   <% end %>
-<% when :active_no_email %>
-  <% if @active_no_email_count == 0 %>
+<% when :no_email %>
+  <% if @no_email_count == 0 %>
     <div>
       <i class="bi bi-check-circle-fill text-success me-1"></i>
-      All active members have an email address
+      Every current member has an email address
     </div>
   <% else %>
     <div>
       <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-      <%= link_to reports_path(tab: 'active-no-email'), class: "text-decoration-none fw-semibold" do %>
-        <strong><%= @active_no_email_count %></strong> active <%= 'member'.pluralize(@active_no_email_count) %> with no email address
+      <%= link_to report_path('no-email'), class: "text-decoration-none fw-semibold" do %>
+        <strong><%= @no_email_count %></strong> current <%= 'member'.pluralize(@no_email_count) %> with no email address
       <% end %>
     </div>
   <% end %>

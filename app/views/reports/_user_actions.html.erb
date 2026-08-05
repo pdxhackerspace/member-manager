@@ -1,114 +1,53 @@
-<div class="d-flex flex-wrap gap-1">
-  <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
-  <% if user.active? %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'deactivate' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Deactivate", class: "btn btn-sm btn-outline-secondary", 
-          data: { 
-            turbo: false,
-            confirm_message: "Are you sure you want to deactivate #{user.display_name}?"
-          },
-          onclick: "return confirm(this.dataset.confirmMessage);" %>
-    <% end %>
-  <% else %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'activate' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Activate", class: "btn btn-sm btn-outline-success", 
-          data: { 
-            turbo: false,
-            confirm_message: "Are you sure you want to activate #{user.display_name}?"
-          },
-          onclick: "return confirm(this.dataset.confirmMessage);" %>
-    <% end %>
-  <% end %>
-  <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-    <%= hidden_field_tag :user_id, user.id %>
-    <%= hidden_field_tag :action_type, 'ban' %>
-    <%= hidden_field_tag :anchor, anchor %>
-    <%= f.submit "Ban", class: "btn btn-sm btn-outline-danger", 
-        data: { 
-          turbo: false,
-          confirm_message: "Are you sure you want to ban #{user.display_name}? This will set their membership status to 'banned' and deactivate them."
-        },
-        onclick: "return confirm(this.dataset.confirmMessage);" %>
-  <% end %>
-  <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-    <%= hidden_field_tag :user_id, user.id %>
-    <%= hidden_field_tag :action_type, 'deceased' %>
-    <%= hidden_field_tag :anchor, anchor %>
-    <%= f.submit "Deceased", class: "btn btn-sm btn-outline-dark", 
-        data: { 
-          turbo: false,
-          confirm_message: "Are you sure you want to mark #{user.display_name} as deceased? This will set their membership status to 'deceased' and deactivate them."
-        },
-        onclick: "return confirm(this.dataset.confirmMessage);" %>
-  <% end %>
-  <% if anchor == 'membership-status-unknown' || anchor == 'dues-status-unknown' || anchor == 'dues-status-lapsed' %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'paying' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Paying", class: "btn btn-sm btn-outline-success" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'sponsored' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Sponsored", class: "btn btn-sm btn-outline-primary" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'guest' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Guest", class: "btn btn-sm btn-outline-warning" %>
-    <% end %>
-  <% end %>
-  <% if anchor == 'payment-type-unknown' %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'cash' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Cash", class: "btn btn-sm btn-outline-secondary" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'paypal' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "PayPal", class: "btn btn-sm btn-outline-secondary" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'recharge' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Recharge", class: "btn btn-sm btn-outline-secondary" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'guest' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Guest", class: "btn btn-sm btn-outline-secondary" %>
-    <% end %>
-    <%= form_with url: reports_update_user_path, method: :post, local: true, class: "d-inline" do |f| %>
-      <%= hidden_field_tag :user_id, user.id %>
-      <%= hidden_field_tag :action_type, 'sponsored' %>
-      <%= hidden_field_tag :anchor, anchor %>
-      <%= hidden_field_tag :from_view_all, 'true' if local_assigns[:from_view_all] %>
-      <%= f.submit "Sponsored", class: "btn btn-sm btn-outline-secondary" %>
-    <% end %>
-  <% end %>
-</div>
+<%# Inline fixes for whatever the report is flagging. `anchor` is the report key, so the
+    POST comes back to the report the admin was looking at. %>
+<% confirm_actions = {
+     'deactivate' => "Deactivate #{user.display_name}?",
+     'activate' => "Activate #{user.display_name}?",
+     'ban' => "Ban #{user.display_name}? This sets their membership status to banned and deactivates them.",
+     'deceased' => "Mark #{user.display_name} as deceased? This deactivates them."
+   } %>
 
+<% action_button = lambda do |action_type, label, css| %>
+  <%= form_with url: reports_update_user_path, method: :post, class: "d-inline" do |f| %>
+    <%= hidden_field_tag :user_id, user.id %>
+    <%= hidden_field_tag :action_type, action_type %>
+    <%= hidden_field_tag :anchor, anchor %>
+    <%= f.submit label, class: "btn btn-sm #{css}",
+                 data: { turbo: false, confirm_message: confirm_actions[action_type] },
+                 onclick: confirm_actions[action_type] ? "return confirm(this.dataset.confirmMessage);" : nil %>
+  <% end %>
+<% end %>
+
+<div class="d-flex flex-wrap gap-1">
+  <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-secondary" %>
+
+  <% if user.active? %>
+    <%= action_button.call('deactivate', 'Deactivate', 'btn-outline-secondary') %>
+  <% else %>
+    <%= action_button.call('activate', 'Activate', 'btn-outline-secondary') %>
+  <% end %>
+
+  <% if %w[membership-status-unknown dues-status-unknown dues-status-lapsed].include?(anchor) %>
+    <%= action_button.call('paying', 'Paying', 'btn-outline-secondary') %>
+    <%= action_button.call('sponsored', 'Sponsored', 'btn-outline-secondary') %>
+    <%= action_button.call('guest', 'Guest', 'btn-outline-secondary') %>
+  <% end %>
+
+  <% if anchor == 'payment-type-unknown' %>
+    <%= action_button.call('cash', 'Cash', 'btn-outline-secondary') %>
+    <%= action_button.call('paypal', 'PayPal', 'btn-outline-secondary') %>
+    <%= action_button.call('recharge', 'Recharge', 'btn-outline-secondary') %>
+    <%= action_button.call('guest', 'Guest', 'btn-outline-secondary') %>
+    <%= action_button.call('sponsored', 'Sponsored', 'btn-outline-secondary') %>
+  <% end %>
+
+  <div class="dropdown d-inline">
+    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More actions">
+      &hellip;
+    </button>
+    <div class="dropdown-menu dropdown-menu-end p-2">
+      <%= action_button.call('ban', 'Ban', 'btn-outline-danger w-100 mb-1') %>
+      <%= action_button.call('deceased', 'Mark deceased', 'btn-outline-danger w-100') %>
+    </div>
+  </div>
+</div>

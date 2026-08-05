@@ -3,7 +3,7 @@
 # Bundled Redis is included for Sidekiq; override REDIS_URL to use an external Redis if needed.
 # Usage: docker compose -f docker-compose.server.yml up -d
 #        docker compose -f docker-compose.server.yml --profile tools run --rm migrate
-name: membermanager-server
+name: memberzone-server
 
 x-web-common: &web-common
   build:
@@ -11,7 +11,7 @@ x-web-common: &web-common
     pull: true
     args:
       RUBY_VERSION: "3.3.11"
-  image: member_manager_web:latest
+  image: member_zone_web:latest
   env_file:
     - .env
   # No source bind mount — image is the artifact of Dockerfile `CMD`
@@ -19,7 +19,7 @@ x-web-common: &web-common
 services:
   redis:
     image: redis:7-alpine
-    container_name: membermanager-server-redis
+    container_name: memberzone-server-redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     volumes:

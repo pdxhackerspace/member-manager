@@ -1,0 +1,24 @@
+<%# Sidebar shown on every individual report page, so switching reports is one click. %>
+<nav class="settings-nav" style="position: sticky; top: 1rem;">
+  <%= link_to reports_path, class: "settings-nav-item" do %>
+    <span><i class="bi bi-arrow-left me-1"></i>All reports</span>
+  <% end %>
+  <div class="settings-nav-divider"></div>
+  <% Reports::Catalog.grouped.each do |label, reports| %>
+    <% next if reports.empty? %>
+    <div class="h-section-label px-2 pt-2 pb-1"><%= label %></div>
+    <% reports.each do |report| %>
+      <% count = counts[report.key].to_i %>
+      <%= link_to report_path(report),
+                  class: "settings-nav-item #{'active' if report.key == current_key}" do %>
+        <span><%= report.title %></span>
+        <span class="count"><%= count %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+  <div class="settings-nav-divider"></div>
+  <%= link_to reports_charts_path, class: "settings-nav-item #{'active' if current_key == 'charts'}" do %>
+    <span>Charts</span>
+    <span class="count"><i class="bi bi-graph-up"></i></span>
+  <% end %>
+</nav>

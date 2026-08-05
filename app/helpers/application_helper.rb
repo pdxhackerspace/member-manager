@@ -102,14 +102,14 @@ module ApplicationHelper
     end
   end
 
-  # Membership application show: full applicant/referrer contact visibility (Executive Director training).
-  def membership_application_contact_pii_visible?(user = current_user)
+  # Membership application show: full applicant/referrer contact visibility. Resolves against the
+  # real signed-in account like every other privilege check, so an impersonated session does not
+  # blur the page it is only reachable through in the first place. Blank user means the applicant
+  # reading their own form, where there is nothing to hide from them.
+  def membership_application_contact_pii_visible?(user = true_user)
     return true if user.blank?
 
-    topic = TrainingTopic.where('LOWER(name) = ?', MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME.downcase).first
-    return true if topic.nil?
-
-    Training.exists?(trainee: user, training_topic: topic)
+    user.can?(:'applications.view_pii')
   end
 
   def membership_application_mask_contact_pii?

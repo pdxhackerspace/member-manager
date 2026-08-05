@@ -100,15 +100,10 @@ class AuthentikAutoSyncTest < ActiveJob::TestCase
       end
     end
 
-    original_client = Authentik.send(:remove_const, :Client)
-    Authentik.const_set(:Client, fake_client_class)
-    begin
+    with_stubbed_authentik_client(fake_client_class) do
       assert_enqueued_with(job: Authentik::ApplicationGroupMembershipSyncJob) do
         Authentik::ProvisionUserJob.perform_now(user.id)
       end
-    ensure
-      Authentik.send(:remove_const, :Client)
-      Authentik.const_set(:Client, original_client)
     end
 
     assert_equal '12345', user.reload.authentik_id

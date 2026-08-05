@@ -5,20 +5,8 @@ class MembershipApplicationsController < ApplicationController
   include MembershipApplicationWizard
   include MembershipApplicationWizard::Actions
   include InitiatedApplicationActions
+  include MembershipApplicationPrivileges
 
-  ADMIN_ACTIONS = %i[
-    index show import approve reject delay_for_review mark_needs_review link_user unlink_user vote_ai_feedback
-    save_tour_feedback vote_acceptance extend_initiated_application resend_initiated_application
-  ].freeze
-  APPLICATION_MEMBER_ACTIONS = %i[
-    show approve reject delay_for_review mark_needs_review link_user unlink_user vote_ai_feedback
-    save_tour_feedback vote_acceptance
-  ].freeze
-
-  before_action :require_admin!, only: ADMIN_ACTIONS
-  before_action :set_application_admin, only: APPLICATION_MEMBER_ACTIONS
-  before_action :require_executive_director_for_final_decision!,
-                only: %i[approve reject delay_for_review mark_needs_review]
   before_action :require_submitted_for_review_parking!, only: %i[delay_for_review mark_needs_review]
   before_action :require_pending_application_for_acceptance_vote!, only: :vote_acceptance
 
@@ -254,13 +242,6 @@ class MembershipApplicationsController < ApplicationController
   def review_parking!(method, notice)
     @application.public_send(method, current_user, notes: params[:admin_notes])
     redirect_to membership_application_path(@application), notice: notice
-  end
-
-  def require_executive_director_for_final_decision!
-    return if true_user&.can_finalize_membership_application?
-
-    redirect_to membership_application_path(@application),
-                alert: 'Only members trained as Executive Director may approve, reject, or park applications.'
   end
 
   def require_submitted_for_review_parking!

@@ -280,9 +280,9 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
                   text: expected_count.to_s
   end
 
-  test 'show masks applicant contact when Executive Director topic exists and viewer is not trained' do
-    TrainingTopic.create!(name: 'Executive Director')
-    sign_in_as_admin
+  test 'show masks applicant contact for a reviewer without the view_pii privilege' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view')
     app = membership_application_with_sensitive_answers
     get membership_application_path(app)
 
@@ -292,7 +292,17 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'Show contact details'
   end
 
-  test 'show does not mask when Executive Director training topic is not in database' do
+  test 'show does not mask for a reviewer holding view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.view_pii')
+    app = membership_application_with_sensitive_answers
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
+  end
+
+  test 'show does not mask for admins' do
     sign_in_as_admin
     app = membership_application_with_sensitive_answers
     get membership_application_path(app)
@@ -301,12 +311,13 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/data-controller="sensitive-reveal"/, response.body)
   end
 
-  test 'show does not mask when viewer has Executive Director training' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
+  # The page is reachable while impersonating only because the privilege resolves against the
+  # real account, so the contact details on it follow the same account.
+  test 'show does not mask while impersonating a member without view_pii' do
     sign_in_as_admin
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+    post impersonate_user_path(users(:one).id)
     app = membership_application_with_sensitive_answers
+
     get membership_application_path(app)
 
     assert_response :success
@@ -388,8 +399,9 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/AI feedback/i, response.body)
   end
 
-  test 'approve blocked when executive director topic exists and admin lacks training' do
-    TrainingTopic.create!(name: 'Executive Director')
+  test 'approve blocked for a reviewer who cannot approve' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.review')
     app = MembershipApplication.create!(
       email: 'approve-gate@example.com',
       status: 'submitted',
@@ -399,13 +411,24 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       post approve_membership_application_path(app), params: { admin_notes: 'n' }
     end
     assert_redirected_to membership_application_path(app)
-    assert_match(/Executive Director/i, flash[:alert].to_s)
+    assert_match(/do not have permission/i, flash[:alert].to_s)
   end
 
-  test 'approve allowed when admin has executive director training' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+  test 'approve allowed for a non-admin holding the approve privilege' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.approve')
+    app = MembershipApplication.create!(
+      email: 'approve-by-privilege@example.com',
+      status: 'submitted',
+      submitted_at: Time.current
+    )
+
+    post approve_membership_application_path(app), params: { admin_notes: 'Welcome' }
+
+    assert_equal 'approved', app.reload.status
+  end
+
+  test 'approve allowed for admins' do
     page1 = ApplicationFormPage.create!(title: 'First page', position: 1)
     q_name = page1.questions.create!(label: 'Name', field_type: 'text', required: false, position: 1)
     q_address = page1.questions.create!(label: 'Mailing Address', field_type: 'text', required: false, position: 2)
@@ -437,8 +460,9 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal app.user, qm.recipient
   end
 
-  test 'delay_for_review blocked when executive director topic exists and admin lacks training' do
-    TrainingTopic.create!(name: 'Executive Director')
+  test 'delay_for_review blocked for a reviewer who cannot park applications' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.review')
     app = MembershipApplication.create!(
       email: 'delay-gate@example.com',
       status: 'submitted',
@@ -448,13 +472,10 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       post delay_for_review_membership_application_path(app), params: { admin_notes: 'Later' }
     end
     assert_redirected_to membership_application_path(app)
-    assert_match(/Executive Director/i, flash[:alert].to_s)
+    assert_match(/do not have permission/i, flash[:alert].to_s)
   end
 
-  test 'delay_for_review sets under_review when executive director' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+  test 'delay_for_review sets under_review' do
     app = MembershipApplication.create!(
       email: 'delay-ok@example.com',
       status: 'submitted',
@@ -471,9 +492,6 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'delay_for_review redirects when application already under review' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
     app = MembershipApplication.create!(
       email: 'delay-twice@example.com',
       status: 'under_review',
@@ -486,8 +504,9 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/open applications/i, flash[:alert].to_s)
   end
 
-  test 'mark_needs_review blocked when executive director topic exists and admin lacks training' do
-    TrainingTopic.create!(name: 'Executive Director')
+  test 'mark_needs_review blocked for a reviewer who cannot park applications' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.review')
     app = MembershipApplication.create!(
       email: 'needs-review-gate@example.com',
       status: 'submitted',
@@ -497,13 +516,10 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
       post mark_needs_review_membership_application_path(app), params: { admin_notes: 'Later' }
     end
     assert_redirected_to membership_application_path(app)
-    assert_match(/Executive Director/i, flash[:alert].to_s)
+    assert_match(/do not have permission/i, flash[:alert].to_s)
   end
 
-  test 'mark_needs_review sets needs_review when executive director' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+  test 'mark_needs_review sets needs_review' do
     app = MembershipApplication.create!(
       email: 'needs-review-ok@example.com',
       status: 'submitted',
@@ -520,9 +536,6 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'mark_needs_review redirects when application already parked' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
     app = MembershipApplication.create!(
       email: 'needs-review-twice@example.com',
       status: 'needs_review',
@@ -549,10 +562,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'Needs review'
   end
 
-  test 'reject redirects to edit queued mail when executive director' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
+  test 'reject redirects to edit queued mail' do
     app = MembershipApplication.create!(
       email: 'reject-redirect@example.com',
       status: 'submitted',
@@ -570,9 +580,6 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'approve links existing user by email and still queues mail' do
-    topic = TrainingTopic.create!(name: 'Executive Director')
-    admin = User.find(session[:user_id])
-    Training.create!(trainee: admin, training_topic: topic, trained_at: Time.current)
     existing = users(:two)
     app = MembershipApplication.create!(
       email: existing.email,
@@ -800,5 +807,15 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     post local_login_path, params: {
       session: { email: account.email, password: 'localpassword123' }
     }
+  end
+
+  # A non-admin who reaches applications through privileges alone. Callers grant whichever
+  # privileges the case under test needs.
+  def sign_in_as_reviewer
+    account = local_accounts(:regular_member)
+    post local_login_path, params: {
+      session: { email: account.email, password: 'memberpassword123' }
+    }
+    User.find_by!(authentik_id: "local:#{account.id}")
   end
 end

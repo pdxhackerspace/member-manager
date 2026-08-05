@@ -30,7 +30,7 @@ module AdminDashboard
 
     test 'emails executive directors when global urgent dashboard items exist' do
       staff = users(:one)
-      train_staff(staff, MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+      train_staff(staff)
       AccessController.create!(
         name: 'Front Door',
         hostname: 'front-door.local',
@@ -55,7 +55,7 @@ module AdminDashboard
 
     test 'queues urgent digest emails through Action Mailer before delivery' do
       staff = users(:one)
-      train_staff(staff, MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+      train_staff(staff)
       AccessController.create!(
         name: 'Back Door',
         hostname: 'back-door.local',
@@ -72,8 +72,8 @@ module AdminDashboard
     test 'uses each director unread messages as recipient-specific urgent items' do
       staff_with_message = users(:one)
       staff_without_message = users(:two)
-      train_staff(staff_with_message, MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
-      train_staff(staff_without_message, MembershipApplication::ASSOCIATE_EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+      train_staff(staff_with_message)
+      train_staff(staff_without_message)
       Message.create!(
         sender: staff_without_message,
         recipient: staff_with_message,
@@ -94,7 +94,7 @@ module AdminDashboard
     end
 
     test 'does not email directors when there are no urgent dashboard items' do
-      train_staff(users(:one), MembershipApplication::EXECUTIVE_DIRECTOR_TRAINING_TOPIC_NAME)
+      train_staff(users(:one))
 
       assert_no_difference 'ActionMailer::Base.deliveries.size' do
         perform_enqueued_jobs only: ActionMailer::MailDeliveryJob do
@@ -125,9 +125,9 @@ module AdminDashboard
       MailerHealthCheck.define_singleton_method(:call, @original_mailer_health_check)
     end
 
-    def train_staff(user, topic_name)
-      topic = TrainingTopic.find_or_create_by!(name: topic_name)
-      Training.create!(trainee: user, training_topic: topic, trained_at: Time.current)
+    # Reviewers are whoever holds applications.review through a role on a topic they hold.
+    def train_staff(user)
+      grant_privileges(user, 'applications.review')
     end
   end
 end

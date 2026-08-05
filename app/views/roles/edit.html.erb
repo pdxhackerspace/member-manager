@@ -1,0 +1,27 @@
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0"><%= @role.name %></h1>
+    <div class="text-13 text-secondary mt-1">
+      <span class="text-body"><%= @role.privileges.size %></span> privileges ·
+      attached to <span class="text-body"><%= @role.topic_roles.size %></span> topics
+    </div>
+  </div>
+  <%= link_to 'Back to roles', roles_path, class: 'btn btn-outline-secondary btn-sm' %>
+</div>
+
+<% if @role.topic_roles.any? %>
+  <div class="mb-4">
+    <h2 class="h-section-label mb-2">Conferred by</h2>
+    <div class="text-13">
+      <% @role.topic_roles.each do |topic_role| %>
+        <div>
+          <%= link_to topic_role.training_topic.name, edit_training_topic_path(topic_role.training_topic),
+                class: 'text-body' %>
+          <span class="text-secondary">· <%= topic_role.member_source_label.downcase %></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<%= render 'form', role: @role, url: role_path(@role), submit_label: 'Save role' %>

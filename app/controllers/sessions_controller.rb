@@ -37,7 +37,9 @@ class SessionsController < ApplicationController
       session[:user_id] = user.id
       redirect_to root_path, notice: "Signed in locally as #{user.display_name}."
     else
-      flash.now[:alert] = 'Invalid email or password.'
+      # Rendered beside the sign-in form rather than as a page-level flash, which
+      # lands far above the form and reads as no response at all.
+      @login_error = 'Invalid email or password.'
       render :new, status: :unprocessable_content
     end
   end

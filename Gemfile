@@ -42,7 +42,8 @@ gem 'omniauth-rails_csrf_protection'
 gem 'jbuilder'
 
 # Use Redis adapter to run Action Cable in production
-gem 'redis', '>= 4.0.1'
+# Stay below 6.0 — it switches to RESP3 by default, changing reply types
+gem 'redis', '>= 4.0.1', '< 6.0'
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -65,9 +66,9 @@ gem 'rqrcode', '~> 3.2'
 gem 'bcrypt', '~> 3.1'
 
 # Error tracking
-gem 'sentry-rails', '~> 5.0'
-gem 'sentry-ruby', '~> 5.0'
-gem 'sentry-sidekiq', '~> 5.0'
+gem 'sentry-rails', '~> 6.6'
+gem 'sentry-ruby', '~> 6.6'
+gem 'sentry-sidekiq', '~> 6.6'
 gem 'stackprof'
 
 # SSH client for Ruby scripts
@@ -80,7 +81,10 @@ gem 'tzinfo-data', platforms: %i[mswin mswin64 mingw x64_mingw jruby]
 gem 'bootsnap', require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
+# ruby-vips backs the default :vips variant processor; Active Storage requires it
+# eagerly at boot, so it must be declared even though nothing calls it directly.
 gem 'image_processing', '~> 2.0'
+gem 'ruby-vips', '~> 2.2'
 
 # csv is no longer a default gem starting in Ruby 3.4
 gem 'csv'

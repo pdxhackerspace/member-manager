@@ -1,5 +1,7 @@
-class MembershipPlansController < AdminController
-  skip_before_action :require_admin!, only: [:show]
+class MembershipPlansController < AuthenticatedController
+  # Any signed-in member can look at a plan; only plans.view_hidden reveals hidden ones.
+  before_action -> { require_privilege!(:'plans.manage') }, only: %i[index edit create update destroy]
+  before_action -> { require_privilege!(:'plans.manual_payments') }, only: %i[manual_payments mark_dues_received]
   before_action :set_membership_plan, only: %i[show edit update destroy]
 
   def index
@@ -11,7 +13,7 @@ class MembershipPlansController < AdminController
 
   def show
     other_plans = MembershipPlan.shared.where.not(id: @membership_plan.id).ordered
-    other_plans = other_plans.visible unless true_user_admin?
+    other_plans = other_plans.visible unless can?(:'plans.view_hidden')
     @other_plans = other_plans
   end
 

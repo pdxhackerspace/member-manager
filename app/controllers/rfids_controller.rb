@@ -79,23 +79,23 @@ class RfidsController < AuthenticatedController
     return false if Training.exists?(trainee: user, training_topic: topic)
     # Recording training here would confer the topic's roles, so the same no-escalation rule
     # applies as in the training controller.
-    return false unless current_user.may_confer?(topic, member_sources: %w[trained_in])
+    return false unless true_user.may_confer?(topic, member_sources: %w[trained_in])
 
     training = Training.create!(
       trainee: user,
-      trainer: current_user,
+      trainer: true_user,
       training_topic: topic,
       trained_at: Time.current
     )
 
     Journal.create!(
       user: user,
-      actor_user: current_user,
+      actor_user: true_user,
       action: 'training_added',
       changes_json: {
         'training' => {
           'topic' => topic.name,
-          'trainer' => current_user.display_name,
+          'trainer' => true_user.display_name,
           'trained_at' => training.trained_at.iso8601
         }
       },

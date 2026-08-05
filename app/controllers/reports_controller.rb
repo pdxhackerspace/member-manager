@@ -91,6 +91,9 @@ class ReportsController < AdminController
     # Active members with no email
     prepare_active_no_email(limit: LIMIT)
 
+    # Active members with no linked Slack account
+    prepare_active_no_slack(limit: LIMIT)
+
     # Prepare chart data
     prepare_chart_data
   end
@@ -264,6 +267,15 @@ class ReportsController < AdminController
                 .ordered_by_display_name
     @active_no_email_count = scope.count
     @active_no_email = limit ? scope.limit(limit) : scope
+  end
+
+  def prepare_active_no_slack(limit: nil)
+    scope = User.where(active: true)
+                .non_service_accounts
+                .where.missing(:slack_user)
+                .order(SLACK_JOIN_ORDER)
+    @active_no_slack_count = scope.count
+    @active_no_slack = limit ? scope.limit(limit) : scope
   end
 
   def prepare_chart_data
@@ -484,6 +496,11 @@ class ReportsController < AdminController
       prepare_active_no_email
       @title = 'Active Members With No Email'
       render 'reports/active_no_email_full'
+      nil
+    when 'active-no-slack'
+      prepare_active_no_slack
+      @title = 'Active Members With No Slack Account'
+      render 'reports/active_no_slack_full'
       nil
     else
       redirect_to reports_path, alert: 'Invalid report type.'

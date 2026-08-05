@@ -1,8 +1,10 @@
 class MembershipPlansController < AuthenticatedController
-  # Any signed-in member can look at a plan; only plans.view_hidden reveals hidden ones.
+  # Any signed-in member can look at a shared plan on offer; hidden and personal plans need
+  # either plans.view_hidden or membership of the plan itself.
   before_action -> { require_privilege!(:'plans.manage') }, only: %i[index edit create update destroy]
   before_action -> { require_privilege!(:'plans.manual_payments') }, only: %i[manual_payments mark_dues_received]
   before_action :set_membership_plan, only: %i[show edit update destroy]
+  before_action :require_plan_readable!, only: %i[show]
 
   def index
     @membership_plans = MembershipPlan.shared.ordered.includes(:users)
@@ -128,6 +130,23 @@ class MembershipPlansController < AuthenticatedController
 
   def set_membership_plan
     @membership_plan = MembershipPlan.find(params[:id])
+  end
+
+  # Hidden plans are not browsable by id, and neither are personal plans, which the model
+  # always forces hidden. A member may still open a plan they are actually on, so a
+  # grandfathered plan withdrawn from signup stays reachable from the member's own profile.
+  def require_plan_readable!
+    return if can?(:'plans.view_hidden')
+    return if @membership_plan.visible? && !@membership_plan.personal?
+    return if member_on_plan?(@membership_plan)
+
+    redirect_to root_path, alert: 'That membership plan is not available.'
+  end
+
+  def member_on_plan?(plan)
+    return false unless current_user
+
+    plan.user_id == current_user.id || current_user.has_plan?(plan)
   end
 
   def membership_plan_params

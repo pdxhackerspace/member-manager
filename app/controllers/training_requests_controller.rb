@@ -64,18 +64,20 @@ class TrainingRequestsController < AuthenticatedController
     topic = @training_request.training_topic
     trainee = @training_request.user
 
+    # Closing the request here has to name the same account the recording branch does, which
+    # Training#clear_pending_training_requests takes from the trainer.
     if Training.exists?(trainee: trainee, training_topic: topic)
-      @training_request.respond!(current_user) if @training_request.pending?
+      @training_request.respond!(true_user) if @training_request.pending?
       redirect_back_or_to user_path(current_user),
                           notice: "#{trainee.display_name} is already trained in #{topic.name}."
       return
     end
 
     result = TrainingRecorder.new(
-      current_user: current_user,
+      current_user: true_user,
       training_topic: topic,
       trainee_ids: [trainee.id.to_s],
-      trainer: current_user,
+      trainer: true_user,
       trained_at: Time.current
     ).call
 
@@ -102,25 +104,27 @@ class TrainingRequestsController < AuthenticatedController
   end
 
   def authorize_responder!
-    return if current_user_admin?
+    return if true_user_admin?
     return if responder_for_request?
 
     redirect_to user_path(current_user), alert: 'You are not allowed to respond to that request.'
   end
 
+  # Asks the real signed-in account, not the impersonated one, so a session viewing as a
+  # trainer cannot answer that trainer's queue.
   def responder_for_request?
     return false unless @training_request.pending?
 
     topic_id = @training_request.training_topic_id
-    current_user.training_topics.exists?(id: topic_id) ||
-      current_user.can?(:'training.respond_requests', topic: topic_id)
+    true_user.training_topics.exists?(id: topic_id) ||
+      true_user.can?(:'training.respond_requests', topic: topic_id)
   end
 
   # Recording training from a request confers the topic's privileges, so the no-escalation
   # rule applies here just as it does in the training controller. Replying does not confer
   # anything, so edit and update are left alone.
   def require_conferral_for_mark_trained!
-    return if current_user.may_confer?(@training_request.training_topic, member_sources: %w[trained_in])
+    return if true_user.may_confer?(@training_request.training_topic, member_sources: %w[trained_in])
 
     redirect_to user_path(current_user),
                 alert: 'You cannot record training that would grant privileges you do not hold.'

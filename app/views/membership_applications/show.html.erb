@@ -152,34 +152,45 @@
   <%= render 'acceptance_votes_card', application: @application, current_acceptance_vote: @current_acceptance_vote %>
 <% end %>
 
+<%# Each verb carries its own privilege, so the buttons are offered one by one: a reviewer may
+    hold reject or park without approve, and vice versa. %>
+<% can_approve = can?(:'applications.approve') %>
+<% can_reject = can?(:'applications.reject') %>
+<% can_park = can?(:'applications.park_review') && @application.submitted? %>
+<% can_decide = can_approve || can_reject || can_park %>
+
 <% unless @application.approved? || @application.rejected? %>
   <div id="review-section" class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-body-secondary">
       <h5 class="mb-0">Final Decision</h5>
     </div>
     <div class="card-body">
-      <% if true_user.can_finalize_membership_application? %>
+      <% if can_decide %>
         <div class="mb-3">
           <label for="admin_notes" class="form-label">Notes for the record <span class="text-muted small">(optional)</span></label>
           <textarea id="admin_notes" class="form-control" rows="3"
                     placeholder="Reason for approval or rejection…"><%= @application.admin_notes %></textarea>
         </div>
         <div class="d-flex flex-wrap gap-2">
-          <%= form_with url: approve_membership_application_path(@application), method: :post, local: true do %>
-            <input type="hidden" name="admin_notes" id="approve_admin_notes" value="">
-            <button type="submit" class="btn btn-success review-btn"
-                    data-turbo-confirm="Approve this application?">
-              <i class="bi bi-check-circle me-1"></i> Approve
-            </button>
+          <% if can_approve %>
+            <%= form_with url: approve_membership_application_path(@application), method: :post, local: true do %>
+              <input type="hidden" name="admin_notes" id="approve_admin_notes" value="">
+              <button type="submit" class="btn btn-success review-btn"
+                      data-turbo-confirm="Approve this application?">
+                <i class="bi bi-check-circle me-1"></i> Approve
+              </button>
+            <% end %>
           <% end %>
-          <%= form_with url: reject_membership_application_path(@application), method: :post, local: true do %>
-            <input type="hidden" name="admin_notes" id="reject_admin_notes" value="">
-            <button type="submit" class="btn btn-danger review-btn"
-                    data-turbo-confirm="Reject this application?">
-              <i class="bi bi-x-circle me-1"></i> Reject
-            </button>
+          <% if can_reject %>
+            <%= form_with url: reject_membership_application_path(@application), method: :post, local: true do %>
+              <input type="hidden" name="admin_notes" id="reject_admin_notes" value="">
+              <button type="submit" class="btn btn-danger review-btn"
+                      data-turbo-confirm="Reject this application?">
+                <i class="bi bi-x-circle me-1"></i> Reject
+              </button>
+            <% end %>
           <% end %>
-          <% if @application.submitted? %>
+          <% if can_park %>
             <%= form_with url: delay_for_review_membership_application_path(@application), method: :post, local: true do %>
               <input type="hidden" name="admin_notes" id="delay_admin_notes" value="">
               <button type="submit" class="btn btn-outline-warning review-btn"
@@ -203,14 +214,14 @@
         <% end %>
       <% else %>
         <p class="text-muted mb-0">
-          Only members trained as <strong>Executive Director</strong> may approve, reject, or park applications.
+          You do not have permission to approve, reject, or park applications.
           Use admin acceptance votes above to record your recommendation.
         </p>
       <% end %>
     </div>
   </div>
 
-  <% if true_user.can_finalize_membership_application? %>
+  <% if can_decide %>
     <script>
       (function() {
         function initReviewForm() {

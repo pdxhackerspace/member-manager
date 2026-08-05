@@ -30,7 +30,7 @@ class TrainingsController < AuthenticatedController
     trainer = selected_trainer_for_recording
     trained_at = parsed_trained_at
     result = TrainingRecorder.new(
-      current_user: current_user,
+      current_user: true_user,
       training_topic: training_topic,
       trainee_ids: trainee_ids,
       trainer: trainer,
@@ -68,10 +68,10 @@ class TrainingsController < AuthenticatedController
     end
 
     result = TrainingRecorder.new(
-      current_user: current_user,
+      current_user: true_user,
       training_topic: @training_topic,
       trainee_ids: [@trainee.id.to_s],
-      trainer: current_user,
+      trainer: true_user,
       trained_at: Time.current
     ).call
 
@@ -98,12 +98,12 @@ class TrainingsController < AuthenticatedController
       # Create journal entry for the trainee
       Journal.create!(
         user: @trainee,
-        actor_user: current_user,
+        actor_user: true_user,
         action: 'training_removed',
         changes_json: {
           'training' => {
             'topic' => @training_topic.name,
-            'removed_by' => current_user.display_name,
+            'removed_by' => true_user.display_name,
             'removed_at' => Time.current.iso8601
           }
         },
@@ -122,11 +122,15 @@ class TrainingsController < AuthenticatedController
 
   # Directors who hold training.grant_trainer reach this page to appoint trainers even when
   # they train nothing themselves, so trainer capability alone is not the only way in.
+  #
+  # Everything on this page asks true_user, never current_user: recording training and
+  # appointing trainers hand out privileges, and an impersonated session must do that on the
+  # real account's authority rather than the target's.
   def require_trainer_or_admin
-    return if current_user_admin?
-    return if current_user.trainer_capabilities.any?
-    return if current_user.can_for_any_topic?(:'training.record')
-    return if current_user.can?(:'training.grant_trainer')
+    return if true_user_admin?
+    return if true_user.trainer_capabilities.any?
+    return if true_user.can_for_any_topic?(:'training.record')
+    return if true_user.can?(:'training.grant_trainer')
 
     redirect_to root_path, alert: "You don't have permission to train members."
   end
@@ -143,17 +147,17 @@ class TrainingsController < AuthenticatedController
     redirect_to record_training_path, alert: 'Training topic not found.'
   end
 
-  def trainable_topics_for_current_user
-    return TrainingTopic.order(:name) if current_user_admin?
+  def trainable_topics_for_actor
+    return TrainingTopic.order(:name) if true_user_admin?
 
-    topic_ids = current_user.training_topics.ids | current_user.topics_with_privilege(:'training.record').ids
+    topic_ids = true_user.training_topics.ids | true_user.topics_with_privilege(:'training.record').ids
     TrainingTopic.where(id: topic_ids).order(:name)
   end
 
   def can_train_topic?(topic)
-    return true if current_user_admin?
+    return true if true_user_admin?
 
-    current_user&.may_record_training?(topic) || false
+    true_user&.may_record_training?(topic) || false
   end
 
   # Deleting a training here takes away the topic's privileges, the same operation the topic
@@ -164,12 +168,12 @@ class TrainingsController < AuthenticatedController
   end
 
   def prepare_record_training_form
-    @trainable_topics = trainable_topics_for_current_user
+    @trainable_topics = trainable_topics_for_actor
     @trainer_options = trainer_options_for_recording
     @recording_users = recording_user_options
     @initial_trainee_ids = initial_trainee_ids_from_params
     @initial_topic_id = params[:topic_id].presence
-    return unless current_user_admin?
+    return unless true_user_admin?
 
     @trainer_manage_user = User.find_by(id: params[:trainer_user_id]) if params[:trainer_user_id].present?
     @all_training_topics = TrainingTopic.order(:name)
@@ -185,10 +189,10 @@ class TrainingsController < AuthenticatedController
   end
 
   def trainer_options_for_recording
-    return [current_user] unless current_user_admin?
+    return [true_user] unless true_user_admin?
 
     trainer_ids = TrainerCapability.distinct.pluck(:user_id)
-    trainer_ids << current_user.id
+    trainer_ids << true_user.id
     User.where(id: trainer_ids.uniq).ordered_by_display_name
   end
 
@@ -225,9 +229,9 @@ class TrainingsController < AuthenticatedController
   end
 
   def selected_trainer_for_recording
-    return current_user unless current_user_admin?
+    return true_user unless true_user_admin?
 
-    trainer_options_for_recording.find { |trainer| trainer.id.to_s == params[:trainer_id].to_s } || current_user
+    trainer_options_for_recording.find { |trainer| trainer.id.to_s == params[:trainer_id].to_s } || true_user
   end
 
   def parsed_trained_at

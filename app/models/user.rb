@@ -283,12 +283,6 @@ class User < ApplicationRecord
     where(id: trained).or(where(id: trainers))
   end
 
-  # Approve, reject, or park membership applications. Conferred by any topic carrying a role
-  # with applications.approve — typically an Executive Director topic.
-  def can_finalize_membership_application?
-    can?(:'applications.approve')
-  end
-
   # Get training topics with links that the user is trained in
   # Returns topics ordered alphabetically by name, only those with at least one link
   def training_topics_with_links

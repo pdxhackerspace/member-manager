@@ -104,6 +104,39 @@ class ImpersonationPrivilegesTest < ActionDispatch::IntegrationTest
     assert_equal admin, request.responded_by
   end
 
+  # Replying is reachable while impersonating only because the gate resolves against the real
+  # account, so the reply has to carry that account too. Otherwise the member being viewed
+  # appears to answer a queue they were never part of.
+  test 'an administrator impersonating a member replies as themselves' do
+    admin = sign_in_as_admin
+    request = TrainingRequest.create!(user: @trainee, training_topic: @topic,
+                                      share_contact_info: true, status: 'pending')
+    post impersonate_user_path(@target.id)
+
+    patch training_request_path(request), params: {
+      training_request: { response_body: 'Happy to help — find me on Tuesday.' }
+    }
+
+    assert_predicate request.reload, :responded?
+    assert_equal admin, request.responded_by
+    assert_equal admin, Message.order(:created_at).last.sender
+  end
+
+  test 'a session impersonating a trainer cannot reply to that trainer\'s queue' do
+    TrainerCapability.create!(user: @target, training_topic: @topic)
+    request = TrainingRequest.create!(user: @trainee, training_topic: @topic,
+                                      share_contact_info: true, status: 'pending')
+    impersonate_without_admin(@target)
+
+    assert_no_difference 'Message.count' do
+      patch training_request_path(request), params: {
+        training_request: { response_body: 'Answering a queue that is not mine.' }
+      }
+    end
+
+    assert_predicate request.reload, :pending?
+  end
+
   test 'closing an already trained request names the account that acted' do
     admin = sign_in_as_admin
     Training.create!(trainee: @trainee, trainer: @target, training_topic: @topic, trained_at: 1.day.ago)

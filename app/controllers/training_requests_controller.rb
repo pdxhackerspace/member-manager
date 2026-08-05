@@ -42,7 +42,10 @@ class TrainingRequestsController < AuthenticatedController
       return
     end
 
-    message = current_user.sent_messages.build(
+    # Authority to answer came from the real account, so the reply is signed by it too. An
+    # impersonating session that used current_user here would post the member being viewed as
+    # the author of an answer to a queue they may have no part in.
+    message = true_user.sent_messages.build(
       recipient: @training_request.user,
       subject: "Training request response: #{@training_request.training_topic.name}",
       body: body
@@ -50,7 +53,7 @@ class TrainingRequestsController < AuthenticatedController
 
     if message.save
       MemberMailer.message_received(message).deliver_later
-      @training_request.respond!(current_user)
+      @training_request.respond!(true_user)
       redirect_to user_path(current_user), notice: 'Response sent to member.'
     else
       redirect_to edit_training_request_path(@training_request), alert: message.errors.full_messages.to_sentence

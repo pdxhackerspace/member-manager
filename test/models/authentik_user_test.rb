@@ -125,6 +125,44 @@ class AuthentikUserTest < ActiveSupport::TestCase
     assert_includes AuthentikUser.discrepancy_candidates, authentik_user
   end
 
+  test 'a pair with a digest on one side and ciphertext on the other is still reported' do
+    authentik_user, user = build_pair(authentik_email: 'left@example.com', user_email: 'right@example.com')
+    user.update_columns(email_lookup_digest: nil)
+
+    assert_includes AuthentikUser.discrepancy_candidates, authentik_user.reload
+    assert_includes AuthentikUser.with_discrepancies, authentik_user
+  end
+
+  test 'names differing only by a tab agree between the scope and the per-record check' do
+    authentik_user, = build_pair(authentik_email: 'tab@example.com', user_email: 'tab@example.com')
+    authentik_user.update!(full_name: "Ada Lovelace\t")
+
+    assert_equal authentik_user.has_discrepancies?,
+                 AuthentikUser.with_discrepancies.exists?(id: authentik_user.id)
+  end
+
+  # Postgres LOWER and Ruby downcase part company on some Unicode: LOWER('İ') is 'i',
+  # while 'İ'.downcase is 'i' followed by a combining dot. Whichever way that falls, the
+  # count and the filter have to say what the profile page says.
+  test 'unicode case folding cannot make the scope and the per-record check disagree' do
+    [
+      %w[İnci İnci],
+      %w[İnci inci],
+      %w[İnci i̇nci],
+      %w[Inci inci]
+    ].each_with_index do |(authentik_name, user_name), index|
+      authentik_user, user = build_pair(
+        authentik_email: "fold#{index}@example.com", user_email: "fold#{index}@example.com"
+      )
+      user.update!(full_name: user_name)
+      authentik_user.update!(full_name: authentik_name)
+
+      assert_equal authentik_user.has_discrepancies?,
+                   AuthentikUser.with_discrepancies.exists?(id: authentik_user.id),
+                   "scope disagreed with #discrepancies for #{authentik_name.inspect} vs #{user_name.inspect}"
+    end
+  end
+
   test 'an unlinked authentik user is never reported' do
     authentik_user = AuthentikUser.create!(authentik_id: 'ak-unlinked', email: 'nobody@example.com')
 

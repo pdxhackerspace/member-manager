@@ -2,6 +2,19 @@ class DashboardController < AdminController
   include MemberHomeTabs
   include TrainingHistoryData
 
+  # Dashboard housekeeping item => the report it links to. Adding a report-backed item
+  # means adding a line here rather than reimplementing the report's scope.
+  REPORT_BACKED_COUNTS = {
+    lapsed_with_access: 'lapsed-with-access',
+    legacy_recent_access: 'legacy-recent-access',
+    lapsed_with_slack: 'lapsed-with-slack',
+    legacy_with_slack: 'legacy-with-slack',
+    lapsed_active_slack: 'lapsed-active-slack',
+    legacy_active_slack: 'legacy-active-slack',
+    slack_inactive: 'slack-inactive',
+    no_email: 'no-email'
+  }.freeze
+
   def index
     @home_user = true_user || current_user
     @active_tab = params[:tab]&.to_sym || :admin_dashboard
@@ -80,75 +93,25 @@ class DashboardController < AdminController
     # Important: Manual / cash / personal payment plans — overdue, due today, or due within configured "soon" window
     @manual_payments_due_count = manual_payments_due_member_count
 
-    # Housekeeping: Lapsed members with access after lapse
-    lapsed_users = User.where(dues_status: 'lapsed')
-                       .where.not(membership_status: %w[banned deceased])
-                       .non_service_accounts
-                       .non_legacy
-                       .includes(:access_logs)
-    @lapsed_with_access_count = 0
-    lapsed_users.find_each do |user|
-      last_payment = user.most_recent_payment_date
-      next if last_payment.blank?
-
-      @lapsed_with_access_count += 1 if user.access_logs.exists?(['logged_at > ?', last_payment.end_of_day])
-    end
-
-    # Housekeeping: Legacy members with recent access (last year)
-    @legacy_recent_access_count = User.where(legacy: true)
-                                      .non_service_accounts
-                                      .joins(:access_logs)
-                                      .where(access_logs: { logged_at: 1.year.ago.. })
-                                      .distinct
-                                      .count
-
-    # Housekeeping: Lapsed members with Slack accounts
-    @lapsed_with_slack_count = User.where(dues_status: 'lapsed')
-                                   .where.not(membership_status: %w[banned deceased])
-                                   .non_service_accounts
-                                   .non_legacy
-                                   .joins(:slack_user)
-                                   .count
-
-    # Housekeeping: Legacy members with Slack accounts
-    @legacy_with_slack_count = User.where(legacy: true)
-                                   .non_service_accounts
-                                   .joins(:slack_user)
-                                   .count
-
-    # Housekeeping: Lapsed members still active on Slack
-    @lapsed_active_slack_count = User.where(dues_status: 'lapsed')
-                                     .where.not(membership_status: %w[banned deceased])
-                                     .non_service_accounts
-                                     .non_legacy
-                                     .joins(:slack_user)
-                                     .where.not(slack_users: { last_active_at: nil })
-                                     .where(
-                                       'slack_users.last_active_at > ' \
-                                       'COALESCE(users.membership_ended_date, users.created_at)'
-                                     )
-                                     .count
-
-    # Housekeeping: Legacy members still active on Slack
-    @legacy_active_slack_count = User.where(legacy: true)
-                                     .non_service_accounts
-                                     .joins(:slack_user)
-                                     .where.not(slack_users: { last_active_at: nil })
-                                     .count
-
-    # Housekeeping: Slack users inactive for over a year
-    @slack_inactive_count = SlackUser.human.inactive.count
-
-    # Housekeeping: Active members with no email
-    @active_no_email_count = User.where(active: true)
-                                 .where(email: [nil, ''])
-                                 .count
+    # Housekeeping items that link straight through to a report. Both the number here
+    # and the total on the destination page come from the same catalog entry, so they
+    # cannot drift apart — and the report queries are set-based, where the copies these
+    # replaced walked every matching member one at a time.
+    assign_report_counts
 
     @ai_ollama_unconfigured = @ai_ollama_profiles.any? { |p| p.enabled? && p.effective_base_url.blank? }
 
     @emergency_active_override_count = User.non_service_accounts.where(emergency_active_override: true).count
 
     @dashboard_attention_items = build_dashboard_attention_items
+  end
+
+  def assign_report_counts
+    @report_counts = REPORT_BACKED_COUNTS.transform_values do |key|
+      Reports::Catalog.find(key).build_query.count
+    end
+
+    @report_counts.each { |name, count| instance_variable_set(:"@#{name}_count", count) }
   end
 
   def assign_urgent_attention_items
@@ -200,7 +163,7 @@ class DashboardController < AdminController
       { tier: :housekeeping, id: :lapsed_active_slack, ok: @lapsed_active_slack_count.zero? },
       { tier: :housekeeping, id: :legacy_active_slack, ok: @legacy_active_slack_count.zero? },
       { tier: :housekeeping, id: :slack_inactive, ok: @slack_inactive_count.zero? },
-      { tier: :housekeeping, id: :active_no_email, ok: @active_no_email_count.zero? }
+      { tier: :housekeeping, id: :no_email, ok: @no_email_count.zero? }
     ].freeze
   end
 

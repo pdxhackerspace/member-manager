@@ -95,7 +95,7 @@ class PaypalPaymentsController < AdminController
         @all_users = User.ordered_by_display_name
 
         respond_to do |format|
-          format.html { redirect_to reports_path(tab: 'unmatched-paypal'), notice: "Linked to #{user.display_name}." }
+          format.html { redirect_to paypal_payments_path(linked: 'no'), notice: "Linked to #{user.display_name}." }
           format.turbo_stream
         end
       else
@@ -108,7 +108,7 @@ class PaypalPaymentsController < AdminController
                     notice: "Linked to #{user.display_name}.#{extra_msg}"
       end
     elsif params[:from_reports] == 'true'
-      redirect_to reports_path(tab: 'unmatched-paypal'), alert: 'Cannot link: payment has no payer ID.'
+      redirect_to paypal_payments_path(linked: 'no'), alert: 'Cannot link: payment has no payer ID.'
     else
       redirect_to paypal_payment_path(@payment), alert: 'Cannot link: payment has no payer ID.'
     end

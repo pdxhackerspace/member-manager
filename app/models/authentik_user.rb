@@ -17,30 +17,50 @@ class AuthentikUser < ApplicationRecord
   scope :unlinked, -> { where(user_id: nil) }
   scope :active, -> { where(is_active: true) }
   scope :inactive, -> { where(is_active: false) }
-  # Narrows to the pairs that might differ. SQL cannot decrypt, so two addresses are only
-  # ever proven equal here by matching lookup digests, or by matching raw columns for rows
-  # written before the backfill that still hold plaintext. A pair that satisfies neither
-  # test is kept, which means this can over-report — a digest on one side and plaintext on
-  # the other describe the same address without matching either way — but it never drops a
-  # pair that genuinely differs.
+  # `String#strip` removes tabs and newlines as well as spaces, so SQL trims the same set.
+  # It deliberately does not fold case: Postgres LOWER and Ruby downcase disagree on some
+  # Unicode — LOWER('İ') is 'i' where 'İ'.downcase is 'i̇' — and a SQL test that merged
+  # more than Ruby does would drop a pair #discrepancies calls different. Comparing
+  # case-sensitively can only add candidates, and Ruby throws those back out.
+  STRIPPED_WHITESPACE = "E' \\t\\n\\v\\f\\r'".freeze
+
+  class << self
+    # SQL cannot decrypt, so it can only prove an address pair equal two ways: matching
+    # lookup digests, or matching raw columns for rows written before the backfill that
+    # still hold plaintext. The digest is HMAC over the same strip-and-downcase
+    # #normalize_value applies, so digests agreeing really does mean the addresses do.
+    def email_proven_equal
+      '(authentik_users.email_lookup_digest IS NOT NULL ' \
+        'AND authentik_users.email_lookup_digest IS NOT DISTINCT FROM users.email_lookup_digest) ' \
+        "OR #{trimmed('authentik_users.email')} = #{trimmed('users.email')}"
+    end
+
+    def name_or_username_differs
+      "#{trimmed('authentik_users.full_name')} != #{trimmed('users.full_name')} " \
+        "OR #{trimmed('authentik_users.username')} != #{trimmed('users.username')}"
+    end
+
+    def trimmed(column)
+      "BTRIM(COALESCE(#{column}, ''), #{STRIPPED_WHITESPACE})"
+    end
+  end
+
+  # Every pair that might differ. It over-reports — a digest on one side and ciphertext
+  # on the other describe the same address without matching either way, and casing alone
+  # lands here too — but it never drops a pair that genuinely differs.
   scope :discrepancy_candidates, lambda {
-    joins(:user).includes(:user).where(
-      'NOT ((authentik_users.email_lookup_digest IS NOT NULL ' \
-      'AND authentik_users.email_lookup_digest IS NOT DISTINCT FROM users.email_lookup_digest) ' \
-      "OR LOWER(TRIM(COALESCE(authentik_users.email, ''))) = LOWER(TRIM(COALESCE(users.email, '')))) " \
-      "OR LOWER(TRIM(COALESCE(authentik_users.full_name, ''))) != " \
-      "LOWER(TRIM(COALESCE(users.full_name, ''))) " \
-      "OR LOWER(TRIM(COALESCE(authentik_users.username, ''))) != " \
-      "LOWER(TRIM(COALESCE(users.username, '')))"
-    )
+    joins(:user).includes(:user).where("NOT (#{email_proven_equal}) OR #{name_or_username_differs}")
   }
 
-  # Every candidate is confirmed by #discrepancies, so the filter, the count and the row
-  # detail cannot disagree whatever state the digest columns are in. Narrowing in the
-  # database first keeps that from costing a decrypt of every linked account.
-  scope :with_discrepancies, lambda {
-    where(id: discrepancy_candidates.select(&:has_discrepancies?).map(&:id))
-  }
+  # #discrepancies is the only thing that decides, so the filter, the count and the row
+  # detail cannot disagree. SQL's job is purely to keep this from decrypting an address
+  # for every linked account; it is never allowed to confirm a pair on its own, because
+  # its idea of equality is not Ruby's.
+  scope :with_discrepancies, -> { where(id: discrepancy_ids) }
+
+  def self.discrepancy_ids
+    discrepancy_candidates.select(&:has_discrepancies?).map(&:id)
+  end
 
   # Returns an array of field discrepancies between this AuthentikUser and its linked User
   def discrepancies

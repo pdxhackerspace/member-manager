@@ -14,7 +14,10 @@ class AuthentikUsersController < AdminController
     @unlinked_count = AuthentikUser.unlinked.count
     @active_count = AuthentikUser.active.count
     @inactive_count = AuthentikUser.inactive.count
-    @discrepancy_count = AuthentikUser.with_discrepancies.count
+    # Resolved once: the count and the filter below are the same set, and working it out
+    # involves decrypting whichever pairs SQL could not settle.
+    discrepancy_ids = AuthentikUser.discrepancy_ids
+    @discrepancy_count = discrepancy_ids.size
 
     # Filter options
     case params[:filter]
@@ -23,7 +26,7 @@ class AuthentikUsersController < AdminController
     when 'linked'
       @authentik_users = @authentik_users.linked
     when 'discrepancies'
-      @authentik_users = @authentik_users.with_discrepancies
+      @authentik_users = @authentik_users.where(id: discrepancy_ids)
     when 'active'
       @authentik_users = @authentik_users.active
     when 'inactive'

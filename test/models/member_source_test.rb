@@ -103,4 +103,72 @@ class MemberSourceTest < ActiveSupport::TestCase
     assert_equal MemberSource::MEMBER_ZONE_KEY, legacy.key
     assert_equal 'Member Zone', legacy.name
   end
+
+  test 'a disabled pre-rename member_zone source is read as disabled' do
+    as_legacy_member_zone_source(enabled: false)
+
+    assert_not MemberSource.enabled?(MemberSource::MEMBER_ZONE_KEY)
+    assert_not MemberSource.enabled?(MemberSource::MEMBER_ZONE_LEGACY_KEY)
+  end
+
+  test 'an enabled pre-rename member_zone source is read as enabled' do
+    as_legacy_member_zone_source(enabled: true)
+
+    assert MemberSource.enabled?(MemberSource::MEMBER_ZONE_KEY)
+  end
+
+  test 'the canonical member_zone row wins when both spellings exist' do
+    as_legacy_member_zone_source(enabled: true)
+    MemberSource.create!(key: MemberSource::MEMBER_ZONE_KEY, name: 'Member Zone',
+                         display_order: 2, enabled: false)
+
+    assert_not MemberSource.enabled?(MemberSource::MEMBER_ZONE_KEY)
+  end
+
+  test 'for does not add a second row when only the pre-rename key exists' do
+    as_legacy_member_zone_source(enabled: true)
+
+    assert_no_difference -> { MemberSource.count } do
+      assert_equal MemberSource::MEMBER_ZONE_LEGACY_KEY, MemberSource.for(MemberSource::MEMBER_ZONE_KEY).key
+    end
+  end
+
+  # Every one of these goes through update!, which the key validation would reject if it
+  # did not make room for rows that predate the rename.
+  test 'a pre-rename row still refreshes local statistics' do
+    source = as_legacy_member_zone_source(enabled: true)
+    source.update_column(:entry_count, 0)
+
+    source.refresh_statistics!
+
+    assert_equal User.count, source.reload.entry_count
+  end
+
+  test 'a pre-rename row still records a sync' do
+    source = as_legacy_member_zone_source(enabled: true)
+
+    source.record_sync!
+
+    assert_equal 'healthy', source.reload.sync_status
+  end
+
+  test 'a new source cannot be created under the pre-rename key' do
+    MemberSource.where(key: [MemberSource::MEMBER_ZONE_KEY, MemberSource::MEMBER_ZONE_LEGACY_KEY]).delete_all
+    source = MemberSource.new(key: MemberSource::MEMBER_ZONE_LEGACY_KEY, name: 'Member Manager')
+
+    assert_not source.valid?
+    assert_includes source.errors[:key], 'is not included in the list'
+  end
+
+  private
+
+  # Replaces the member_zone fixture with a row spelled the pre-rename way, as a database
+  # written before the rename would have it.
+  def as_legacy_member_zone_source(enabled:)
+    MemberSource.where(key: [MemberSource::MEMBER_ZONE_KEY, MemberSource::MEMBER_ZONE_LEGACY_KEY]).delete_all
+    source = MemberSource.create!(key: MemberSource::MEMBER_ZONE_KEY, name: 'Member Manager',
+                                  display_order: 2, enabled: enabled)
+    source.update_column(:key, MemberSource::MEMBER_ZONE_LEGACY_KEY)
+    source.reload
+  end
 end

@@ -1,72 +1,58 @@
+<%# Members plus the inline actions that resolve whatever the report is flagging. %>
+<% show_payment_type = local_assigns.fetch(:show_payment_type, false) %>
+<% show_dues_status = local_assigns.fetch(:show_dues_status, false) %>
+<% show_last_payment = local_assigns.fetch(:show_last_payment, false) %>
 <div class="table-responsive">
-  <table class="table mb-0 align-middle">
-    <thead class="bg-body-tertiary">
+  <table class="table table-compact mb-0 align-middle">
+    <thead>
       <tr>
         <th scope="col" style="width: 48px;"></th>
         <th scope="col">Name</th>
         <th scope="col">Email</th>
         <th scope="col">Status</th>
-        <% if show_payment_type %>
-          <th scope="col">Payment Type</th>
-        <% end %>
-        <% if show_dues_status %>
-          <th scope="col">Dues Status</th>
-        <% end %>
-        <% if show_last_payment %>
-          <th scope="col">Last Payment</th>
-        <% end %>
+        <% if show_payment_type %><th scope="col">Payment type</th><% end %>
+        <% if show_dues_status %><th scope="col">Dues status</th><% end %>
+        <% if show_last_payment %><th scope="col">Last payment</th><% end %>
         <th scope="col">Actions</th>
       </tr>
     </thead>
     <tbody>
-      <% users.each do |user| %>
+      <% rows.each do |user| %>
         <tr>
-          <td>
-            <%= render 'shared/user_avatar', user: user %>
-          </td>
-          <td class="fw-semibold">
+          <td><%= render 'shared/user_avatar', user: user %></td>
+          <td class="fw-medium">
             <%= link_to user.display_name, user_path(user), class: "text-decoration-none" %>
           </td>
           <td>
             <% if user.email.present? %>
               <%= mail_to user.email %>
             <% else %>
-              <span class="text-muted fst-italic">Not provided</span>
+              <span class="text-secondary">—</span>
             <% end %>
           </td>
           <td>
             <span class="badge text-bg-<%= membership_status_badge_class(user.membership_status) %>">
               <%= membership_status_label(user.membership_status) %>
             </span>
-            <% if user.active? %>
-              <span class="badge text-bg-success ms-1">Active</span>
-            <% end %>
           </td>
           <% if show_payment_type %>
-            <td>
-              <span class="badge text-bg-info"><%= user.payment_type.humanize %></span>
-            </td>
+            <td><%= user.payment_type.humanize %></td>
           <% end %>
           <% if show_dues_status %>
-            <td>
-              <span class="badge text-bg-<%= dues_status_badge_class(user.dues_status) %>"><%= user.dues_status.humanize %></span>
-            </td>
+            <td><%= user.dues_status.humanize %></td>
           <% end %>
           <% if show_last_payment %>
             <td>
               <% if user.last_payment_date.present? %>
                 <%= l(user.last_payment_date, format: :long) %>
               <% else %>
-                <span class="text-muted fst-italic">Never</span>
+                <span class="text-secondary">Never</span>
               <% end %>
             </td>
           <% end %>
-          <td>
-            <%= render partial: 'user_actions', locals: { user: user, anchor: anchor, from_view_all: local_assigns[:from_view_all] || false } %>
-          </td>
+          <td><%= render 'user_actions', user: user, anchor: report.key %></td>
         </tr>
       <% end %>
     </tbody>
   </table>
 </div>
-

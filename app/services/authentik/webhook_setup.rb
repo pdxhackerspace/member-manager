@@ -5,6 +5,11 @@ module Authentik
     GROUP_POLICY_NAME = 'MemberZone Group Events'.freeze
     RULE_NAME = 'MemberZone Notifications'.freeze
 
+    LEGACY_TRANSPORT_NAME = 'MemberManager Webhook'.freeze
+    LEGACY_USER_POLICY_NAME = 'MemberManager User Events'.freeze
+    LEGACY_GROUP_POLICY_NAME = 'MemberManager Group Events'.freeze
+    LEGACY_RULE_NAME = 'MemberManager Notifications'.freeze
+
     attr_reader :client, :webhook_url, :webhook_secret, :admin_group_id
 
     def initialize(
@@ -61,8 +66,8 @@ module Authentik
 
     def status
       transport = find_transport
-      user_policy = find_policy(USER_POLICY_NAME)
-      group_policy = find_policy(GROUP_POLICY_NAME)
+      user_policy = find_user_policy
+      group_policy = find_group_policy
       rule = find_rule
 
       {
@@ -84,7 +89,7 @@ module Authentik
       return nil if base_url.blank?
 
       # Use the configured slug from IncomingWebhook if available
-      webhook = IncomingWebhook.find_by(type: 'authentik')
+      webhook = IncomingWebhook.find_by(webhook_type: 'authentik')
       slug = webhook&.slug || 'authentik'
 
       "#{base_url.delete_suffix('/')}/webhooks/#{slug}"
@@ -120,16 +125,26 @@ module Authentik
     end
 
     def find_transport
-      transports = client.list_notification_transports(name: TRANSPORT_NAME)
-      transports.find { |t| t['name'] == TRANSPORT_NAME }
+      adopt_named_authentik_object(
+        current_name: TRANSPORT_NAME,
+        legacy_name: LEGACY_TRANSPORT_NAME
+      ) { |name| fetch_transport_by_name(name) }
     end
 
     def delete_transport!
-      transport = find_transport
-      return unless transport
+      delete_named_authentik_objects(
+        TRANSPORT_NAME,
+        LEGACY_TRANSPORT_NAME,
+        finder: method(:fetch_transport_by_name),
+        deleter: lambda do |transport|
+          Rails.logger.info("[Authentik WebhookSetup] Deleting transport: #{transport['pk']}")
+          client.delete_notification_transport(transport['pk'])
+        end
+      )
+    end
 
-      Rails.logger.info("[Authentik WebhookSetup] Deleting transport: #{transport['pk']}")
-      client.delete_notification_transport(transport['pk'])
+    def fetch_transport_by_name(name)
+      client.list_notification_transports(name: name).find { |t| t['name'] == name }
     end
 
     def build_webhook_url
@@ -144,7 +159,7 @@ module Authentik
     # ========== Policies ==========
 
     def setup_user_policy!
-      existing = find_policy(USER_POLICY_NAME)
+      existing = find_user_policy
       if existing
         Rails.logger.info("[Authentik WebhookSetup] User policy already exists: #{existing['pk']}")
         existing
@@ -159,7 +174,7 @@ module Authentik
     end
 
     def setup_group_policy!
-      existing = find_policy(GROUP_POLICY_NAME)
+      existing = find_group_policy
       if existing
         Rails.logger.info("[Authentik WebhookSetup] Group policy already exists: #{existing['pk']}")
         existing
@@ -173,26 +188,45 @@ module Authentik
       end
     end
 
-    def find_policy(name)
-      policies = client.list_event_matcher_policies(name: name)
-      policies.find { |p| p['name'] == name }
+    def find_user_policy
+      adopt_named_authentik_object(
+        current_name: USER_POLICY_NAME,
+        legacy_name: LEGACY_USER_POLICY_NAME
+      ) { |name| fetch_policy_by_name(name) }
+    end
+
+    def find_group_policy
+      adopt_named_authentik_object(
+        current_name: GROUP_POLICY_NAME,
+        legacy_name: LEGACY_GROUP_POLICY_NAME
+      ) { |name| fetch_policy_by_name(name) }
+    end
+
+    def fetch_policy_by_name(name)
+      client.list_event_matcher_policies(name: name).find { |p| p['name'] == name }
     end
 
     def delete_policies!
-      [USER_POLICY_NAME, GROUP_POLICY_NAME].each do |policy_name|
-        policy = find_policy(policy_name)
-        next unless policy
+      [
+        [USER_POLICY_NAME, LEGACY_USER_POLICY_NAME],
+        [GROUP_POLICY_NAME, LEGACY_GROUP_POLICY_NAME]
+      ].each do |current_name, legacy_name|
+        delete_named_authentik_objects(
+          current_name,
+          legacy_name,
+          finder: method(:fetch_policy_by_name),
+          deleter: lambda do |policy|
+            bindings = client.list_policy_bindings
+            policy_bindings = bindings.select { |b| b['policy'] == policy['pk'] }
+            policy_bindings.each do |binding|
+              Rails.logger.info("[Authentik WebhookSetup] Deleting policy binding: #{binding['pk']}")
+              client.delete_policy_binding(binding['pk'])
+            end
 
-        # First delete any bindings for this policy
-        bindings = client.list_policy_bindings
-        policy_bindings = bindings.select { |b| b['policy'] == policy['pk'] }
-        policy_bindings.each do |binding|
-          Rails.logger.info("[Authentik WebhookSetup] Deleting policy binding: #{binding['pk']}")
-          client.delete_policy_binding(binding['pk'])
-        end
-
-        Rails.logger.info("[Authentik WebhookSetup] Deleting policy: #{policy['pk']}")
-        client.delete_event_matcher_policy(policy['pk'])
+            Rails.logger.info("[Authentik WebhookSetup] Deleting policy: #{policy['pk']}")
+            client.delete_event_matcher_policy(policy['pk'])
+          end
+        )
       end
     end
 
@@ -219,16 +253,71 @@ module Authentik
     end
 
     def find_rule
-      rules = client.list_notification_rules(name: RULE_NAME)
-      rules.find { |r| r['name'] == RULE_NAME }
+      adopt_named_authentik_object(
+        current_name: RULE_NAME,
+        legacy_name: LEGACY_RULE_NAME
+      ) { |name| fetch_rule_by_name(name) }
     end
 
     def delete_notification_rule!
-      rule = find_rule
-      return unless rule
+      delete_named_authentik_objects(
+        RULE_NAME,
+        LEGACY_RULE_NAME,
+        finder: method(:fetch_rule_by_name),
+        deleter: lambda do |rule|
+          Rails.logger.info("[Authentik WebhookSetup] Deleting notification rule: #{rule['pk']}")
+          client.delete_notification_rule(rule['pk'])
+        end
+      )
+    end
 
-      Rails.logger.info("[Authentik WebhookSetup] Deleting notification rule: #{rule['pk']}")
-      client.delete_notification_rule(rule['pk'])
+    def fetch_rule_by_name(name)
+      client.list_notification_rules(name: name).find { |r| r['name'] == name }
+    end
+
+    # Prefer the current name, adopt a pre-rename object by renaming it in Authentik, and
+    # leave both alone when duplicates already exist (manual merge required).
+    def adopt_named_authentik_object(current_name:, legacy_name:)
+      current = yield(current_name)
+      legacy = yield(legacy_name)
+
+      if current && legacy
+        Rails.logger.warn(
+          "[Authentik WebhookSetup] Both '#{current_name}' and '#{legacy_name}' exist; using '#{current_name}'"
+        )
+        return current
+      end
+
+      return current if current
+      return rename_authentik_object(legacy, current_name) if legacy
+
+      nil
+    end
+
+    def rename_authentik_object(object, new_name)
+      return object if object['name'] == new_name
+
+      pk = object['pk']
+      renamed = case object['name']
+                when TRANSPORT_NAME, LEGACY_TRANSPORT_NAME
+                  client.update_notification_transport(pk, name: new_name)
+                when USER_POLICY_NAME, LEGACY_USER_POLICY_NAME, GROUP_POLICY_NAME, LEGACY_GROUP_POLICY_NAME
+                  client.update_event_matcher_policy(pk, name: new_name)
+                when RULE_NAME, LEGACY_RULE_NAME
+                  client.update_notification_rule(pk, name: new_name)
+                else
+                  raise ArgumentError, "Unexpected Authentik object name: #{object['name']}"
+                end
+      renamed.presence || object.merge('name' => new_name)
+    end
+
+    def delete_named_authentik_objects(current_name, legacy_name, finder:, deleter:)
+      [current_name, legacy_name].uniq.each do |name|
+        object = finder.call(name)
+        next unless object
+
+        deleter.call(object)
+      end
     end
 
     # ========== Policy Bindings ==========

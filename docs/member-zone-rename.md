@@ -31,10 +31,6 @@ past it.
 
 ## Non-blocking — do soon
 
-- **Rename the four Authentik webhook objects** to `MemberZone Webhook`, `MemberZone User
-  Events`, `MemberZone Group Events`, `MemberZone Notifications`. `Authentik::WebhookSetup`
-  finds them by name, so until then the old objects are orphaned and a setup run creates
-  duplicates.
 - **Move deployments off `MEMBER_MANAGER_BASE_URL` to `MEMBER_ZONE_BASE_URL`**, then drop
   the fallback in `config/initializers/member_zone.rb`.
 - **Stale Authentik user/group attributes.** The app now writes `member_zone_id`,
@@ -43,6 +39,26 @@ past it.
 - **Local dev volumes.** Compose project names changed, so named volumes get a new
   `memberzone-*` prefix and local dev/test databases start empty. Old volumes and
   `member_manager_*` images can be pruned.
+- **Duplicate Authentik webhook objects from a pre-fix deploy.** If setup already ran once
+  against the rename and created `MemberZone *` objects alongside the old `MemberManager *`
+  ones, adoption code keeps using the new names and logs a warning. Delete the orphans in
+  Authentik by hand.
+
+## Rename lookup sweep (code)
+
+These were the name-keyed lookups that could fork persisted state. All are handled in code
+now unless noted.
+
+| Location | Risk | Fix |
+| --- | --- | --- |
+| `CoreGroupProvisioner.system_application` | Second `applications` row; groups orphaned | Migration + runtime adoption |
+| `MemberSource.seed_defaults!` | Second `member_sources` row on `db:seed` | Adopts `member_manager` key |
+| `Authentik::WebhookSetup` | Duplicate transport/policies/rule in Authentik | Adopts and renames legacy objects |
+| `TrainingTopic#provision_authentik_groups` | Same as system application | Uses `system_application` |
+| `MemberSource.for('member_zone')` | N/A — keyed lookup after migration | Migration |
+| Email templates, text fragments, incoming webhooks, privileges, roles | Keyed by stable `key`/`webhook_type`, not display name | No change |
+| `ORGANIZATION_NAME` default | Display string only | No fork risk |
+| OIDC scope `member_zone_admin` | External Authentik config | Manual rename (blocking above) |
 
 ## Open — deliberately not renamed
 
@@ -59,6 +75,8 @@ past it.
 ## Backward compatibility kept in code
 
 - `MEMBER_MANAGER_BASE_URL` still read as a fallback — `MemberZoneConfig.base_url`.
+- Pre-rename Authentik webhook object names still adopted and renamed on setup —
+  `Authentik::WebhookSetup::LEGACY_*_NAME`.
 - `member-manager.role-definitions` still accepted on import — `DefinitionExport::LEGACY_FORMAT`.
 - `membermanager:anonymized_export v1` still accepted on restore — `DatabaseAnonymizer::LEGACY_DUMP_MARKER`.
 - Mail trace headers are now `X-MemberZone-*` with no fallback, which is fine: headers are

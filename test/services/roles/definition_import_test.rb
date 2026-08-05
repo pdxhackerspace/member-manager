@@ -105,6 +105,42 @@ module Roles
       assert(result.warnings.any? { |warning| warning.include?('left in place') })
     end
 
+    test 'a topic entry that fails outright is not reported as attachments left in place' do
+      role = Role.create!(name: 'Fob team')
+      TrainingTopicRole.create!(training_topic: training_topics(:woodworking), role: role,
+                                member_source: 'trained_in')
+      topics = [@topic.name, { 'name' => @topic.name, 'member_source' => 'everyone' }]
+
+      result = DefinitionImport.call(document([role_entry(topics: topics)]), mode: 'replace')
+
+      assert_not_predicate result, :success?
+      assert_empty result.warnings.grep(/left in place/)
+      assert_equal [training_topics(:woodworking).id], role.topic_roles.reload.map(&:training_topic_id)
+    end
+
+    test 'an error in a later role withdraws what an earlier role reported leaving in place' do
+      Role.create!(name: 'Fob team', privileges: Privilege.where(key: 'payments.view'))
+      entries = [role_entry(privileges: %w[nonsense.key], topics: ['Nowhere']), { 'name' => ' ' }]
+
+      result = DefinitionImport.call(document(entries), mode: 'replace')
+
+      assert_not_predicate result, :success?
+      assert_empty result.warnings.grep(/left in place/)
+      assert(result.warnings.any? { |warning| warning.include?("unknown privilege 'nonsense.key'") })
+    end
+
+    test 'a dry run still reports what it would leave in place' do
+      role = Role.create!(name: 'Fob team')
+      TrainingTopicRole.create!(training_topic: training_topics(:woodworking), role: role,
+                                member_source: 'trained_in')
+
+      result = DefinitionImport.call(document([role_entry(topics: [@topic.name, 'Nowhere'])]),
+                                     mode: 'replace', dry_run: true)
+
+      assert_predicate result, :success?
+      assert(result.warnings.any? { |warning| warning.include?('left in place') })
+    end
+
     test 'a topic entry may name the population the role is conferred to' do
       DefinitionImport.call(document([role_entry(topics: [{ 'name' => @topic.name,
                                                             'member_source' => 'can_train' }])]))

@@ -101,6 +101,37 @@ module Slack
       assert_equal 0, result.created_count
     end
 
+    test 'update_members does not overwrite an existing member avatar' do
+      user = users(:two)
+      user.update_columns(
+        email: 'member-sync@example.com',
+        avatar: 'https://example.com/existing-avatar.png',
+        slack_id: nil,
+        slack_handle: nil
+      )
+
+      client = StubClient.new(
+        [
+          {
+            slack_id: 'U-MEMBER-AVATAR',
+            username: 'slackmember',
+            real_name: user.full_name,
+            email: user.email,
+            is_bot: false,
+            deleted: false,
+            raw_attributes: {
+              'profile' => { 'image_original' => 'yes', 'image_192' => 'https://example.com/slack-avatar.png' }
+            },
+            last_synced_at: Time.current
+          }
+        ]
+      )
+
+      Slack::UserSynchronizer.new(client: client).call(update_members: true)
+
+      assert_equal 'https://example.com/existing-avatar.png', user.reload.avatar
+    end
+
     test 'update_members creates members for unmatched slack users' do
       client = StubClient.new(
         [

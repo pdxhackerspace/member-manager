@@ -41,7 +41,7 @@ module Slack
       updates[:pronouns] = @slack_user.pronouns if @slack_user.pronouns.present? && @user.pronouns.blank?
 
       profile = @slack_user.raw_attributes&.dig('profile') || {}
-      if profile['image_original'].present?
+      if @user.avatar.blank? && profile['image_original'].present?
         image_192_url = profile['image_192']
         updates[:avatar] = image_192_url if image_192_url.present?
       end

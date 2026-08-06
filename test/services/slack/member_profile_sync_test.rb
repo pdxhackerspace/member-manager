@@ -45,5 +45,29 @@ module Slack
       assert_equal 1, user.user_links.count
       assert_equal 'GitHub', user.user_links.first.title
     end
+
+    test 'does not overwrite an existing member avatar' do
+      user = users(:two)
+      user.update_columns(
+        avatar: 'https://example.com/existing-avatar.png',
+        slack_id: 'U-EXISTING',
+        slack_handle: 'existing'
+      )
+
+      slack_user = SlackUser.create!(
+        slack_id: 'U-EXISTING',
+        username: 'slackmember',
+        raw_attributes: {
+          'profile' => {
+            'image_original' => 'yes',
+            'image_192' => 'https://example.com/slack-avatar.png'
+          }
+        }
+      )
+
+      MemberProfileSync.apply(user: user, slack_user: slack_user)
+
+      assert_equal 'https://example.com/existing-avatar.png', user.reload.avatar
+    end
   end
 end

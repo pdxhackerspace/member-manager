@@ -105,6 +105,48 @@ module Nags
       end
     end
 
+    test 'due excludes members with pending slack signup nag mail' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'pending-nag-mail@example.com')
+      QueuedMail.create!(
+        to: user.email,
+        subject: 'Join us on Slack',
+        body_html: '<p>Hi</p>',
+        body_text: 'Hi',
+        reason: 'Slack signup reminder',
+        mailer_action: 'slack_signup_nag',
+        recipient: user,
+        status: 'pending'
+      )
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
+      end
+    end
+
+    test 'due includes members after slack signup nag mail was rejected' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'rejected-nag-mail@example.com')
+      QueuedMail.create!(
+        to: user.email,
+        subject: 'Join us on Slack',
+        body_html: '<p>Hi</p>',
+        body_text: 'Hi',
+        reason: 'Slack signup reminder',
+        mailer_action: 'slack_signup_nag',
+        recipient: user,
+        status: 'rejected',
+        reviewed_by: users(:one),
+        reviewed_at: now - 1.day
+      )
+
+      travel_to now do
+        assert_includes SlackSignupEligibility.due(now: now), user
+        assert SlackSignupEligibility.due?(user, now: now)
+      end
+    end
+
     test 'uses created_at when member has no approved application' do
       now = Time.zone.local(2026, 8, 5, 7, 0, 0)
       user = users(:two)

@@ -10,6 +10,17 @@ module Nags
       )
     SQL
 
+    WITHOUT_PENDING_NAG_MAIL_SQL = <<~SQL.squish
+      NOT EXISTS (
+        SELECT 1
+        FROM queued_mails
+        WHERE queued_mails.recipient_id = users.id
+          AND queued_mails.mailer_action = 'slack_signup_nag'
+          AND queued_mails.status IN ('pending', 'approved')
+          AND queued_mails.sent_at IS NULL
+      )
+    SQL
+
     def self.due(now: Time.current)
       initial_cutoff = now - MembershipSetting.slack_signup_nag_initial_delay_days.days
       repeat_cutoff = now - MembershipSetting.slack_signup_nag_repeat_delay_days.days
@@ -17,6 +28,7 @@ module Nags
       base_scope
         .where("#{APPROVAL_ANCHOR_SQL} <= ?", initial_cutoff)
         .where('slack_signup_nag_sent_at IS NULL OR slack_signup_nag_sent_at <= ?', repeat_cutoff)
+        .where(WITHOUT_PENDING_NAG_MAIL_SQL)
         .order(:full_name)
     end
 
@@ -30,6 +42,7 @@ module Nags
 
     def self.due?(user, now: Time.current)
       return false unless base_user?(user)
+      return false if pending_nag_mail?(user)
 
       initial_cutoff = now - MembershipSetting.slack_signup_nag_initial_delay_days.days
       repeat_cutoff = now - MembershipSetting.slack_signup_nag_repeat_delay_days.days
@@ -37,6 +50,11 @@ module Nags
 
       anchor <= initial_cutoff &&
         (user.slack_signup_nag_sent_at.nil? || user.slack_signup_nag_sent_at <= repeat_cutoff)
+    end
+
+    def self.pending_nag_mail?(user)
+      QueuedMail.exists?(recipient: user, mailer_action: 'slack_signup_nag', status: %w[pending approved],
+                         sent_at: nil)
     end
 
     DELIVERABLE_EMAIL_SQL = "users.email IS NOT NULL AND users.email ~ '\\S'".freeze

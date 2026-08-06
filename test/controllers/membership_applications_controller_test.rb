@@ -400,7 +400,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     get membership_applications_path(status: 'unlinked')
 
     assert_response :success
-    assert_select "button[data-application-email=?]", app.email
+    assert_select 'button[data-application-email=?]', app.email
     assert_select '#maLinkMemberModal [data-sensitive-reveal-target=?]', 'blurred', count: 0
   end
 

@@ -63,6 +63,55 @@ module Nags
       end
     end
 
+    test 'does not stamp nag time when mail is queued for review' do
+      EmailTemplate.find_by!(key: 'slack_signup_nag').update!(send_immediately: false)
+      user = due_user(email: 'queued-nag@example.com')
+
+      travel_to @now do
+        assert_difference 'QueuedMail.count', 1 do
+          assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+            NotifySlackSignup.call(now: @now)
+          end
+        end
+      end
+
+      assert_nil user.reload.slack_signup_nag_sent_at
+    end
+
+    test 'does not stamp nag time when template is disabled' do
+      EmailTemplate.find_by!(key: 'slack_signup_nag').update!(enabled: false)
+      user = due_user(email: 'disabled-template@example.com')
+
+      travel_to @now do
+        assert_difference 'QueuedMail.count', 1 do
+          assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+            NotifySlackSignup.call(now: @now)
+          end
+        end
+      end
+
+      assert_nil user.reload.slack_signup_nag_sent_at
+    end
+
+    test 'raises when delivery succeeds but stamp fails' do
+      user = due_user(email: 'stamp-fail@example.com')
+      service = NotifySlackSignup.new(now: @now)
+
+      def user.update!(attrs)
+        raise ActiveRecord::ActiveRecordError, 'stamp failed' if attrs.key?(:slack_signup_nag_sent_at)
+
+        super
+      end
+
+      travel_to @now do
+        assert_raises(ActiveRecord::ActiveRecordError) do
+          service.send(:notify_user, user)
+        end
+      end
+
+      assert_nil user.reload.slack_signup_nag_sent_at
+    end
+
     private
 
     def due_user(email:)

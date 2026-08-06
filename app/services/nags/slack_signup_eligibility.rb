@@ -39,13 +39,15 @@ module Nags
         (user.slack_signup_nag_sent_at.nil? || user.slack_signup_nag_sent_at <= repeat_cutoff)
     end
 
+    DELIVERABLE_EMAIL_SQL = "BTRIM(COALESCE(users.email, '')) <> ''".freeze
+
     def self.base_scope
       User.where(active: true)
           .non_service_accounts
           .where.missing(:slack_user)
           .where(slack_id: [nil, ''])
           .where(slack_handle: [nil, ''])
-          .where.not(email: [nil, ''])
+          .where(DELIVERABLE_EMAIL_SQL)
     end
 
     def self.base_user?(user)

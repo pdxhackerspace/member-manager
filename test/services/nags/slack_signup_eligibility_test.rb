@@ -83,6 +83,17 @@ module Nags
       end
     end
 
+    test 'due excludes whitespace-only email addresses' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'whitespace-nag@example.com')
+      user.update_columns(email: '   ')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
+      end
+    end
+
     test 'uses created_at when member has no approved application' do
       now = Time.zone.local(2026, 8, 5, 7, 0, 0)
       user = users(:two)

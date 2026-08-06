@@ -2,7 +2,7 @@
 <% form_action = local_assigns[:form_url].presence || '#' %>
 <% dynamic = local_assigns.fetch(:dynamic, form_action == '#') %>
 <% mask_contact = local_assigns.fetch(:mask_contact, false) %>
-<div class="modal fade" id="maLinkMemberModal" tabindex="-1" aria-labelledby="maLinkMemberModalLabel" aria-hidden="true"<% if mask_contact %> data-controller="sensitive-reveal"<% end %>>
+<div class="modal fade" id="maLinkMemberModal" tabindex="-1" aria-labelledby="maLinkMemberModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">

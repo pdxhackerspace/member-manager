@@ -1,17 +1,6 @@
 <% ma_nav = { q: params[:q].presence }.compact %>
 <% mask_contact = membership_application_mask_contact_pii? %>
 
-<div class="membership-applications-index"<% if mask_contact %> data-controller="sensitive-reveal"<% end %>>
-<% if mask_contact %>
-  <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
-    <p class="mb-0 small">Applicant email in the link-member dialog is blurred until you show contact details.</p>
-    <button type="button" class="btn btn-sm btn-primary text-nowrap flex-shrink-0"
-            data-action="click->sensitive-reveal#toggle">
-      <span data-sensitive-reveal-target="label">Show contact details</span>
-    </button>
-  </div>
-<% end %>
-
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
     <h1 class="h-page-title mb-0">Membership Applications</h1>
@@ -317,9 +306,6 @@
                             <% end %>>
                       Link member
                     </button>
-                    <% if mask_contact %>
-                      <span class="d-none" data-ma-application-email><%= h(app.email) %></span>
-                    <% end %>
                   <% end %>
                 </td>
               <% end %>
@@ -344,4 +330,3 @@
 <% if @users_for_application_link.any? %>
   <%= render 'link_member_modal', users: @users_for_application_link, dynamic: true, application_email: '', mask_contact: mask_contact %>
 <% end %>
-</div><%# .membership-applications-index %>

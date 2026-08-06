@@ -322,6 +322,23 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/pii-test@example\.com/, response.body)
   end
 
+  test 'show link modal withholds applicant email without view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member')
+    app = MembershipApplication.create!(
+      email: 'masked-show-link-modal@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_no_match(/masked-show-link-modal@example\.com/, response.body)
+    assert_includes response.body, 'Hidden'
+  end
+
   test 'show does not mask for a reviewer holding view_pii' do
     reviewer = sign_in_as_reviewer
     grant_privileges(reviewer, 'applications.view', 'applications.view_pii')
@@ -384,7 +401,8 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select 'button[data-ma-link-action=?]', link_user_membership_application_path(app)
     assert_select "button[data-application-email='#{app.email}']", count: 0
-    assert_select '#maLinkMemberModal [data-sensitive-reveal-target=?]', 'blurred'
+    assert_no_match(/masked-link-modal@example\.com/, response.body)
+    assert_includes response.body, 'Hidden'
   end
 
   test 'index link modal includes applicant email for a reviewer holding view_pii' do
@@ -401,7 +419,7 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select 'button[data-application-email=?]', app.email
-    assert_select '#maLinkMemberModal [data-sensitive-reveal-target=?]', 'blurred', count: 0
+    assert_match(/visible-link-modal@example\.com/, response.body)
   end
 
   test 'vote_ai_feedback creates vote when AI feedback processed' do

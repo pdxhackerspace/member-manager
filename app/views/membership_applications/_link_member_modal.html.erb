@@ -11,7 +11,7 @@
       </div>
       <%= form_with url: form_action, method: :post, local: true, html: { id: 'ma_link_member_form' } do %>
         <div class="modal-body">
-          <p class="mb-3 text-muted">Search by name, email, or username, then select the member to associate with this application. Applicant email: <% if mask_contact %><strong id="ma_modal_application_email" class="text-break" data-sensitive-reveal-target="blurred"><%= h(local_assigns[:application_email].to_s.presence || '—') %></strong><% else %><strong id="ma_modal_application_email" class="text-break"><%= h(local_assigns[:application_email].to_s.presence || '—') %></strong><% end %></p>
+          <p class="mb-3 text-muted">Search by name, email, or username, then select the member to associate with this application. Applicant email: <strong id="ma_modal_application_email" class="text-break"><% if mask_contact %><span class="text-secondary fst-italic">Hidden</span><% else %><%= h(local_assigns[:application_email].to_s.presence || '—') %><% end %></strong></p>
           <div class="mb-3">
             <label for="ma_user_search" class="form-label">Search members</label>
             <input type="text" id="ma_user_search" class="form-control mb-2" placeholder="Type to search members..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">

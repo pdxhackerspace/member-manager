@@ -101,7 +101,7 @@ class TrainingTopicsController < AuthenticatedController
   def require_topic_page_access!
     return if can?(:'training.topics.manage')
     return if TOPIC_PAGE_PRIVILEGES.any? { |privilege| can?(privilege, topic: @training_topic) }
-    return if true_user&.may_manage_subtopic?(@training_topic)
+    return if current_user&.may_manage_subtopic?(@training_topic)
 
     redirect_to root_path, alert: "You don't have permission to manage that training topic."
   end
@@ -120,7 +120,7 @@ class TrainingTopicsController < AuthenticatedController
   # Deleting a topic is global setup, except for subtopics: a role on the parent carries
   # authority over what hangs beneath it.
   def require_destroy_permission!
-    return if true_user&.may_manage_subtopic?(@training_topic)
+    return if current_user&.may_manage_subtopic?(@training_topic)
 
     redirect_to root_path, alert: "You don't have permission to delete that training topic."
   end
@@ -132,7 +132,7 @@ class TrainingTopicsController < AuthenticatedController
 
     allowed = []
     allowed << :description if can?(:'training.topics.edit_details', topic: @training_topic)
-    allowed << :name if true_user&.may_manage_subtopic?(@training_topic)
+    allowed << :name if current_user&.may_manage_subtopic?(@training_topic)
 
     training_topic_params.slice(*allowed)
   end
@@ -151,14 +151,14 @@ class TrainingTopicsController < AuthenticatedController
   # Revoking training removes privileges, so it is gated the same way granting is: a trainer
   # must not be able to strip a director of theirs.
   def require_revoke_training_permission!
-    return if true_user&.may_revoke_training?(@training_topic)
+    return if current_user&.may_revoke_training?(@training_topic)
 
     redirect_to edit_training_topic_path(@training_topic),
                 alert: "You don't have permission to revoke training for that topic."
   end
 
   def require_trainer_capability_permission!
-    return if true_user&.may_manage_trainer_capability?(@training_topic)
+    return if current_user&.may_manage_trainer_capability?(@training_topic)
 
     redirect_to edit_training_topic_path(@training_topic),
                 alert: 'You do not have permission to manage trainer capabilities.'

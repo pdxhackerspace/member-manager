@@ -25,7 +25,7 @@ class Rfid < ApplicationRecord
   def record_key_fob_journal!(action)
     Journal.create!(
       user: user,
-      actor_user: Current.user,
+      actor_user: Current.actor,
       action: action,
       changes_json: {
         'key_fob' => {

@@ -4,6 +4,12 @@ module Nags
       new(now: now).call
     end
 
+    def self.record_delivery!(user, at: Time.current)
+      user.with_lock do
+        user.update!(slack_signup_nag_sent_at: at)
+      end
+    end
+
     def initialize(now:)
       @now = now
     end
@@ -23,9 +29,9 @@ module Nags
 
         extras = MemberMailer.slack_signup_template_extras(user, now: @now)
         result = deliver_nag_mail(user, extras)
-        return unless nag_delivered?(result)
+        return if result.nil?
 
-        user.update!(slack_signup_nag_sent_at: @now)
+        self.class.record_delivery!(user, at: @now) if result.is_a?(QueuedMail::ImmediateDelivery)
       end
     end
 
@@ -34,10 +40,6 @@ module Nags
     rescue StandardError => e
       Rails.logger.error("[NotifySlackSignup] user_id=#{user.id} delivery failed: #{e.class}: #{e.message}")
       nil
-    end
-
-    def nag_delivered?(result)
-      result.is_a?(QueuedMail::ImmediateDelivery)
     end
   end
 end

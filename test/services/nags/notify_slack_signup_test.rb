@@ -78,6 +78,27 @@ module Nags
       assert_nil user.reload.slack_signup_nag_sent_at
     end
 
+    test 'stamps nag time when queued mail is delivered' do
+      EmailTemplate.find_by!(key: 'slack_signup_nag').update!(send_immediately: false)
+      user = due_user(email: 'queued-deliver@example.com')
+
+      travel_to @now do
+        NotifySlackSignup.call(now: @now)
+      end
+
+      queued_mail = QueuedMail.order(:created_at).last
+      assert_equal user, queued_mail.recipient
+      assert_nil user.reload.slack_signup_nag_sent_at
+
+      delivery_time = @now + 2.hours
+      travel_to delivery_time do
+        queued_mail.update!(status: 'approved', reviewed_by: users(:one), reviewed_at: delivery_time)
+        queued_mail.deliver_now!
+      end
+
+      assert_equal delivery_time, user.reload.slack_signup_nag_sent_at
+    end
+
     test 'does not stamp nag time when template is disabled' do
       EmailTemplate.find_by!(key: 'slack_signup_nag').update!(enabled: false)
       user = due_user(email: 'disabled-template@example.com')

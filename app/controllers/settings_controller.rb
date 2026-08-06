@@ -22,6 +22,7 @@ class SettingsController < AdminController
 
   def nags_due_attention_count
     return 0 unless NagSetting.enabled?('slack_signup')
+    return 0 unless MemberSource.enabled?('slack')
 
     Nags::SlackSignupEligibility.count_due
   end

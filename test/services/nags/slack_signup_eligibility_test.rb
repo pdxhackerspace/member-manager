@@ -36,6 +36,26 @@ module Nags
       end
     end
 
+    test 'due excludes members with legacy slack_id on user record' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'legacy-slack-id@example.com')
+      user.update_columns(slack_id: 'U-LEGACY-SLACK')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+      end
+    end
+
+    test 'due excludes members with legacy slack_handle on user record' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'legacy-slack-handle@example.com')
+      user.update_columns(slack_handle: 'legacymember')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+      end
+    end
+
     test 'due excludes inactive members' do
       now = Time.zone.local(2026, 8, 5, 7, 0, 0)
       user = eligible_user(now: now, email: 'inactive@example.com', active: false)

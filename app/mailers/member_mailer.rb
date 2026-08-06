@@ -376,10 +376,20 @@ class MemberMailer < ApplicationMailer
   def self.slack_signup_template_extras(user, now: Time.current)
     anchor = user.membership_approved_at
     days = anchor ? ((now - anchor) / 1.day).floor : 0
-    {
+    link_url = slack_link_url_for_template
+    extras = {
       days_since_approval: days.to_s,
-      slack_link_url: slack_link_url_for_template
+      slack_link_url: link_url,
+      slack_link_html: '',
+      slack_link_text: ''
     }
+
+    if link_url.present?
+      extras[:slack_link_html] = %(<p><a href="#{link_url}">Associate your Slack account</a></p>)
+      extras[:slack_link_text] = "Associate your Slack account: #{link_url}\n\n"
+    end
+
+    extras
   end
 
   def self.slack_link_url_for_template
@@ -426,6 +436,7 @@ class MemberMailer < ApplicationMailer
     vars[:application_url] = extra_args[:application_url].to_s if extra_args.key?(:application_url)
     merge_training_request_template_keys!(vars, extra_args)
     merge_parking_notice_template_keys!(vars, extra_args)
+    merge_slack_signup_template_keys!(vars, extra_args)
   end
 
   def self.merge_training_request_template_keys!(vars, extra_args)
@@ -435,8 +446,13 @@ class MemberMailer < ApplicationMailer
     vars[:recipient_role] = extra_args[:recipient_role].to_s if extra_args.key?(:recipient_role)
     vars[:trainer_names] = extra_args[:trainer_names].to_s if extra_args.key?(:trainer_names)
     vars[:contact_details] = extra_args[:contact_details].to_s if extra_args.key?(:contact_details)
+  end
+
+  def self.merge_slack_signup_template_keys!(vars, extra_args)
     vars[:days_since_approval] = extra_args[:days_since_approval].to_s if extra_args.key?(:days_since_approval)
     vars[:slack_link_url] = extra_args[:slack_link_url].to_s if extra_args.key?(:slack_link_url)
+    vars[:slack_link_html] = extra_args[:slack_link_html].to_s if extra_args.key?(:slack_link_html)
+    vars[:slack_link_text] = extra_args[:slack_link_text].to_s if extra_args.key?(:slack_link_text)
   end
 
   def self.merge_parking_notice_template_keys!(vars, extra_args)
@@ -449,7 +465,7 @@ class MemberMailer < ApplicationMailer
 
   class << self
     private :base_template_variables, :merge_template_extras!, :merge_training_request_template_keys!,
-            :merge_parking_notice_template_keys!
+            :merge_slack_signup_template_keys!, :merge_parking_notice_template_keys!
   end
 
   private

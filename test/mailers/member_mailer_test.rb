@@ -115,4 +115,61 @@ class MemberMailerTest < ActionMailer::TestCase
     Rails.cache = original_cache if defined?(original_cache)
     ActionMailer::Base.delivery_method = original_delivery_method if defined?(original_delivery_method)
   end
+
+  test 'slack signup template omits self-link copy when OIDC is unavailable' do
+    template = EmailTemplate.create!(
+      key: 'slack_signup_nag_test',
+      name: 'Slack Signup Test',
+      subject: 'Join Slack',
+      body_html: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_html],
+      body_text: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_text],
+      enabled: true
+    )
+
+    original_oidc = Rails.application.config.x.slack_oidc
+    Rails.application.config.x.slack_oidc = ActiveSupport::InheritableOptions.new(
+      client_id: nil,
+      client_secret: nil,
+      team_id: nil
+    )
+
+    user = users(:one)
+    rendered = template.render(MemberMailer.build_template_variables(user, MemberMailer.slack_signup_template_extras(user)))
+
+    assert_not_includes rendered[:body_html], 'href=""'
+    assert_not_includes rendered[:body_html], 'Associate your Slack account'
+    assert_includes rendered[:body_html], 'ask an admin for an invite'
+    assert_not_includes rendered[:body_text], 'Associate your Slack account:'
+  ensure
+    Rails.application.config.x.slack_oidc = original_oidc
+    template&.destroy
+  end
+
+  test 'slack signup template includes self-link copy when OIDC is configured' do
+    template = EmailTemplate.create!(
+      key: 'slack_signup_nag_test',
+      name: 'Slack Signup Test',
+      subject: 'Join Slack',
+      body_html: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_html],
+      body_text: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_text],
+      enabled: true
+    )
+
+    original_oidc = Rails.application.config.x.slack_oidc
+    Rails.application.config.x.slack_oidc = ActiveSupport::InheritableOptions.new(
+      client_id: 'client-id',
+      client_secret: 'client-secret',
+      team_id: 'T123'
+    )
+
+    user = users(:one)
+    rendered = template.render(MemberMailer.build_template_variables(user, MemberMailer.slack_signup_template_extras(user)))
+
+    assert_includes rendered[:body_html], 'Associate your Slack account'
+    assert_includes rendered[:body_html], '/slack/link'
+    assert_includes rendered[:body_text], 'Associate your Slack account:'
+  ensure
+    Rails.application.config.x.slack_oidc = original_oidc
+    template&.destroy
+  end
 end

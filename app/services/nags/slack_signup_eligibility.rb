@@ -43,16 +43,22 @@ module Nags
       User.where(active: true)
           .non_service_accounts
           .where.missing(:slack_user)
+          .where(slack_id: [nil, ''])
+          .where(slack_handle: [nil, ''])
           .where.not(email: [nil, ''])
     end
 
     def self.base_user?(user)
       user.active? &&
         !user.service_account? &&
-        user.slack_user.blank? &&
+        lacks_slack_identity?(user) &&
         user.email.present?
     end
 
-    private_class_method :base_scope, :base_user?
+    def self.lacks_slack_identity?(user)
+      user.slack_user.blank? && user.slack_id.blank? && user.slack_handle.blank?
+    end
+
+    private_class_method :base_scope, :base_user?, :lacks_slack_identity?
   end
 end

@@ -24,6 +24,39 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', map_default_settings_path, text: /Map defaults/
   end
 
+  test 'nags attention count is zero when slack source is disabled' do
+    now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+    NagSetting.seed_defaults!
+    NagSetting.find_by!(key: 'slack_signup').update!(enabled: true)
+    member_sources(:slack).update!(enabled: false)
+
+    user = User.create!(
+      email: 'settings-nag-attention@example.com',
+      full_name: 'Settings Nag Attention',
+      active: true,
+      service_account: false,
+      membership_status: 'paying',
+      dues_status: 'current',
+      payment_type: 'unknown'
+    )
+    MembershipApplication.create!(
+      user: user,
+      email: user.email,
+      status: 'approved',
+      reviewed_at: now - 10.days,
+      submitted_at: now - 12.days
+    )
+
+    travel_to now do
+      get settings_url
+    end
+
+    assert_response :success
+    assert_select 'a[href=?]', nag_settings_path do
+      assert_select '.badge.text-bg-warning-subtle', count: 0
+    end
+  end
+
   private
 
   def sign_in_as_admin

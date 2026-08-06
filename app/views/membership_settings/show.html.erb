@@ -72,6 +72,18 @@
             <strong><%= @membership_setting.application_review_time_cap_days %></strong> <%= 'day'.pluralize(@membership_setting.application_review_time_cap_days) %>
             <div class="form-text">Maximum review time shown to applicants on the status page. Admins still see the actual average.</div>
           </dd>
+
+          <dt class="col-sm-6 mt-3">Slack signup nag — initial delay</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.slack_signup_nag_initial_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_initial_delay_days) %>
+            <div class="form-text">Days after approval before the first Slack signup reminder. <%= link_to "Nags settings", nag_settings_path, class: "text-secondary" %>.</div>
+          </dd>
+
+          <dt class="col-sm-6 mt-3">Slack signup nag — repeat interval</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.slack_signup_nag_repeat_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_repeat_delay_days) %>
+            <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
+          </dd>
         </dl>
       </div>
     </div>

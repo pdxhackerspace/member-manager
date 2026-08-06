@@ -3,17 +3,21 @@
     <h1 class="h3 mb-1">Slack Users</h1>
     <p class="text-muted mb-0"><strong><%= @total_count %></strong> total Slack users</p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex align-items-center gap-2">
     <% if MemberSource.enabled?('slack') %>
-      <%= button_to "Sync Slack users", sync_slack_users_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
-      <%= button_to "Sync to Members", sync_to_users_slack_users_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
-      <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importSlackMembersModal">Import Members</button>
-      <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importSlackAnalyticsModal">Import Analytics</button>
+      <%= form_with url: sync_slack_users_path, method: :post, local: true, class: "d-flex align-items-center gap-3 mb-0" do %>
+        <div class="form-check form-switch mb-0">
+          <%= check_box_tag :update_members, '1', false, class: 'form-check-input', role: 'switch', id: 'slack_sync_update_members' %>
+          <%= label_tag :update_members, 'Update member accounts', class: 'form-check-label text-13 text-nowrap', for: 'slack_sync_update_members' %>
+        </div>
+        <%= submit_tag 'Sync Slack users', class: 'btn btn-primary btn-sm', data: { turbo: false } %>
+      <% end %>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importSlackMembersModal">Import Members</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importSlackAnalyticsModal">Import Analytics</button>
     <% else %>
-      <button class="btn btn-secondary" disabled title="Slack source is disabled">Sync Slack users</button>
-      <button class="btn btn-secondary" disabled title="Slack source is disabled">Sync to Members</button>
-      <button class="btn btn-secondary" disabled title="Slack source is disabled">Import Members</button>
-      <button class="btn btn-secondary" disabled title="Slack source is disabled">Import Analytics</button>
+      <button class="btn btn-secondary btn-sm" disabled title="Slack source is disabled">Sync Slack users</button>
+      <button class="btn btn-secondary btn-sm" disabled title="Slack source is disabled">Import Members</button>
+      <button class="btn btn-secondary btn-sm" disabled title="Slack source is disabled">Import Analytics</button>
     <% end %>
   </div>
 </div>

@@ -151,7 +151,6 @@ Rails.application.routes.draw do
   resources :slack_users, only: [:index, :show] do
     collection do
       post :sync
-      post :sync_to_users
       post :import_members
       post :import_analytics
     end
@@ -315,6 +314,7 @@ Rails.application.routes.draw do
     post :provision_core_groups, on: :member
   end
   resource :membership_settings, only: [:show, :edit, :update], path: "settings/membership"
+  resources :nag_settings, only: [:index, :show, :update], path: "settings/nags", param: :key
   resources :ai_providers, except: [:show], path: "settings/ai-providers"
   resources :ai_ollama_profiles, only: [:index, :edit, :update], path: "settings/ai-services" do
     collection do

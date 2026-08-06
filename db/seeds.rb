@@ -67,6 +67,10 @@ Rails.logger.debug { "Seeded #{PaymentProcessor.count} payment processors." }
 MemberSource.seed_defaults!
 Rails.logger.debug { "Seeded #{MemberSource.count} member sources." }
 
+# Seed nag settings
+NagSetting.seed_defaults!
+Rails.logger.debug { "Seeded #{NagSetting.count} nag settings." }
+
 # Seed incoming webhooks
 IncomingWebhook.seed_defaults!
 Rails.logger.debug { "Seeded #{IncomingWebhook.count} incoming webhooks." }

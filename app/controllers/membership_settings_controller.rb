@@ -25,6 +25,8 @@ class MembershipSettingsController < AdminController
                                          admin_login_link_expiry_minutes
                                          application_verification_expiry_hours
                                          manual_payment_due_soon_days
-                                         application_review_time_cap_days])
+                                         application_review_time_cap_days
+                                         slack_signup_nag_initial_delay_days
+                                         slack_signup_nag_repeat_delay_days])
   end
 end

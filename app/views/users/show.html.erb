@@ -62,7 +62,9 @@
 <% if @profile_hidden %>
   <%= render 'users/profile_hidden', user: @user, view_level: @view_level %>
 <% else %>
-<% if @view_level == :admin && @user.emergency_active_override? %>
+<%# Clearing an override is an administrator action, so the banner offering it is too — but
+    it still has to disappear under "view as", which is what @view_level carries. %>
+<% if @view_level == :admin && current_user_admin? && @user.emergency_active_override? %>
   <div class="override-banner mb-3">
     <div class="d-flex align-items-center gap-2 small">
       <i class="bi bi-lightning-charge text-warning" aria-hidden="true"></i>
@@ -111,8 +113,10 @@
     </div>
 
     <div class="d-flex gap-2 align-items-center">
-      <%= link_to "Edit", edit_user_path(@user), class: "btn btn-primary btn-sm" %>
-      <% unless impersonating? || @user == true_user %>
+      <% if current_user_admin? || can?(:'members.edit_membership') %>
+        <%= link_to "Edit", edit_user_path(@user), class: "btn btn-primary btn-sm", data: { action_key: "members.edit" } %>
+      <% end %>
+      <% if current_user_admin? && !(impersonating? || @user == true_user) %>
         <%= button_to "Impersonate", impersonate_user_path(@user), method: :post,
             class: "btn btn-outline-secondary btn-sm",
             form: { data: { turbo: false } },
@@ -120,7 +124,12 @@
             onclick: "return confirm(this.dataset.confirmMessage);" %>
       <% end %>
 
-      <div class="dropdown">
+      <%# Every entry below is an administrator-only action in UsersController. They move as
+          one block so the menu never renders with a stray header or divider and no items,
+          and so the modals they open (rendered just past this block) stay in step. Later
+          phases split this per members.* privilege. %>
+      <% if current_user_admin? %>
+      <div class="dropdown" data-action-key="members.actions">
         <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" title="More actions" style="line-height: 1;">⋯</button>
         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
           <li><h6 class="dropdown-header">Status changes</h6></li>
@@ -162,10 +171,13 @@
           <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteMemberModal">Delete member...</button></li>
         </ul>
       </div>
+      <% end %>
     </div>
   </div>
 
-  <%= render "users/admin_member_action_modals", user: @user %>
+  <% if current_user_admin? %>
+    <%= render "users/admin_member_action_modals", user: @user %>
+  <% end %>
 <% end %>
 
 <% unless @view_level.in?(%i[self admin]) %>
@@ -230,8 +242,8 @@
         Profile
       <% end %>
     </li>
-    <% unless @user.service_account? %>
-      <li class="nav-item" role="presentation">
+    <% if !@user.service_account? && (current_user_admin? || can?(:'payments.view')) %>
+      <li class="nav-item" role="presentation" data-tab-key="payments">
         <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
             class: "nav-link #{'active' if @active_tab == :payments}", 
             role: "tab" do %>
@@ -242,7 +254,8 @@
         <% end %>
       </li>
     <% end %>
-    <li class="nav-item" role="presentation">
+    <% if current_user_admin? || can?(:'access.view_logs') %>
+    <li class="nav-item" role="presentation" data-tab-key="access">
       <%= link_to user_path(@user, tab: :access, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :access}", 
           role: "tab" do %>
@@ -252,7 +265,8 @@
         <% end %>
       <% end %>
     </li>
-    <li class="nav-item" role="presentation">
+    <% end %>
+    <li class="nav-item" role="presentation" data-tab-key="training">
       <%= link_to user_path(@user, tab: :profile, anchor: "training-access-section", view_as: params[:view_as]),
           class: "nav-link",
           role: "tab" do %>
@@ -263,7 +277,7 @@
         <% end %>
       <% end %>
     </li>
-    <% if @incidents_count.to_i > 0 %>
+    <% if @incidents_count.to_i > 0 && current_user_admin? %>
       <li class="nav-item" role="presentation">
         <%= link_to user_path(@user, tab: :incidents, view_as: params[:view_as]), 
             class: "nav-link #{'active' if @active_tab == :incidents}", 
@@ -272,8 +286,8 @@
         <% end %>
       </li>
     <% end %>
-    <% if @parking_notices_count.to_i > 0 %>
-      <li class="nav-item" role="presentation">
+    <% if @parking_notices_count.to_i > 0 && current_user_admin? %>
+      <li class="nav-item" role="presentation" data-tab-key="parking">
         <%= link_to user_path(@user, tab: :parking, view_as: params[:view_as]),
             class: "nav-link #{'active' if @active_tab == :parking}",
             role: "tab" do %>
@@ -281,7 +295,8 @@
         <% end %>
       </li>
     <% end %>
-    <li class="nav-item" role="presentation">
+    <% if current_user_admin? || can?(:'journal.view') %>
+    <li class="nav-item" role="presentation" data-tab-key="journal">
       <%= link_to user_path(@user, tab: :journal, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :journal}", 
           role: "tab" do %>
@@ -291,7 +306,9 @@
         <% end %>
       <% end %>
     </li>
-    <li class="nav-item" role="presentation">
+    <% end %>
+    <% if current_user_admin? || can?(:'queued_mail.view') %>
+    <li class="nav-item" role="presentation" data-tab-key="mail">
       <%= link_to user_path(@user, tab: :mail, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :mail}", 
           role: "tab" do %>
@@ -301,7 +318,9 @@
         <% end %>
       <% end %>
     </li>
-    <li class="nav-item" role="presentation">
+    <% end %>
+    <% if current_user_admin? %>
+    <li class="nav-item" role="presentation" data-tab-key="messages">
       <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
           class: "nav-link #{'active' if @active_tab == :messages}",
           role: "tab" do %>
@@ -311,6 +330,7 @@
         <% end %>
       <% end %>
     </li>
+    <% end %>
   </ul>
 
   <div class="tab-content">

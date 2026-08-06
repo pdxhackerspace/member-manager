@@ -10,9 +10,15 @@
     <% if @show_unmatched %>
       <%= link_to "View Unique Subjects", unmatched_subjects_paypal_payments_path, class: "btn btn-outline-info" %>
     <% end %>
+    <% if current_user_admin? %>
     <%= link_to "Export JSON", export_paypal_payments_path, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <% end %>
+    <% if current_user_admin? %>
     <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importModal">Import JSON</button>
+    <% end %>
+    <% if current_user_admin? %>
     <%= button_to "Sync now", sync_paypal_payments_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
+    <% end %>
   </div>
 </div>
 

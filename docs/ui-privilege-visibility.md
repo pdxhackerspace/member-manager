@@ -350,7 +350,7 @@ commit or an admin-only partial renders for the new holder.
 |---|---|---|
 | 0 | ~~**Hardening**~~ — **done** | Subject switch to `current_user` + impersonation invariant tests; PII redaction; RAG endpoint; plans `new`; journal attribution; route coverage guard test |
 | 1 | ~~**Helper + harness**~~ — **done** | `gate`, `can_for_any_topic?` helper_method; lifted the duplicated test sign-in helpers |
-| 2 | **Enforce the dead privileges** | The 12 preset keys — additive, zero lockout risk. Includes the `users#show` view-level redesign |
+| 2 | ~~**Enforce the dead privileges**~~ — **done** | The preset keys plus `mail_log.view`; privilege-aware navigation and settings hub; profile regions gated; the two incoherent seeded roles fixed |
 | 3 | **Navigation** | Data-driven nav, `data-nav-key`, collapse and divider rules |
 | 4 | **Settings hub** | Filter + `settings.view` gate; convert ~20 destination controllers per category |
 | 5 | **Members surface** | Densest page; per-action gates paired with `gate` on every hero button and kebab item |
@@ -374,6 +374,21 @@ them. Keep `@view_level` for the public/members/self ladder — that is visibili
 different job, and it works.
 
 This must land before anything on the profile page is hidden.
+
+### What Phase 2 left for later
+
+`members.view_profile` grants the admin profile *layout*, with each region gated
+separately, rather than the capability-set redesign of `determine_view_level` described
+below. That redesign is still worth doing — the current arrangement means a holder's
+regions are decided by a scatter of `current_user_admin?` guards inside
+`show.html.erb` and `_tab_profile_admin.html.erb` rather than by one declared set — but it
+was not needed to make the roles work, and doing it would have doubled the change.
+
+Affordances whose privileges are still unenforced (`members.ban`, `members.delete`,
+`members.sponsor`, `members.sync_authentik`, `payments.sync`, `payments.import_export`,
+`email_templates.test_send`, `queued_mail.edit`, …) carry a `current_user_admin?` view
+guard that matches what their controller already requires. Each later phase swaps one such
+guard for its real privilege.
 
 ### On the hollow preset roles
 

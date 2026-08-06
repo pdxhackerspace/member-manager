@@ -12,8 +12,14 @@ class UsersController < AuthenticatedController
                          sync_to_authentik sync_from_authentik
                          unlink_slack unlink_authentik unlink_sheet
                          mark_help_seen pause_key_access resume_key_access]
+  # Everything not named here stays with administrators. That is deliberate: the member
+  # directory and profile have privileges, but creating, banning, deleting, sponsoring,
+  # unlinking and the bulk Authentik syncs each have their own key that no role confers
+  # yet — and `sync`, `sync_all_to_authentik` and
+  # `toggle_authentik_sync_inactive_as_active` have no key at all.
   before_action :require_admin!,
-                except: %i[show edit update mark_help_seen pause_key_access resume_key_access]
+                except: %i[index show edit update mark_help_seen pause_key_access resume_key_access]
+  before_action -> { require_privilege!(:'members.view_list') }, only: :index
   before_action -> { require_privilege!(:'access.pause_resume') }, only: %i[pause_key_access resume_key_access]
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: %i[edit update]
@@ -644,12 +650,15 @@ class UsersController < AuthenticatedController
   def authorize_self_or_admin
     return if current_user_admin?
     return if @user == current_user
+    # Editing another member's membership is the whole point of the privilege; which
+    # fields actually save is decided per attribute in #user_params.
+    return if can?(:'members.edit_membership')
 
     redirect_to user_path(current_user), alert: 'You may only edit your own profile.'
   end
 
   def authorize_profile_view
-    return if current_user_admin?
+    return if current_user_admin? || can?(:'members.view_profile')
 
     # Users can see their own profile
     return if user_signed_in? && @user == current_user
@@ -684,7 +693,10 @@ class UsersController < AuthenticatedController
     # :members - logged in member viewing another member's profile
     # :public - not logged in viewing a public profile
 
-    return :admin if current_user_admin?
+    # members.view_profile reaches the same layout as an administrator, but the regions
+    # inside it are gated one by one — a holder gets identity and the Profile tab, not the
+    # kebab, the modals, or the Journal, Mail and Payments tabs.
+    return :admin if current_user_admin? || can?(:'members.view_profile')
     return :self if user_signed_in? && @user == current_user
     return :members if user_signed_in?
 
@@ -960,11 +972,16 @@ class UsersController < AuthenticatedController
       use_full_name_for_greeting use_username_for_greeting do_not_greet
     ]
 
+    # Split per attribute rather than per action: update is shared with self-service
+    # editing, so the fields are what carry the authority. Keep this in step with
+    # app/views/users/_form.html.erb, or the form offers inputs that are then dropped.
+    if current_user_admin? || can?(:'members.edit_membership')
+      permitted += %i[membership_status payment_type membership_plan_id dues_due_at
+                      sponsored_guest_duration_months]
+    end
+
     if current_user_admin?
-      permitted += %i[
-        membership_status payment_type notes membership_plan_id aliases_text service_account legacy
-        mailing_address phone_number dues_due_at sponsored_guest_duration_months
-      ]
+      permitted += %i[notes aliases_text service_account legacy mailing_address phone_number]
       permitted << :is_admin
       # Only allow manual active toggle for service accounts
       permitted << :active if @user&.service_account?

@@ -1,7 +1,16 @@
-class QueuedMailsController < AdminController
+class QueuedMailsController < AuthenticatedController
   HTML_BLOCK_TAGS = %w[p div h1 h2 h3 h4 h5 h6 li tr].freeze
   HTML_LINK_URL_TAGS = %w[p li].freeze
   HTML_SPACED_TAGS = %w[td th].freeze
+
+  before_action -> { require_privilege!(:'queued_mail.view') }, only: %i[index show]
+  before_action -> { require_privilege!(:'queued_mail.approve') }, only: %i[approve reject]
+  # approve_all and reject_all act on the whole pending queue in one click, which is a very
+  # different scale from reviewing a message, and nothing in the catalog distinguishes them.
+  # retry_delivery, regenerate and rewrite_with_ai have no key at all. edit/update belong to
+  # queued_mail.edit, which this phase does not enforce yet.
+  before_action :require_admin!,
+                only: %i[edit update approve_all reject_all retry_delivery regenerate rewrite_with_ai]
 
   before_action :set_queued_mail, only: %i[show edit update approve reject regenerate retry_delivery rewrite_with_ai]
 

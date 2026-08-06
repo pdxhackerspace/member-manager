@@ -1,4 +1,5 @@
-class MailLogController < AdminController
+class MailLogController < AuthenticatedController
+  before_action -> { require_privilege!(:'mail_log.view') }
   before_action :set_log_entry, only: :show
 
   def index

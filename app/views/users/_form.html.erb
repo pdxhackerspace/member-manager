@@ -102,7 +102,9 @@
            value="<%= @user.greeting_name %>">
   </div>
 
-  <% if current_user_admin? %>
+  <%# Keep in step with UsersController#user_params: offering an input the permit list drops
+      would silently discard what the user typed. %>
+  <% if current_user_admin? || can?(:'members.edit_membership') %>
     <div>
       <%= f.label :membership_status, "Membership Status", class: "form-label" %>
       <%= f.select :membership_status, 

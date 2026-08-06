@@ -1,7 +1,7 @@
 class PaymentEventsController < ApplicationController
   include Pagy::Method
 
-  before_action :require_admin!
+  before_action -> { require_privilege!(:'payments.view_events') }
 
   def index
     @filter = params[:event_type].presence

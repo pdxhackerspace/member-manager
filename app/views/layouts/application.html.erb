@@ -31,10 +31,11 @@
         <div class="collapse navbar-collapse" id="mainNav">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <% if user_signed_in? %>
-            <% if current_user_admin? %>
+            <% if privileged_nav_visible? %>
                 <% admin_settings_nav_active = current_page?(settings_path) || current_page?(training_topics_path) || current_page?(applications_path) || controller_name == 'applications' || controller_name == 'application_groups' || controller_name == 'text_fragments' || controller_name == 'documents' || controller_name == 'incoming_webhooks' || controller_name == 'rooms' || controller_name == 'printers' || controller_name == 'application_form_pages' || controller_name == 'application_form_questions' || controller_name == 'ai_ollama_profiles' || controller_name == 'ai_providers' %>
                 <% admin_dropdown_active = controller_name == 'reports' || controller_name == 'member_maps' || admin_settings_nav_active || controller_name == 'queued_mails' || controller_name == 'mail_log' %>
-                <li class="nav-item dropdown">
+                <% if nav_section_visible?(:members) %>
+                <li class="nav-item dropdown" data-nav-section="members">
                   <a class="nav-link dropdown-toggle <%= (current_page?(users_path) || current_page?(sheet_entries_path) || current_page?(slack_users_path) || current_page?(authentik_users_path) || controller_name == 'membership_applications' || controller_name == 'incident_reports') ? 'active' : '' %>"
                      href="#"
                      role="button"
@@ -43,28 +44,40 @@
                     Members
                   </a>
                   <ul class="dropdown-menu">
-                    <li>
+                    <%= gate :'members.view_list' do %>
+                    <li data-nav-key="members_index">
                       <%= link_to "Members", users_path, class: "dropdown-item #{current_page?(users_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <% if current_user_admin? %>
+                    <li data-nav-key="authentik">
                       <%= link_to "Authentik", authentik_users_path, class: "dropdown-item #{current_page?(authentik_users_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <li data-nav-key="sheet">
                       <%= link_to "Sheet", sheet_entries_path, class: "dropdown-item #{current_page?(sheet_entries_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <li data-nav-key="slack">
                       <%= link_to "Slack", slack_users_path, class: "dropdown-item #{current_page?(slack_users_path) ? 'active' : ''}" %>
                     </li>
+                    <% end %>
+                    <% if nav_item_visible?(:applications) || nav_item_visible?(:incident_reports) %>
                     <li><hr class="dropdown-divider"></li>
-                    <li>
+                    <% end %>
+                    <%= gate :'applications.view' do %>
+                    <li data-nav-key="applications">
                       <%= link_to "Applications", membership_applications_path, class: "dropdown-item #{controller_name == 'membership_applications' ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <% if current_user_admin? %>
+                    <li data-nav-key="incident_reports">
                       <%= link_to "Incident Reports", incident_reports_path, class: "dropdown-item #{controller_name == 'incident_reports' ? 'active' : ''}" %>
                     </li>
+                    <% end %>
                   </ul>
                 </li>
-                <li class="nav-item dropdown">
+                <% end %>
+                <% if nav_section_visible?(:payments) %>
+                <li class="nav-item dropdown" data-nav-section="payments">
                   <a class="nav-link dropdown-toggle <%= (current_page?(paypal_payments_path) || current_page?(recharge_payments_path) || current_page?(kofi_payments_path) || current_page?(cash_payments_path) || current_page?(payment_events_path)) ? 'active' : '' %>"
                      href="#"
                      role="button"
@@ -73,31 +86,41 @@
                     Payments
                   </a>
                   <ul class="dropdown-menu">
-                    <li>
+                    <%= gate :'payments.view' do %>
+                    <li data-nav-key="paypal">
                       <%= link_to "PayPal", paypal_payments_path, class: "dropdown-item #{current_page?(paypal_payments_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <li data-nav-key="recharge">
                       <%= link_to "Recharge", recharge_payments_path, class: "dropdown-item #{current_page?(recharge_payments_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <li data-nav-key="kofi">
                       <%= link_to "Ko-Fi", kofi_payments_path, class: "dropdown-item #{current_page?(kofi_payments_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <% if current_user_admin? %>
+                    <li data-nav-key="cash">
                       <%= link_to "Cash", cash_payments_path, class: "dropdown-item #{current_page?(cash_payments_path) ? 'active' : ''}" %>
                     </li>
+                    <% end %>
+                    <%= gate :'payments.view_events' do %>
                     <li><hr class="dropdown-divider"></li>
-                    <li>
+                    <li data-nav-key="payment_events">
                       <%= link_to "Payment Events", payment_events_path, class: "dropdown-item #{current_page?(payment_events_path) ? 'active' : ''}" %>
                     </li>
+                    <% end %>
                   </ul>
                 </li>
-                <li class="nav-item">
+                <% end %>
+                <li class="nav-item" data-nav-key="training">
                   <%= link_to "Training", training_catalog_path, class: "nav-link #{controller_name == 'training_catalog' ? 'active' : ''}" %>
                 </li>
-                <li class="nav-item">
+                <% if nav_item_visible?(:journal) %>
+                <li class="nav-item" data-nav-key="journal">
                   <%= link_to "Journal", journals_path, class: "nav-link #{current_page?(journals_path) ? 'active' : ''}" %>
                 </li>
-                <li class="nav-item dropdown">
+                <% end %>
+                <% if nav_section_visible?(:building) %>
+                <li class="nav-item dropdown" data-nav-section="building">
                   <a class="nav-link dropdown-toggle <%= (current_page?(access_logs_path) || controller_name == 'parking_notices') ? 'active' : '' %>"
                      href="#"
                      role="button"
@@ -106,15 +129,17 @@
                     Building
                   </a>
                   <ul class="dropdown-menu">
-                    <li>
+                    <li data-nav-key="access_logs">
                       <%= link_to "Access", access_logs_path, class: "dropdown-item #{current_page?(access_logs_path) ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <li data-nav-key="parking">
                       <%= link_to "Parking", parking_notices_path, class: "dropdown-item #{controller_name == 'parking_notices' ? 'active' : ''}" %>
                     </li>
                   </ul>
                 </li>
-                <li class="nav-item dropdown">
+                <% end %>
+                <% if nav_section_visible?(:admin) %>
+                <li class="nav-item dropdown" data-nav-section="admin">
                   <a class="nav-link dropdown-toggle <%= admin_dropdown_active ? 'active' : '' %>"
                      href="#"
                      role="button"
@@ -123,28 +148,39 @@
                     Admin
                   </a>
                   <ul class="dropdown-menu">
-                    <li>
+                    <% if current_user_admin? %>
+                    <li data-nav-key="reports">
                       <%= link_to "Reports", reports_path, class: "dropdown-item #{controller_name == 'reports' ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <li data-nav-key="member_map">
                       <%= link_to "Map", member_map_path, class: "dropdown-item #{controller_name == 'member_maps' ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <%= gate :'queued_mail.view' do %>
+                    <li data-nav-key="queued_mail">
                       <%= link_to "Mail queue", queued_mails_path, class: "dropdown-item #{controller_name == 'queued_mails' ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <%= gate :'mail_log.view' do %>
+                    <li data-nav-key="mail_log">
                       <%= link_to "Mail log", mail_log_path, class: "dropdown-item #{controller_name == 'mail_log' ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <% if nav_item_visible?(:settings) %>
+                    <li data-nav-key="settings">
                       <%= link_to "Settings", settings_path, class: "dropdown-item #{admin_settings_nav_active ? 'active' : ''}" %>
                     </li>
-                    <li>
+                    <% end %>
+                    <% if current_user_admin? %>
+                    <li data-nav-key="sidekiq">
                       <%= link_to "Sidekiq", '/goh7zeeNiezoozaingothu4', class: "dropdown-item", target: "_blank" %>
                     </li>
+                    <% end %>
                   </ul>
                 </li>
+                <% end %>
               <% else %>
-                <li class="nav-item">
+                <li class="nav-item" data-nav-key="training">
                   <%= link_to "Training", training_catalog_path, class: "nav-link #{controller_name == 'training_catalog' ? 'active' : ''}" %>
                 </li>
               <% end %>

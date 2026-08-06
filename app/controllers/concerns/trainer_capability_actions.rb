@@ -51,7 +51,7 @@ module TrainerCapabilityActions
   # Resolved against the real signed-in account, like every other privilege check: an
   # impersonated session must not be able to appoint trainers on the target's authority.
   def can_manage_trainer_capability?(topic)
-    true_user&.may_manage_trainer_capability?(topic) || false
+    current_user&.may_manage_trainer_capability?(topic) || false
   end
 
   def ensure_trainee_trained_for_trainer_capability

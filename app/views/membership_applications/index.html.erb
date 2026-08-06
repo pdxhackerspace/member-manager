@@ -139,7 +139,11 @@
               <% received_apps = @received_applications_by_email.fetch(verification.email.downcase, []) %>
               <% mail_logs = @verification_mail_logs_by_email.fetch(verification.email.downcase, []) %>
               <tr>
-                <td><code><%= verification.email %></code></td>
+                <td>
+                  <%= membership_application_masked_contact_capture do %>
+                    <code><%= verification.email %></code>
+                  <% end %>
+                </td>
                 <td>
                   <% if verification.expired? %>
                     <span class="badge text-bg-danger">Expired</span>
@@ -294,7 +298,9 @@
                     <button type="button" class="btn btn-sm btn-primary"
                             data-bs-toggle="modal" data-bs-target="#maLinkMemberModal"
                             data-ma-link-action="<%= link_user_membership_application_path(app) %>"
-                            data-application-email="<%= h(app.email) %>">
+                            <%# Withheld without applications.view_pii — this attribute put the
+                                address in the page for every reviewer who could load the list. %>
+                            data-application-email="<%= h(app.email) unless membership_application_mask_contact_pii? %>">
                       Link member
                     </button>
                   <% end %>

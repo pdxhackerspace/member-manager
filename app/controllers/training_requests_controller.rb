@@ -107,7 +107,7 @@ class TrainingRequestsController < AuthenticatedController
   end
 
   def authorize_responder!
-    return if true_user_admin?
+    return if current_user_admin?
     return if responder_for_request?
 
     redirect_to user_path(current_user), alert: 'You are not allowed to respond to that request.'
@@ -119,15 +119,15 @@ class TrainingRequestsController < AuthenticatedController
     return false unless @training_request.pending?
 
     topic_id = @training_request.training_topic_id
-    true_user.training_topics.exists?(id: topic_id) ||
-      true_user.can?(:'training.respond_requests', topic: topic_id)
+    current_user.training_topics.exists?(id: topic_id) ||
+      current_user.can?(:'training.respond_requests', topic: topic_id)
   end
 
   # Recording training from a request confers the topic's privileges, so the no-escalation
   # rule applies here just as it does in the training controller. Replying does not confer
   # anything, so edit and update are left alone.
   def require_conferral_for_mark_trained!
-    return if true_user.may_confer?(@training_request.training_topic, member_sources: %w[trained_in])
+    return if current_user.may_confer?(@training_request.training_topic, member_sources: %w[trained_in])
 
     redirect_to user_path(current_user),
                 alert: 'You cannot record training that would grant privileges you do not hold.'

@@ -1,15 +1,9 @@
 <% mask_contact = membership_application_mask_contact_pii? %>
-<div class="membership-application-show"
-     <% if mask_contact %>
-       data-controller="sensitive-reveal"
-     <% end %>>
+<div class="membership-application-show">
 <% if mask_contact %>
-  <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
-    <p class="mb-0 small">Applicant email, mailing address, phone, and referring member contact fields are blurred until you show them.</p>
-    <button type="button" class="btn btn-sm btn-primary text-nowrap flex-shrink-0"
-            data-action="click->sensitive-reveal#toggle">
-      <span data-sensitive-reveal-target="label">Show contact details</span>
-    </button>
+  <div class="alert alert-secondary mb-3">
+    <p class="mb-0 small">Applicant email, mailing address, phone, and referring member contact
+    details are hidden. Reviewing them needs the applicant contact details privilege.</p>
   </div>
 <% end %>
 

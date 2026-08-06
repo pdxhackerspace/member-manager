@@ -847,7 +847,7 @@ class User < ApplicationRecord
 
     Journal.create!(
       user: self,
-      actor_user: Current.user, # nil when done by system (login, sync, etc.)
+      actor_user: Current.actor, # nil when done by system (login, sync, etc.)
       action: 'created',
       changes_json: changes,
       changed_at: Time.current
@@ -873,7 +873,7 @@ class User < ApplicationRecord
 
     Journal.create!(
       user: self,
-      actor_user: Current.user, # nil when done by system (login, sync, etc.)
+      actor_user: Current.actor, # nil when done by system (login, sync, etc.)
       action: 'updated',
       changes_json: changes,
       changed_at: Time.current

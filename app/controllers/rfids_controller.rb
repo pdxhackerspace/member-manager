@@ -79,7 +79,7 @@ class RfidsController < AuthenticatedController
     return false if Training.exists?(trainee: user, training_topic: topic)
     # Recording training here would confer the topic's roles, so the same no-escalation rule
     # applies as in the training controller.
-    return false unless true_user.may_confer?(topic, member_sources: %w[trained_in])
+    return false unless current_user.may_confer?(topic, member_sources: %w[trained_in])
 
     training = Training.create!(
       trainee: user,

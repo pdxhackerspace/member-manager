@@ -9,6 +9,20 @@ class Journal < ApplicationRecord
   scope :highlighted, -> { where(highlight: true) }
   scope :recent, -> { order(changed_at: :desc) }
 
+  # Entries name the account that acted. While impersonating, that is the administrator —
+  # but the entry would otherwise read as though they had been working on their own account,
+  # so record who they were acting as. Stamped here rather than at each call site so nothing
+  # that writes a journal can forget.
+  before_validation :note_impersonation, on: :create
+
+  def acting_as_name
+    changes_json&.dig('_acting_as', 'to')
+  end
+
+  def recorded_while_impersonating?
+    acting_as_name.present?
+  end
+
   # Actions that should always be highlighted
   HIGHLIGHTED_ACTIONS = %w[
     created
@@ -133,5 +147,16 @@ class Journal < ApplicationRecord
 
     changed_fields = changes_json.keys
     (changed_fields - SYNC_ONLY_FIELDS).empty?
+  end
+
+  def note_impersonation
+    acting_as = Current.acting_as
+    return if acting_as.blank?
+    return if changes_json.blank?
+    return if changes_json.key?('_acting_as')
+
+    self.changes_json = changes_json.merge(
+      '_acting_as' => { 'from' => nil, 'to' => acting_as.display_name }
+    )
   end
 end

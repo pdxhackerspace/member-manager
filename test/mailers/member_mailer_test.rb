@@ -134,7 +134,8 @@ class MemberMailerTest < ActionMailer::TestCase
     )
 
     user = users(:one)
-    rendered = template.render(MemberMailer.build_template_variables(user, MemberMailer.slack_signup_template_extras(user)))
+    variables = MemberMailer.build_template_variables(user, MemberMailer.slack_signup_template_extras(user))
+    rendered = template.render(variables)
 
     assert_not_includes rendered[:body_html], 'href=""'
     assert_not_includes rendered[:body_html], 'Associate your Slack account'
@@ -163,7 +164,8 @@ class MemberMailerTest < ActionMailer::TestCase
     )
 
     user = users(:one)
-    rendered = template.render(MemberMailer.build_template_variables(user, MemberMailer.slack_signup_template_extras(user)))
+    variables = MemberMailer.build_template_variables(user, MemberMailer.slack_signup_template_extras(user))
+    rendered = template.render(variables)
 
     assert_includes rendered[:body_html], 'Associate your Slack account'
     assert_includes rendered[:body_html], '/slack/link'

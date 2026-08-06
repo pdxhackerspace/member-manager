@@ -1,4 +1,5 @@
-class RoomsController < AdminController
+class RoomsController < AuthenticatedController
+  before_action -> { require_privilege!(:'parking.manage_rooms') }
   before_action :set_room, only: %i[edit update destroy]
 
   def index

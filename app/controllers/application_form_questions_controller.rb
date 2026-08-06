@@ -1,4 +1,5 @@
-class ApplicationFormQuestionsController < AdminController
+class ApplicationFormQuestionsController < AuthenticatedController
+  before_action -> { require_privilege!(:'applications.configure_form') }
   before_action :set_page
   before_action :set_question, only: %i[edit update destroy]
 

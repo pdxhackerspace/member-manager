@@ -1,4 +1,5 @@
-class MembershipSettingsController < AdminController
+class MembershipSettingsController < AuthenticatedController
+  before_action -> { require_privilege!(:'membership_settings.manage') }
   def show
     @membership_setting = MembershipSetting.instance
   end

@@ -1,4 +1,5 @@
-class PaymentProcessorsController < AdminController
+class PaymentProcessorsController < AuthenticatedController
+  before_action -> { require_privilege!(:'payments.manage_processors') }
   before_action :set_payment_processor, only: %i[show edit update toggle refresh_stats]
 
   def index

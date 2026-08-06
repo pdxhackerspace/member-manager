@@ -1,4 +1,5 @@
-class MemberSourcesController < AdminController
+class MemberSourcesController < AuthenticatedController
+  before_action -> { require_privilege!(:'sources.manage') }
   before_action :set_member_source, only: %i[show edit update toggle refresh_stats]
 
   def index

@@ -1,4 +1,5 @@
-class AccessControllersController < AdminController
+class AccessControllersController < AuthenticatedController
+  before_action -> { require_privilege!(:'access.manage_controllers') }
   before_action :set_access_controller, only: %i[show edit update destroy toggle sync run_verb]
 
   def index

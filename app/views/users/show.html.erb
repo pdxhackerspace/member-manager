@@ -64,7 +64,7 @@
 <% else %>
 <%# Clearing an override is an administrator action, so the banner offering it is too — but
     it still has to disappear under "view as", which is what @view_level carries. %>
-<% if @view_level == :admin && current_user_admin? && @user.emergency_active_override? %>
+<% if @profile_caps[:emergency_override] && @user.emergency_active_override? %>
   <div class="override-banner mb-3">
     <div class="d-flex align-items-center gap-2 small">
       <i class="bi bi-lightning-charge text-warning" aria-hidden="true"></i>
@@ -112,11 +112,21 @@
       </div>
     </div>
 
+    <%# Each status change carries its own privilege, so the menu is assembled one entry at
+        a time. The section headers and dividers follow their contents, and the whole
+        control disappears when nothing survives — an empty ⋯ is worse than none. %>
+    <% status_entries = [@profile_caps[:toggle_active] && @user.service_account?,
+                         @profile_caps[:emergency_override],
+                         @profile_caps[:sponsor] && !@user.service_account?,
+                         @profile_caps[:mark_deceased] && !@user.service_account?].any? %>
+    <% danger_entries = @profile_caps[:ban] && !@user.service_account? || @profile_caps[:delete] %>
+    <% kebab_entries = status_entries || @profile_caps[:sync_authentik] || danger_entries %>
+
     <div class="d-flex gap-2 align-items-center">
-      <% if current_user_admin? || can?(:'members.edit_membership') %>
+      <% if @profile_caps[:edit_profile] || @profile_caps[:edit_membership] || @profile_caps[:edit_notes] %>
         <%= link_to "Edit", edit_user_path(@user), class: "btn btn-primary btn-sm", data: { action_key: "members.edit" } %>
       <% end %>
-      <% if current_user_admin? && !(impersonating? || @user == true_user) %>
+      <% if @profile_caps[:impersonate] && !(impersonating? || @user == true_user) %>
         <%= button_to "Impersonate", impersonate_user_path(@user), method: :post,
             class: "btn btn-outline-secondary btn-sm",
             form: { data: { turbo: false } },
@@ -124,60 +134,78 @@
             onclick: "return confirm(this.dataset.confirmMessage);" %>
       <% end %>
 
-      <%# Every entry below is an administrator-only action in UsersController. They move as
-          one block so the menu never renders with a stray header or divider and no items,
-          and so the modals they open (rendered just past this block) stay in step. Later
-          phases split this per members.* privilege. %>
-      <% if current_user_admin? %>
+      <% if kebab_entries %>
       <div class="dropdown" data-action-key="members.actions">
         <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" title="More actions" style="line-height: 1;">⋯</button>
         <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
-          <li><h6 class="dropdown-header">Status changes</h6></li>
+          <% if status_entries %>
+            <li><h6 class="dropdown-header">Status changes</h6></li>
+          <% end %>
           <% if @user.service_account? %>
-            <% if @user.active? %>
-              <li><%= button_to "Deactivate", deactivate_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
-            <% else %>
-              <li><%= button_to "Activate", activate_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% if @profile_caps[:toggle_active] %>
+              <% if @user.active? %>
+                <li data-action-key="members.toggle_active"><%= button_to "Deactivate", deactivate_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+              <% else %>
+                <li data-action-key="members.toggle_active"><%= button_to "Activate", activate_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+              <% end %>
             <% end %>
           <% elsif @user.emergency_active_override? %>
-            <li><%= button_to "Clear active override", clear_emergency_active_override_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
-          <% elsif !@user.active? && !@user.membership_status.in?(%w[banned deceased]) %>
-            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#applyOverrideModal">Apply active override...</button></li>
-          <% end %>
-          <% unless @user.service_account? %>
-            <% if @user.is_sponsored? %>
-              <li><%= button_to "Remove Sponsorship", unmark_sponsored_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
-            <% else %>
-              <li><%= button_to "Sponsor...", mark_sponsored_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% if @profile_caps[:emergency_override] %>
+              <li data-action-key="members.emergency_active_override"><%= button_to "Clear active override", clear_emergency_active_override_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
             <% end %>
-            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deceasedModal">Mark as deceased...</button></li>
+          <% elsif !@user.active? && !@user.membership_status.in?(%w[banned deceased]) %>
+            <% if @profile_caps[:emergency_override] %>
+              <li data-action-key="members.emergency_active_override"><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#applyOverrideModal">Apply active override...</button></li>
+            <% end %>
           <% end %>
-          <li><hr class="dropdown-divider"></li>
-          <li><h6 class="dropdown-header">Sync</h6></li>
-          <% if @user.authentik_id.present? && MemberSource.enabled?('member_zone') %>
-            <li><%= button_to "Push to Authentik", sync_to_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
-          <% else %>
-            <li><span class="dropdown-item disabled">Push to Authentik</span></li>
-          <% end %>
-          <% if @user.authentik_id.present? && MemberSource.enabled?('authentik') %>
-            <li><%= button_to "Pull from Authentik", sync_from_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
-          <% else %>
-            <li><span class="dropdown-item disabled">Pull from Authentik</span></li>
-          <% end %>
-          <li><hr class="dropdown-divider"></li>
           <% unless @user.service_account? %>
-            <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#banModal">Ban...</button></li>
+            <% if @profile_caps[:sponsor] %>
+              <% if @user.is_sponsored? %>
+                <li data-action-key="members.sponsor"><%= button_to "Remove Sponsorship", unmark_sponsored_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+              <% else %>
+                <li data-action-key="members.sponsor"><%= button_to "Sponsor...", mark_sponsored_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+              <% end %>
+            <% end %>
+            <% if @profile_caps[:mark_deceased] %>
+              <li data-action-key="members.mark_deceased"><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deceasedModal">Mark as deceased...</button></li>
+            <% end %>
           <% end %>
-          <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteMemberModal">Delete member...</button></li>
+          <% if @profile_caps[:sync_authentik] %>
+            <% if status_entries %>
+              <li><hr class="dropdown-divider"></li>
+            <% end %>
+            <li><h6 class="dropdown-header">Sync</h6></li>
+            <% if @user.authentik_id.present? && MemberSource.enabled?('member_zone') %>
+              <li data-action-key="members.sync_authentik"><%= button_to "Push to Authentik", sync_to_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% else %>
+              <li><span class="dropdown-item disabled">Push to Authentik</span></li>
+            <% end %>
+            <% if @user.authentik_id.present? && MemberSource.enabled?('authentik') %>
+              <li data-action-key="members.sync_authentik"><%= button_to "Pull from Authentik", sync_from_authentik_user_path(@user), method: :post, class: "dropdown-item", form: { data: { turbo: false } } %></li>
+            <% else %>
+              <li><span class="dropdown-item disabled">Pull from Authentik</span></li>
+            <% end %>
+          <% end %>
+          <% if danger_entries %>
+            <% if status_entries || @profile_caps[:sync_authentik] %>
+              <li><hr class="dropdown-divider"></li>
+            <% end %>
+            <% if @profile_caps[:ban] && !@user.service_account? %>
+              <li data-action-key="members.ban"><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#banModal">Ban...</button></li>
+            <% end %>
+            <% if @profile_caps[:delete] %>
+              <li data-action-key="members.delete"><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteMemberModal">Delete member...</button></li>
+            <% end %>
+          <% end %>
         </ul>
       </div>
       <% end %>
     </div>
   </div>
 
-  <% if current_user_admin? %>
-    <%= render "users/admin_member_action_modals", user: @user %>
-  <% end %>
+  <%# The modals themselves are gated one by one inside the partial, in step with the kebab
+      entries that open them. %>
+  <%= render "users/admin_member_action_modals", user: @user %>
 <% end %>
 
 <% unless @view_level.in?(%i[self admin]) %>
@@ -242,7 +270,7 @@
         Profile
       <% end %>
     </li>
-    <% if !@user.service_account? && (current_user_admin? || can?(:'payments.view')) %>
+    <% if !@user.service_account? && @profile_caps[:view_payments] %>
       <li class="nav-item" role="presentation" data-tab-key="payments">
         <%= link_to user_path(@user, tab: :payments, view_as: params[:view_as]), 
             class: "nav-link #{'active' if @active_tab == :payments}", 
@@ -254,7 +282,7 @@
         <% end %>
       </li>
     <% end %>
-    <% if current_user_admin? || can?(:'access.view_logs') %>
+    <% if @profile_caps[:view_access_logs] %>
     <li class="nav-item" role="presentation" data-tab-key="access">
       <%= link_to user_path(@user, tab: :access, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :access}", 
@@ -277,16 +305,16 @@
         <% end %>
       <% end %>
     </li>
-    <% if @incidents_count.to_i > 0 && current_user_admin? %>
-      <li class="nav-item" role="presentation">
-        <%= link_to user_path(@user, tab: :incidents, view_as: params[:view_as]), 
+    <% if @incidents_count.to_i > 0 && @profile_caps[:view_incidents] %>
+      <li class="nav-item" role="presentation" data-tab-key="incidents">
+        <%= link_to user_path(@user, tab: :incidents, view_as: params[:view_as]),
             class: "nav-link #{'active' if @active_tab == :incidents}", 
             role: "tab" do %>
           Incidents <span class="text-warning small ms-1"><%= @incidents_count %></span>
         <% end %>
       </li>
     <% end %>
-    <% if @parking_notices_count.to_i > 0 && current_user_admin? %>
+    <% if @parking_notices_count.to_i > 0 && @profile_caps[:view_parking] %>
       <li class="nav-item" role="presentation" data-tab-key="parking">
         <%= link_to user_path(@user, tab: :parking, view_as: params[:view_as]),
             class: "nav-link #{'active' if @active_tab == :parking}",
@@ -295,7 +323,7 @@
         <% end %>
       </li>
     <% end %>
-    <% if current_user_admin? || can?(:'journal.view') %>
+    <% if @profile_caps[:view_journal] %>
     <li class="nav-item" role="presentation" data-tab-key="journal">
       <%= link_to user_path(@user, tab: :journal, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :journal}", 
@@ -307,7 +335,7 @@
       <% end %>
     </li>
     <% end %>
-    <% if current_user_admin? || can?(:'queued_mail.view') %>
+    <% if @profile_caps[:view_mail] %>
     <li class="nav-item" role="presentation" data-tab-key="mail">
       <%= link_to user_path(@user, tab: :mail, view_as: params[:view_as]), 
           class: "nav-link #{'active' if @active_tab == :mail}", 
@@ -319,7 +347,7 @@
       <% end %>
     </li>
     <% end %>
-    <% if current_user_admin? %>
+    <% if @profile_caps[:send_message] %>
     <li class="nav-item" role="presentation" data-tab-key="messages">
       <%= link_to user_path(@user, tab: :messages, view_as: params[:view_as]),
           class: "nav-link #{'active' if @active_tab == :messages}",

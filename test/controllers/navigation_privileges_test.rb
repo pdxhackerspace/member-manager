@@ -40,14 +40,14 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
     holder('members.view_list')
 
     assert_equal %w[members_index training].sort, nav_keys_on(help_path)
-    assert_section_visible 'members'
+    assert_collapsed_to_flat_entry 'members', 'members_index'
   end
 
   test 'applications.view reveals the Members dropdown for the application queue' do
     holder('applications.view')
 
     assert_equal %w[applications training].sort, nav_keys_on(help_path)
-    assert_section_visible 'members'
+    assert_collapsed_to_flat_entry 'members', 'applications'
   end
 
   # Settings comes along because its Recharge row — the one carrying the "needs linking"
@@ -63,14 +63,14 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
     holder('payments.view_events')
 
     assert_equal %w[payment_events training].sort, nav_keys_on(help_path)
-    assert_section_visible 'payments'
+    assert_collapsed_to_flat_entry 'payments', 'payment_events'
   end
 
   test 'queued_mail.view reveals the Admin dropdown for the mail queue alone' do
     holder('queued_mail.view')
 
     assert_equal %w[queued_mail training].sort, nav_keys_on(help_path)
-    assert_section_visible 'admin'
+    assert_collapsed_to_flat_entry 'admin', 'queued_mail'
   end
 
   test 'a dropdown with nothing to show does not render' do
@@ -89,7 +89,7 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
     holder('text_fragments.manage')
 
     assert_includes nav_keys_on(help_path), 'settings'
-    assert_section_visible 'admin'
+    assert_collapsed_to_flat_entry 'admin', 'settings'
 
     get settings_path
     assert_response :success
@@ -162,9 +162,19 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
     css_select('[data-nav-key]').pluck('data-nav-key').sort
   end
 
+  # A section holding one visible entry collapses to a flat link — a dropdown containing a
+  # single item is a worse affordance than the item itself. Either shape is reachable; what
+  # must never happen is the entry being present with no way to click it.
   def assert_section_visible(section)
     assert_select %([data-nav-section="#{section}"]), 1,
                   "the #{section} dropdown must render so its entries are reachable"
+  end
+
+  def assert_collapsed_to_flat_entry(section, key)
+    assert_select %([data-nav-section="#{section}"]), 0,
+                  'a section with one visible entry should not render as a dropdown'
+    assert_select %(li.nav-item[data-nav-key="#{key}"]), 1,
+                  "#{key} should render as a flat nav item once its section collapsed"
   end
 
   def holder(*privilege_keys)

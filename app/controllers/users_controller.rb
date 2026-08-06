@@ -12,14 +12,23 @@ class UsersController < AuthenticatedController
                          sync_to_authentik sync_from_authentik
                          unlink_slack unlink_authentik unlink_sheet
                          mark_help_seen pause_key_access resume_key_access]
-  # Everything not named here stays with administrators. That is deliberate: the member
-  # directory and profile have privileges, but creating, banning, deleting, sponsoring,
-  # unlinking and the bulk Authentik syncs each have their own key that no role confers
-  # yet — and `sync`, `sync_all_to_authentik` and
-  # `toggle_authentik_sync_inactive_as_active` have no key at all.
-  before_action :require_admin!,
-                except: %i[index show edit update mark_help_seen pause_key_access resume_key_access]
+  # The bulk Authentik operations have no catalog key of their own, so they stay with
+  # administrators: `sync` and `sync_all_to_authentik` push every member to the identity
+  # provider and `toggle_authentik_sync_inactive_as_active` changes how they are pushed.
+  before_action :require_admin!, only: %i[sync sync_all_to_authentik toggle_authentik_sync_inactive_as_active]
   before_action -> { require_privilege!(:'members.view_list') }, only: :index
+  before_action -> { require_privilege!(:'members.create') }, only: %i[new create]
+  before_action -> { require_privilege!(:'members.toggle_active') }, only: %i[activate deactivate]
+  before_action -> { require_privilege!(:'members.emergency_active_override') },
+                only: %i[enable_emergency_active_override clear_emergency_active_override]
+  before_action -> { require_privilege!(:'members.ban') }, only: :ban
+  before_action -> { require_privilege!(:'members.mark_deceased') }, only: :mark_deceased
+  before_action -> { require_privilege!(:'members.sponsor') }, only: %i[mark_sponsored unmark_sponsored]
+  before_action -> { require_privilege!(:'members.delete') }, only: :destroy
+  before_action -> { require_privilege!(:'members.sync_authentik') },
+                only: %i[sync_to_authentik sync_from_authentik]
+  before_action -> { require_privilege!(:'members.unlink_sources') },
+                only: %i[unlink_slack unlink_authentik unlink_sheet]
   before_action -> { require_privilege!(:'access.pause_resume') }, only: %i[pause_key_access resume_key_access]
   before_action :authorize_profile_view, only: [:show]
   before_action :authorize_self_or_admin, only: %i[edit update]
@@ -178,6 +187,7 @@ class UsersController < AuthenticatedController
     @natural_view_level = determine_view_level
     @view_level = determine_effective_view_level
     @profile_hidden = profile_hidden_for_view?(@view_level)
+    @profile_caps = profile_capabilities
 
     # Set up view preview options for admins and profile owners
     setup_view_preview_options
@@ -233,31 +243,37 @@ class UsersController < AuthenticatedController
       @pagy_payments, @payments = pagy(payments_query, limit: 20, page_key: 'payments_page')
     end
 
-    # Admin-only data, resolved against the account being viewed as
-    if current_user_admin?
-      # Journals (paginated) - only load for admin view
-      if @view_level == :admin
+    # Each of these backs one tab, so it loads on the same capability that reveals the tab.
+    # Loading them together behind a single admin check would either leave a holder's tab
+    # empty or make everyone pay for queries they cannot see.
+    if @view_level == :admin
+      if @profile_caps[:view_journal]
         journals_query = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
         @journals_count = journals_query.count
         @pagy_journals, @journals = pagy(journals_query, limit: 20, page_key: 'journal_page')
+      end
 
-        # Access logs (paginated)
+      if @profile_caps[:view_access_logs]
         access_query = @user.access_logs.order(logged_at: :desc)
         @access_count = access_query.count
         @most_recent_access = access_query.first
         @pagy_accesses, @recent_accesses = pagy(access_query, limit: 20, page_key: 'access_page')
+      end
 
-        # Incidents (paginated)
+      if @profile_caps[:view_incidents]
         incidents_query = @user.incident_reports.includes(:reporter).ordered
         @incidents_count = incidents_query.count
         @pagy_incidents, @user_incidents = pagy(incidents_query, limit: 20, page_key: 'incidents_page')
+      end
 
-        # Mail (queued mails for this recipient, with log entries)
+      if @profile_caps[:view_mail]
         mail_query = @user.queued_mails.includes(:email_template, :reviewed_by, :mail_log_entries).newest_first
         @mail_count = mail_query.count
         @pagy_mails, @queued_mails = pagy(mail_query, limit: 20, page_key: 'mail_page')
       end
+    end
 
+    if current_user_admin?
       # Find previous and next users for navigation (always for admin toolbar)
       # Rebuild the same filtered/sorted query from the index page
       nav_query = User.all
@@ -650,9 +666,9 @@ class UsersController < AuthenticatedController
   def authorize_self_or_admin
     return if current_user_admin?
     return if @user == current_user
-    # Editing another member's membership is the whole point of the privilege; which
-    # fields actually save is decided per attribute in #user_params.
-    return if can?(:'members.edit_membership')
+    # Editing someone else's profile is the whole point of these privileges; which fields
+    # actually save is decided per attribute in #user_params.
+    return if can?(:'members.edit_membership') || can?(:'members.edit_profile') || can?(:'members.edit_notes')
 
     redirect_to user_path(current_user), alert: 'You may only edit your own profile.'
   end
@@ -685,6 +701,50 @@ class UsersController < AuthenticatedController
     else
       false
     end
+  end
+
+  # What the viewer may do on this profile, declared once so the page and its partials read
+  # one set instead of repeating privilege checks.
+  #
+  # @view_level answers a different question — how much of the profile its *owner* has
+  # chosen to expose, and which preview an administrator has selected. It stays. This
+  # answers what the viewer is entitled to act on, which a single :admin flag could not
+  # express: a Front desk greeter and an administrator both reach the admin layout and
+  # should not see the same buttons.
+  #
+  # Preview honours it too: an administrator viewing as :self or :members holds nothing
+  # here, so the preview shows what that member would really get.
+  def profile_capabilities
+    return Hash.new(false) unless @view_level == :admin
+
+    {
+      edit_profile: can?(:'members.edit_profile'),
+      edit_membership: can?(:'members.edit_membership'),
+      edit_notes: can?(:'members.edit_notes'),
+      view_private_contact: can?(:'members.view_private_contact'),
+      toggle_active: can?(:'members.toggle_active'),
+      emergency_override: can?(:'members.emergency_active_override'),
+      ban: can?(:'members.ban'),
+      mark_deceased: can?(:'members.mark_deceased'),
+      sponsor: can?(:'members.sponsor'),
+      delete: can?(:'members.delete'),
+      grant_admin: can?(:'members.grant_admin'),
+      impersonate: current_user_admin?,
+      send_message: can?(:'members.send_message'),
+      sync_authentik: can?(:'members.sync_authentik'),
+      unlink_sources: can?(:'members.unlink_sources'),
+      view_rfids: can?(:'access.view_rfids'),
+      manage_rfids: can?(:'access.manage_rfids'),
+      pause_access: can?(:'access.pause_resume'),
+      view_access_logs: can?(:'access.view_logs'),
+      view_payments: can?(:'payments.view'),
+      view_journal: can?(:'journal.view'),
+      view_mail: can?(:'queued_mail.view'),
+      view_incidents: can?(:'incidents.manage'),
+      view_parking: can?(:'parking.manage_notices'),
+      record_training: can_for_any_topic?(:'training.record'),
+      grant_trainer: can?(:'training.grant_trainer')
+    }
   end
 
   def determine_view_level
@@ -975,17 +1035,17 @@ class UsersController < AuthenticatedController
     # Split per attribute rather than per action: update is shared with self-service
     # editing, so the fields are what carry the authority. Keep this in step with
     # app/views/users/_form.html.erb, or the form offers inputs that are then dropped.
-    if current_user_admin? || can?(:'members.edit_membership')
+    if can?(:'members.edit_membership')
       permitted += %i[membership_status payment_type membership_plan_id dues_due_at
                       sponsored_guest_duration_months]
     end
 
-    if current_user_admin?
-      permitted += %i[notes aliases_text service_account legacy mailing_address phone_number]
-      permitted << :is_admin
-      # Only allow manual active toggle for service accounts
-      permitted << :active if @user&.service_account?
-    end
+    permitted += %i[aliases_text mailing_address phone_number] if can?(:'members.edit_profile')
+    permitted << :notes if can?(:'members.edit_notes')
+    permitted << :is_admin if can?(:'members.grant_admin')
+    permitted += %i[service_account legacy] if current_user_admin?
+    # Only allow manual active toggle for service accounts
+    permitted << :active if @user&.service_account? && can?(:'members.toggle_active')
 
     params.require(:user).permit(permitted)
   end

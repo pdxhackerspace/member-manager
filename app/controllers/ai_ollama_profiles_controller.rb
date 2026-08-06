@@ -1,4 +1,5 @@
-class AiOllamaProfilesController < AdminController
+class AiOllamaProfilesController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.ai_services') }
   before_action :set_ai_ollama_profile, only: %i[edit update]
   before_action :set_ai_providers, only: %i[edit update]
 

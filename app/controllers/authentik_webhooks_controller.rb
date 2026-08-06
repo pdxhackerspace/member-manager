@@ -1,4 +1,5 @@
-class AuthentikWebhooksController < AdminController
+class AuthentikWebhooksController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.authentik_webhooks') }
   def index
     @webhook_setup = Authentik::WebhookSetup.new
     begin

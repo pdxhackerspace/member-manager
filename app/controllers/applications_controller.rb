@@ -1,4 +1,5 @@
-class ApplicationsController < AdminController
+class ApplicationsController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.applications') }
   def index
     @applications = Application.includes(:application_groups).order(:name)
   end

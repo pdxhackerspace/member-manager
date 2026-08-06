@@ -53,10 +53,8 @@ module Nags
     end
 
     def self.pending_nag_mail?(user)
-      QueuedMail.where(recipient: user, mailer_action: 'slack_signup_nag')
-                .where(status: %w[pending approved])
-                .where(sent_at: nil)
-                .exists?
+      QueuedMail.exists?(recipient: user, mailer_action: 'slack_signup_nag', status: %w[pending approved],
+                         sent_at: nil)
     end
 
     DELIVERABLE_EMAIL_SQL = "users.email IS NOT NULL AND users.email ~ '\\S'".freeze

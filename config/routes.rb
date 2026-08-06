@@ -151,7 +151,6 @@ Rails.application.routes.draw do
   resources :slack_users, only: [:index, :show] do
     collection do
       post :sync
-      post :sync_to_users
       post :import_members
       post :import_analytics
     end

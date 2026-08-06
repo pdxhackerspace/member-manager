@@ -197,12 +197,32 @@ class SlackUsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal 'Slack source is disabled.', flash[:alert]
   end
 
-  test 'sync_to_users redirects with alert when slack source is disabled' do
-    member_sources(:slack).update!(enabled: false)
+  test 'sync enqueues job without member updates by default' do
+    assert_enqueued_with(job: Slack::UserSyncJob, args: [{ update_members: false }]) do
+      post sync_slack_users_path
+    end
 
-    post sync_to_users_slack_users_path
     assert_redirected_to slack_users_path
-    assert_equal 'Slack source is disabled.', flash[:alert]
+    assert_equal 'Slack sync started. Matching members will be linked.', flash[:notice]
+  end
+
+  test 'sync enqueues job with member updates when switch is on' do
+    assert_enqueued_with(job: Slack::UserSyncJob, args: [{ update_members: true }]) do
+      post sync_slack_users_path, params: { update_members: '1' }
+    end
+
+    assert_redirected_to slack_users_path
+    assert_match(/member accounts will be updated/, flash[:notice])
+  end
+
+  test 'index shows update member accounts switch with sync form' do
+    get slack_users_path
+
+    assert_response :success
+    assert_select 'form[action=?][method=?]', sync_slack_users_path, 'post'
+    assert_select '#slack_sync_update_members.form-check-input[role=?]', 'switch'
+    assert_select 'input[type=?][value=?]', 'submit', 'Sync Slack users'
+    assert_select 'button', text: 'Sync to Members', count: 0
   end
 
   # ─── Create Member ─────────────────────────────────────────────

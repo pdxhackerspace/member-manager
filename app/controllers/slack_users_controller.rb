@@ -118,35 +118,15 @@ class SlackUsersController < AdminController
 
   def create_member
     @slack_user = SlackUser.find(params[:id])
+    result = Slack::MemberCreator.call(slack_user: @slack_user)
 
-    if @slack_user.user_id.present?
-      redirect_to slack_users_path(extract_filter_params), alert: 'This Slack user is already linked to a member.'
-      return
-    end
-
-    user = User.new(
-      full_name: @slack_user.real_name,
-      email: @slack_user.email,
-      slack_id: @slack_user.slack_id,
-      slack_handle: @slack_user.username,
-      active: true,
-      membership_status: 'unknown',
-      payment_type: 'unknown'
-    )
-
-    # Set avatar from Slack profile if available
-    profile = @slack_user.raw_attributes&.dig('profile') || {}
-    user.avatar = profile['image_192'] if profile['image_original'].present? && profile['image_192'].present?
-
-    # Set pronouns from Slack if available
-    user.pronouns = @slack_user.pronouns if @slack_user.pronouns.present?
-
-    if user.save
-      @slack_user.update!(user_id: user.id)
-      redirect_to user_path(user), notice: "Created member '#{user.display_name}' from Slack user."
+    if result.success?
+      redirect_to user_path(result.user), notice: "Created member '#{result.user.display_name}' from Slack user."
+    elsif @slack_user.user_id.present?
+      redirect_to slack_users_path(extract_filter_params), alert: result.message
     else
       redirect_to slack_users_path(extract_filter_params),
-                  alert: "Failed to create member: #{user.errors.full_messages.join(', ')}"
+                  alert: "Failed to create member: #{result.message}"
     end
   end
 
@@ -156,59 +136,14 @@ class SlackUsersController < AdminController
       return
     end
 
-    Slack::UserSyncJob.perform_later
-    redirect_to slack_users_path, notice: 'Slack user sync started.'
-  end
+    update_members = ActiveModel::Type::Boolean.new.cast(params[:update_members]) == true
+    Slack::UserSyncJob.perform_later(update_members: update_members)
 
-  def sync_to_users
-    unless MemberSource.enabled?('slack')
-      redirect_to slack_users_path, alert: 'Slack source is disabled.'
-      return
-    end
-
-    linked_count = 0
-    skipped_count = 0
-
-    # Only process real users (not bots) that aren't already linked
-    SlackUser.where(is_bot: false, user_id: nil).find_each do |slack_user|
-      # Find matching users by email or full name (real_name)
-      matches = []
-
-      # Match by email (case-insensitive) - check both primary email and extra_emails
-      if slack_user.email.present?
-        normalized_email = slack_user.email.to_s.strip.downcase
-        matches += User.by_any_email(normalized_email)
-      end
-
-      # Match by full name or alias (real_name) — only multi-word names
-      matches += User.by_name_or_alias(slack_user.real_name) if slack_user.real_name.present?
-
-      # Remove duplicates
-      matches = matches.uniq
-
-      # Only link if exactly one match (do not create new users)
-      if matches.one?
-        user = matches.first
-
-        slack_user.update!(user_id: user.id)
-
-        linked_count += 1
-      else
-        # No match or multiple matches, skip
-        skipped_count += 1
-      end
-    end
-
-    parts = []
-    parts << "#{linked_count} linked" if linked_count.positive?
-    parts << "#{skipped_count} skipped" if skipped_count.positive?
-
-    notice = if parts.any?
-               "Sync complete. #{parts.join(', ')}."
+    notice = if update_members
+               'Slack sync started. Matching members will be linked and member accounts will be updated.'
              else
-               'Sync complete. No changes.'
+               'Slack sync started. Matching members will be linked.'
              end
-
     redirect_to slack_users_path, notice: notice
   end
 

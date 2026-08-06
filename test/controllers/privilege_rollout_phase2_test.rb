@@ -82,6 +82,51 @@ class PrivilegeRolloutPhase2Test < ActionDispatch::IntegrationTest
     assert_not_predicate member, :is_admin?
   end
 
+  test 'members.edit_membership cannot ban through membership status patch' do
+    member = users(:one)
+    member.update!(membership_status: 'paying')
+    holder('members.edit_membership')
+
+    patch user_path(member), params: { user: { membership_status: 'banned' } }
+
+    assert_equal 'paying', member.reload.membership_status
+  end
+
+  test 'members.edit_membership cannot mark deceased through membership status patch' do
+    member = users(:one)
+    member.update!(membership_status: 'paying')
+    holder('members.edit_membership')
+
+    patch user_path(member), params: { user: { membership_status: 'deceased' } }
+
+    assert_equal 'paying', member.reload.membership_status
+  end
+
+  test 'members.edit_profile edit form shows contact fields but not notes or membership' do
+    holder('members.edit_profile')
+
+    get edit_user_path(users(:one))
+
+    assert_response :success
+    assert_select 'textarea[name="user[mailing_address]"]'
+    assert_select 'input[name="user[phone_number]"]'
+    assert_select 'input[name="user[aliases_text]"]'
+    assert_select 'textarea[name="user[notes]"]', count: 0
+    assert_select 'select[name="user[membership_status]"]', count: 0
+  end
+
+  test 'members.edit_notes edit form shows notes but not contact or membership fields' do
+    holder('members.edit_notes')
+
+    get edit_user_path(users(:one))
+
+    assert_response :success
+    assert_select 'textarea[name="user[notes]"]'
+    assert_select 'textarea[name="user[mailing_address]"]', count: 0
+    assert_select 'input[name="user[phone_number]"]', count: 0
+    assert_select 'select[name="user[membership_status]"]', count: 0
+  end
+
   # ─── Invitations ──────────────────────────────────────────────────────
 
   test 'invitations.view opens the invitation list' do

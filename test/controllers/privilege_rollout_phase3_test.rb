@@ -112,6 +112,15 @@ class PrivilegeRolloutPhase3Test < ActionDispatch::IntegrationTest
     assert_equal 'untouched', @member.notes
   end
 
+  test 'members.edit_membership cannot unban through membership status patch' do
+    @member.update!(membership_status: 'banned')
+    holder('members.edit_membership')
+
+    patch user_path(@member), params: { user: { membership_status: 'paying' } }
+
+    assert_equal 'banned', @member.reload.membership_status
+  end
+
   test 'members.grant_admin is the only way to set is_admin' do
     holder('members.edit_profile', 'members.edit_membership', 'members.edit_notes')
     patch user_path(@member), params: { user: { is_admin: true } }

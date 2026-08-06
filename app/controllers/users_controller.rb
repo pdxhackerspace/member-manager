@@ -1053,7 +1053,29 @@ class UsersController < AuthenticatedController
   def resolved_user_params
     attrs = user_params.to_h.symbolize_keys
     apply_greeting_option!(attrs)
+    filter_restricted_membership_status!(attrs)
     attrs
+  end
+
+  # Banned and deceased statuses require their dedicated privileges and flows.
+  def filter_restricted_membership_status!(attrs)
+    return unless attrs.key?(:membership_status)
+
+    new_status = attrs[:membership_status].to_s
+    current = @user&.membership_status.to_s
+
+    restricted_targets = []
+    restricted_targets << 'banned' unless can?(:'members.ban')
+    restricted_targets << 'deceased' unless can?(:'members.mark_deceased')
+
+    if restricted_targets.include?(new_status)
+      attrs.delete(:membership_status)
+      return
+    end
+
+    locked = (current == 'banned' && !can?(:'members.ban')) ||
+             (current == 'deceased' && !can?(:'members.mark_deceased'))
+    attrs.delete(:membership_status) if locked && new_status != current
   end
 
   def apply_greeting_option!(attrs)

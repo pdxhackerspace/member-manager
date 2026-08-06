@@ -65,6 +65,27 @@ module Nags
       end
     end
 
+    test 'due excludes banned members even when active column is true' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'banned-nag@example.com', membership_status: 'banned')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
+        assert_equal 0, SlackSignupEligibility.count_due(now: now)
+      end
+    end
+
+    test 'due excludes deceased members even when active column is true' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'deceased-nag@example.com', membership_status: 'deceased')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
+      end
+    end
+
     test 'due excludes members nagged inside repeat window' do
       now = Time.zone.local(2026, 8, 5, 7, 0, 0)
       user = eligible_user(now: now, email: 'recent-nag@example.com', slack_signup_nag_sent_at: now - 3.days)

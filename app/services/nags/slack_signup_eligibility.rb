@@ -60,7 +60,7 @@ module Nags
     DELIVERABLE_EMAIL_SQL = "users.email IS NOT NULL AND users.email ~ '\\S'".freeze
 
     def self.base_scope
-      User.where(active: true)
+      User.active
           .non_service_accounts
           .where.missing(:slack_user)
           .where(slack_id: [nil, ''])

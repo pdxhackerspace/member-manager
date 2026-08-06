@@ -351,12 +351,12 @@ commit or an admin-only partial renders for the new holder.
 | 0 | ~~**Hardening**~~ — **done** | Subject switch to `current_user` + impersonation invariant tests; PII redaction; RAG endpoint; plans `new`; journal attribution; route coverage guard test |
 | 1 | ~~**Helper + harness**~~ — **done** | `gate`, `can_for_any_topic?` helper_method; lifted the duplicated test sign-in helpers |
 | 2 | ~~**Enforce the dead privileges**~~ — **done** | The preset keys plus `mail_log.view`; privilege-aware navigation and settings hub; profile regions gated; the two incoherent seeded roles fixed |
-| 3 | **Navigation** | Data-driven nav, `data-nav-key`, collapse and divider rules |
-| 4 | **Settings hub** | Filter + `settings.view` gate; convert ~20 destination controllers per category |
-| 5 | **Members surface** | Densest page; per-action gates paired with `gate` on every hero button and kebab item |
-| 6 | **Remaining areas** | Applications · Payments · Training/documents · Communications · Building/parking · Reports/journal/map/search |
-| 7 | **Member-facing, design-first** | Documents, catalog, plans, training requests — privilege added with `\|\|` |
-| 8 | **Catalog reconciliation** | Delete or justify no-surface keys; drop `members.impersonate`; add missing keys; coverage test |
+| 3 | ~~**Navigation**~~ — **done** | Data-driven nav, `data-nav-key`, collapse and divider rules |
+| 4 | ~~**Settings hub**~~ — **done** | Filter + `settings.view` gate; 18 destination controllers converted, each hub row naming the key its destination enforces |
+| 5 | ~~**Members surface**~~ — **done** | `@profile_caps` replaced the single `:admin` bit; per-action gates on every hero button, kebab item, tab and modal |
+| 6 | ~~**Remaining areas**~~ — **done** | Access logs · the three member sources · cash · dashboard · incidents · journal · map · onboarding · parking · reports; plus the placeholder `current_user_admin?` guards swapped for `payments.sync`, `payments.import_export`, `queued_mail.edit`, `email_templates.test_send`, `email_templates.ai_rewrite`, `access.export_users` |
+| 7 | ~~**Member-facing, design-first**~~ — **done** | `training.catalog.view_all`, `training.documents.view_all`, `plans.view_hidden`, `parking.clear_admin_required`, `search.admin` — every one added with `\|\|` |
+| 8 | ~~**Catalog reconciliation**~~ — **done** | All 103 keys enforced; `api.users.search` and `help.admin_faq` given surfaces rather than pruned; `privilege_catalog_coverage_test.rb` fails on a key nothing reads |
 
 Phase 0 must go first: the subject switch is what makes every later phase testable, and it
 is a one-line change per call site with a large blast radius, so it wants to land alone
@@ -463,6 +463,39 @@ Per phase, before merge: `docker compose -f docker-compose.test.yml run --rm tes
 `docker compose -f docker-compose.lint.yml run --rm rubocop`, both clean.
 
 ---
+
+## What the rollout answered
+
+The open questions below were resolved in the course of phases 2-8, and are kept for the
+reasoning rather than as pending decisions.
+
+1. **Catalog scope** — wire up rather than prune. Every key that lacked a surface got one:
+   `onboarding.run` and `onboarding.approve_mail` got a navbar entry, `api.users.search` got
+   the dashboard picker gated on it, `help.admin_faq` got its Help menu item. Nothing was
+   deleted from the catalog. A key granted in the roles editor and enforced nowhere is the
+   failure this project existed to fix; a key enforced with no way to reach it is the same
+   failure one step later.
+2. **Surfaces with no privilege** — roles administration and the Sidekiq console stay
+   administrator-only, deliberately. Roles administration confers authority, so it waits on
+   the `User#may_confer?` containment rule; the Sidekiq console is outside the application
+   and has no key to name. Both are marked as such in `MainNavigationItemsHelper`.
+3. **Audit attribution during impersonation** — resolved in phase 0: `Current.actor` records
+   the real account while `current_user` decides authority, so the journal names who really
+   acted without changing whose record changed.
+4. **Phase 0 urgency** — it shipped first, as its own PR (#663).
+
+## Still open
+
+- **`members.grant_admin`, `RolesController` and `TrainingTopicRolesController`** remain
+  administrator-only. They grant authority rather than exercise it, and opening them needs
+  the containment rule (`user.rb`: `may_confer?`) proven under the new gates first —
+  otherwise a role holder could assemble a role more powerful than their own.
+- **`email_templates.test_send` has a route but no button.** The key is enforced; nothing in
+  the interface calls it. Either add the affordance or drop the route.
+- **The bulk actions have no keys**: `approve_all`/`reject_all` on the mail queue,
+  `sync_all_to_authentik`, template `seed` and `toggle`. Each acts on everything at once,
+  which is a different grant from acting on one record, and the catalog does not distinguish
+  them. They stay with administrators until it does.
 
 ## Open questions for the reviewer
 

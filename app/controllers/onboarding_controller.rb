@@ -1,4 +1,9 @@
-class OnboardingController < AdminController
+class OnboardingController < AuthenticatedController
+  before_action -> { require_privilege!(:'onboarding.run') },
+                only: %i[member_info create_member payment save_payment access save_rfid save_training mail]
+  before_action -> { require_privilege!(:'onboarding.approve_mail') },
+                only: %i[approve_mail reject_mail approve_all_mail reject_all_mail]
+
   before_action :set_user, only: %i[payment save_payment access save_rfid save_training
                                     mail approve_mail reject_mail approve_all_mail reject_all_mail]
 

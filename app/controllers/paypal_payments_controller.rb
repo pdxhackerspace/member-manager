@@ -7,7 +7,10 @@ class PaypalPaymentsController < AuthenticatedController
   # data in or out, or minting a member record. Those belong to payments.sync,
   # payments.import_export and members.create, none of which this phase enforces; `test`
   # opens a live connection to PayPal and has no catalog key at all.
-  before_action :require_admin!, only: %i[create_member sync test export import]
+  before_action -> { require_privilege!(:'payments.sync') }, only: :sync
+  before_action -> { require_privilege!(:'payments.import_export') }, only: %i[export import]
+  # create_member is member creation, and test exercises the live processor credentials.
+  before_action :require_admin!, only: %i[create_member test]
 
   def index
     # Determine if we're showing unmatched payments

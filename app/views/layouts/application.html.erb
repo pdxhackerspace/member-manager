@@ -54,7 +54,7 @@
                   <li>
                     <%= link_to "FAQ", help_faq_path, class: "dropdown-item #{controller_name == 'pages' && action_name == 'help_faq' ? 'active' : ''}" %>
                   </li>
-                  <% if current_user_admin? %>
+                  <% if can?(:'help.admin_faq') %>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <%= link_to "Admin FAQ", help_admin_faq_path, class: "dropdown-item #{controller_name == 'pages' && action_name == 'help_admin_faq' ? 'active' : ''}" %>

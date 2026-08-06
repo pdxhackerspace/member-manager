@@ -86,12 +86,17 @@ class ParkingNotice < ApplicationRecord
   # A member may clear their own active or expired notice unless it has been
   # flagged as requiring admin clearance. Admins can always clear any
   # uncleared notice.
+  # The one privilege check in a member-facing model, so the order matters: a member keeps
+  # the right to clear their own notice, and each privilege only adds to that. The
+  # admin-clearance flag exists to hold a notice open until someone with the authority to
+  # clear it looks at it, so only that authority passes it.
   def clearable_by?(actor)
-    return false if cleared?
-    return true if actor&.admin?
+    return false if cleared? || actor.blank?
+    return true if actor.admin? || actor.can?(:'parking.clear_admin_required')
     return false if requires_admin_clearance?
+    return true if actor.can?(:'parking.manage_notices')
 
-    actor.present? && user_id == actor.id
+    user_id == actor.id
   end
 
   def clearance_requested?

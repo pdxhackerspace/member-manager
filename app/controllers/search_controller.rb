@@ -3,7 +3,9 @@ class SearchController < AuthenticatedController
     @q = params[:q].to_s.strip
     return if @q.blank?
 
-    if current_user_admin?
+    # A member searches the roster they can already see; search.admin adds the source
+    # records — Authentik, Slack, the sheet — behind it.
+    if current_user_admin? || can?(:'search.admin')
       @admin_search = true
       search_admin
     else

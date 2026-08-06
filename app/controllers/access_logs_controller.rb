@@ -1,5 +1,12 @@
-class AccessLogsController < AdminController
+class AccessLogsController < AuthenticatedController
   PER_PAGE = 200
+
+  before_action -> { require_privilege!(:'access.view_logs') }, only: :index
+  before_action -> { require_privilege!(:'access.import_logs') }, only: %i[upload import]
+  before_action -> { require_privilege!(:'access.link_logs') }, only: :link_user
+  # create_member makes a member record out of an unmatched badge scan. That is member
+  # creation wearing an access-log hat, and members.create does not appear on this page.
+  before_action :require_admin!, only: :create_member
 
   def index
     base_logs = AccessLog.includes(:user).recent

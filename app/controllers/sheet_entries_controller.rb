@@ -1,4 +1,10 @@
-class SheetEntriesController < AdminController
+class SheetEntriesController < AuthenticatedController
+  before_action -> { require_privilege!(:'sources.sheet.view') }, only: %i[index show]
+  before_action -> { require_privilege!(:'sources.sheet.sync') }, only: %i[sync sync_to_users sync_to_user]
+  before_action -> { require_privilege!(:'members.unlink_sources') }, only: :unlink_user
+  # test reaches out to the live Google Sheets credentials to prove they work.
+  before_action :require_admin!, only: :test
+
   def index
     # Base query
     base_query = SheetEntry.order(Arel.sql('LOWER(name) ASC'))

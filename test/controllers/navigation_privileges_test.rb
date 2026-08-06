@@ -29,7 +29,7 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
 
     keys = nav_keys_on(help_path)
 
-    %w[members_index authentik sheet slack applications incident_reports
+    %w[members_index authentik sheet slack applications incident_reports onboarding
        paypal recharge kofi cash payment_events training journal
        access_logs parking reports member_map queued_mail mail_log settings sidekiq].each do |key|
       assert_includes keys, key, "an administrator should still see #{key}"
@@ -51,12 +51,20 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
   end
 
   # Settings comes along because its Recharge row — the one carrying the "needs linking"
-  # count — is itself gated on payments.view. Cash and the event log do not.
-  test 'payments.view reveals the Payments dropdown without cash or events' do
+  # count — is itself gated on payments.view. The event log does not; cash does, because
+  # reading the cash ledger is part of seeing payments even though recording one is not.
+  test 'payments.view reveals the Payments dropdown without the event log' do
     holder('payments.view')
 
-    assert_equal %w[paypal recharge kofi settings training].sort, nav_keys_on(help_path)
+    assert_equal %w[paypal recharge kofi cash settings training].sort, nav_keys_on(help_path)
     assert_section_visible 'payments'
+  end
+
+  test 'payments.manage_cash reveals the cash ledger alone' do
+    holder('payments.manage_cash')
+
+    assert_equal %w[cash training].sort, nav_keys_on(help_path)
+    assert_collapsed_to_flat_entry 'payments', 'cash'
   end
 
   test 'payments.view_events reveals the Payments dropdown for the event log alone' do
@@ -71,6 +79,42 @@ class NavigationPrivilegesTest < ActionDispatch::IntegrationTest
 
     assert_equal %w[queued_mail training].sort, nav_keys_on(help_path)
     assert_collapsed_to_flat_entry 'admin', 'queued_mail'
+  end
+
+  # ─── The areas phase 6 converted ──────────────────────────────────────
+
+  # Each of these was administrator-only until its privilege was enforced, so each needs an
+  # entry or the grant is unreachable. The exact-set assertion is what catches a key
+  # revealing more than its own destination.
+  {
+    'sources.authentik.view' => %w[authentik],
+    'sources.sheet.view' => %w[sheet],
+    'sources.slack.view' => %w[slack],
+    'incidents.manage' => %w[incident_reports],
+    'onboarding.run' => %w[onboarding],
+    'access.view_logs' => %w[access_logs],
+    'parking.manage_notices' => %w[parking],
+    'reports.view' => %w[reports],
+    'member_map.view' => %w[member_map],
+    'journal.view' => %w[journal]
+  }.each do |privilege, keys|
+    test "#{privilege} reveals #{keys.first} and nothing else" do
+      holder(privilege)
+
+      assert_equal (keys + %w[training]).sort, nav_keys_on(help_path)
+    end
+  end
+
+  # dashboard.admin has no navbar entry of its own — it governs `root`, which every
+  # signed-in account already lands on. Worth pinning: an entry would be a second link to
+  # the page the logo already points at.
+  test 'dashboard.admin adds no entry but opens the root page' do
+    holder('dashboard.admin')
+
+    assert_equal %w[training], nav_keys_on(help_path)
+
+    get root_path
+    assert_response :success
   end
 
   test 'a dropdown with nothing to show does not render' do

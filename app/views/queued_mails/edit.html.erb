@@ -85,6 +85,7 @@
         <div class="form-text">Optional plain text alternative for email clients that don't support HTML. Uncheck to edit it independently.</div>
       </div>
 
+      <% if can?(:'email_templates.ai_rewrite') %>
       <div class="mb-3 border rounded bg-body-tertiary p-3">
         <div class="d-flex flex-wrap gap-2 align-items-center">
           <button type="button"
@@ -105,6 +106,7 @@
                 data-queued-mail-rewrite-target="status">Rewrites both HTML and plain text body in place.</span>
         </div>
       </div>
+      <% end %>
 
       <div class="d-flex gap-2">
         <%= f.submit "Save Changes", class: "btn btn-primary" %>

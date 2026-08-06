@@ -1,5 +1,6 @@
 class AccessControllerTypesController < AuthenticatedController
-  before_action -> { require_privilege!(:'access.manage_controller_types') }
+  before_action -> { require_privilege!(:'access.manage_controller_types') }, except: :export_users
+  before_action -> { require_privilege!(:'access.export_users') }, only: :export_users
   before_action :set_access_controller_type, only: %i[edit update destroy toggle probe]
 
   def index

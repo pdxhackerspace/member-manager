@@ -97,6 +97,7 @@
             <div class="form-text">Plain text version for email clients that don't support HTML. Uncheck to edit it independently.</div>
           </div>
 
+          <% if can?(:'email_templates.ai_rewrite') %>
           <div class="mb-3 border rounded bg-body-tertiary p-3">
             <div class="d-flex flex-wrap gap-2 align-items-center">
               <button type="button"
@@ -117,6 +118,7 @@
                     data-email-template-rewrite-target="status">Rewrites subject, HTML body, and plain text in place.</span>
             </div>
           </div>
+          <% end %>
 
           <div class="mb-4">
             <div class="form-check">

@@ -1,9 +1,16 @@
 require 'csv'
 
-class SlackUsersController < AdminController
+class SlackUsersController < AuthenticatedController
   # email is absent deliberately: the column holds ciphertext, so ordering by it returns
   # rows in an order unrelated to the addresses shown.
   SORTABLE_COLUMNS = %w[display_name is_admin is_owner is_bot deleted].freeze
+
+  before_action -> { require_privilege!(:'sources.slack.view') }, only: %i[index show]
+  before_action -> { require_privilege!(:'sources.slack.sync') }, only: %i[sync import_members import_analytics]
+  before_action -> { require_privilege!(:'members.unlink_sources') },
+                only: %i[link_user unlink_user toggle_dont_link]
+  # See AccessLogsController: turning a Slack account into a member is member creation.
+  before_action :require_admin!, only: :create_member
 
   def index
     # Calculate counts from ALL slack users (before filtering)

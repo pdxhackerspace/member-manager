@@ -1,5 +1,10 @@
 module Api
-  class UsersController < AdminController
+  class UsersController < AuthenticatedController
+    # The member picker behind every "link this to a member" control. It answers with names
+    # and email addresses, so it needs a grant of its own rather than riding on whichever
+    # page happens to embed it.
+    before_action -> { require_privilege!(:'api.users.search') }
+
     def search
       q = params[:q].to_s.strip
 

@@ -1,6 +1,8 @@
-class MemberMapsController < AdminController
+class MemberMapsController < AuthenticatedController
   EARTH_RADIUS_MILES = 3958.8
   INITIAL_VIEW_HALF_SPAN_MILES = 2.5
+
+  before_action -> { require_privilege!(:'member_map.view') }
 
   def show
     prepare_map_data

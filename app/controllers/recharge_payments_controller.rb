@@ -3,7 +3,10 @@ class RechargePaymentsController < AuthenticatedController
   before_action -> { require_privilege!(:'payments.link') }, only: %i[link_user unlink toggle_dont_link]
   # See PaypalPaymentsController: sync, import/export, create_member and the connection
   # test are each a different authority from reconciling a payment.
-  before_action :require_admin!, only: %i[create_member sync test export import]
+  before_action -> { require_privilege!(:'payments.sync') }, only: :sync
+  before_action -> { require_privilege!(:'payments.import_export') }, only: %i[export import]
+  # See PaypalPaymentsController.
+  before_action :require_admin!, only: %i[create_member test]
 
   def index
     # Start with all payments for counts

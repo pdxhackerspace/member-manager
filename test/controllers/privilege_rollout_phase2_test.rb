@@ -154,11 +154,16 @@ class PrivilegeRolloutPhase2Test < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test 'cash payments stay with administrators' do
+  # Phase 2 kept the whole cash ledger with administrators. Phase 6 split it: reading it is
+  # part of seeing payments, recording one is its own key, because a cash payment moves a
+  # member's dues status with no processor to reconcile against.
+  test 'payments.view reads the cash ledger but cannot record one' do
     holder('payments.view', 'payments.link')
 
     get cash_payments_path
+    assert_response :success
 
+    get new_cash_payment_path
     assert_response :redirect
   end
 

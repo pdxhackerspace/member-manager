@@ -34,6 +34,9 @@ class PrivilegeCoverageTest < ActiveSupport::TestCase
   # Filters that decide *who* may act, as opposed to merely that someone is signed in.
   AUTHORIZATION_FILTERS = %w[require_admin! require_privilege! require_true_admin!].freeze
 
+  # Both forms of privilege check, for the lambda filters that are the usual shape.
+  PRIVILEGE_CALLS = %w[require_privilege! require_any_privilege!].freeze
+
   # Controllers where being signed in is the whole rule, because access follows from the
   # record rather than from a privilege: your own profile, your own messages, the training
   # catalogue offered to every member. Everything else must name an authority.
@@ -148,7 +151,8 @@ class PrivilegeCoverageTest < ActiveSupport::TestCase
     file, line = callable.source_location
     return false unless file && File.exist?(file)
 
-    File.readlines(file)[line - 1].to_s.include?('require_privilege!')
+    source = File.readlines(file)[line - 1].to_s
+    PRIVILEGE_CALLS.any? { |call| source.include?(call) }
   rescue StandardError
     false
   end

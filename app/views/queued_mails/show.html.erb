@@ -22,7 +22,9 @@
           data: { turbo_confirm: "Retry sending this email to #{@queued_mail.to}?" } %>
     <% end %>
     <% if @queued_mail.pending? %>
+      <% if can?(:'queued_mail.edit') %>
       <%= link_to "Edit", edit_queued_mail_path(@queued_mail), class: "btn btn-outline-primary" %>
+      <% end %>
       <% if @queued_mail.can_regenerate? %>
         <%= button_to "Regenerate from Template", regenerate_queued_mail_path(@queued_mail), method: :post,
             class: "btn btn-outline-info",

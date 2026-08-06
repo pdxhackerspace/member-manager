@@ -111,6 +111,10 @@
   </div>
 
   <!-- Member Search (full width) -->
+  <%# The box is only as useful as the endpoint behind it, and that endpoint answers with
+      names and email addresses, so it carries its own key rather than riding on the
+      dashboard's. %>
+  <% if can?(:'api.users.search') %>
   <div class="card dashboard-panel dashboard-panel-search mb-3">
     <div class="card-body py-2">
       <div class="position-relative">
@@ -127,6 +131,7 @@
       </div>
     </div>
   </div>
+  <% end %>
 
   <!-- Stats -->
   <div class="row g-2 mb-3">

@@ -5,12 +5,13 @@ class EmailTemplatesController < AuthenticatedController
 
   before_action -> { require_privilege!(:'email_templates.view') }, only: %i[index show preview]
   before_action -> { require_privilege!(:'email_templates.edit') }, only: %i[edit update]
+  before_action -> { require_privilege!(:'email_templates.test_send') }, only: :test_send
+  before_action -> { require_privilege!(:'email_templates.ai_rewrite') }, only: :rewrite_with_ai
   # These stay with administrators. seed overwrites every template from its built-in
-  # default and toggle can switch off a transactional message entirely — neither has a
-  # catalog key to grant — while test_send delivers real mail and rewrite_with_ai spends
-  # an AI call; those two have keys that this phase does not enforce yet.
-  before_action :require_admin!,
-                only: %i[seed toggle mark_reviewed mark_needs_review test_send rewrite_with_ai]
+  # default and toggle can switch off a transactional message entirely; neither has a
+  # catalog key to grant, and mark_reviewed/mark_needs_review record a sign-off that only
+  # means something if the person giving it can see every template.
+  before_action :require_admin!, only: %i[seed toggle mark_reviewed mark_needs_review]
 
   before_action :set_email_template,
                 only: %i[show edit update preview toggle mark_reviewed mark_needs_review rewrite_with_ai]

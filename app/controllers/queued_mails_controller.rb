@@ -5,12 +5,12 @@ class QueuedMailsController < AuthenticatedController
 
   before_action -> { require_privilege!(:'queued_mail.view') }, only: %i[index show]
   before_action -> { require_privilege!(:'queued_mail.approve') }, only: %i[approve reject]
+  before_action -> { require_privilege!(:'queued_mail.edit') }, only: %i[edit update]
+  before_action -> { require_privilege!(:'email_templates.ai_rewrite') }, only: :rewrite_with_ai
   # approve_all and reject_all act on the whole pending queue in one click, which is a very
   # different scale from reviewing a message, and nothing in the catalog distinguishes them.
-  # retry_delivery, regenerate and rewrite_with_ai have no key at all. edit/update belong to
-  # queued_mail.edit, which this phase does not enforce yet.
-  before_action :require_admin!,
-                only: %i[edit update approve_all reject_all retry_delivery regenerate rewrite_with_ai]
+  # retry_delivery and regenerate have no key at all.
+  before_action :require_admin!, only: %i[approve_all reject_all retry_delivery regenerate]
 
   before_action :set_queued_mail, only: %i[show edit update approve reject regenerate retry_delivery rewrite_with_ai]
 

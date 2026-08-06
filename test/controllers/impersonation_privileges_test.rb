@@ -227,17 +227,17 @@ class ImpersonationPrivilegesTest < ActionDispatch::IntegrationTest
     admin = sign_in_as_admin
     post impersonate_user_path(@target.id)
 
-    get root_path
+    get user_path(@target)
     assert_includes response.body, 'Stop Impersonating'
 
     admin.update!(is_admin: false)
 
-    get root_path
+    get user_path(@target)
     assert_not_includes response.body, 'Stop Impersonating'
 
     admin.update!(is_admin: true)
 
-    get root_path
+    get user_path(@target)
     assert_not_includes response.body, 'Stop Impersonating'
   end
 

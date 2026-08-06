@@ -86,6 +86,14 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
+  # Slack Signup Nag - Daily at 7am
+  Sidekiq::Cron::Job.create(
+    name: 'Slack Signup Nag - Daily at 7am',
+    cron: '0 7 * * *',
+    class: 'SlackSignupNagJob',
+    active_job: true
+  )
+
   # Login Link Expiration - Daily at 8am
   Sidekiq::Cron::Job.create(
     name: 'Login Link Expiration - Daily at 8am',

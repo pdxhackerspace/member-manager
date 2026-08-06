@@ -35,7 +35,9 @@ class MembershipSettingsControllerTest < ActionDispatch::IntegrationTest
         admin_login_link_expiry_minutes: @membership_setting.admin_login_link_expiry_minutes,
         application_verification_expiry_hours: @membership_setting.application_verification_expiry_hours,
         manual_payment_due_soon_days: @membership_setting.manual_payment_due_soon_days,
-        application_review_time_cap_days: 10
+        application_review_time_cap_days: 10,
+        slack_signup_nag_initial_delay_days: @membership_setting.slack_signup_nag_initial_delay_days,
+        slack_signup_nag_repeat_delay_days: @membership_setting.slack_signup_nag_repeat_delay_days
       }
     }
 
@@ -43,7 +45,36 @@ class MembershipSettingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 10, @membership_setting.reload.application_review_time_cap_days
   end
 
+  test 'update saves slack signup nag timing fields' do
+    patch membership_settings_url, params: {
+      membership_setting: membership_setting_params.merge(
+        slack_signup_nag_initial_delay_days: 10,
+        slack_signup_nag_repeat_delay_days: 21
+      )
+    }
+
+    assert_redirected_to membership_settings_url
+    @membership_setting.reload
+    assert_equal 10, @membership_setting.slack_signup_nag_initial_delay_days
+    assert_equal 21, @membership_setting.slack_signup_nag_repeat_delay_days
+  end
+
   private
+
+  def membership_setting_params
+    {
+      payment_grace_period_days: @membership_setting.payment_grace_period_days,
+      reactivation_grace_period_months: @membership_setting.reactivation_grace_period_months,
+      invitation_expiry_hours: @membership_setting.invitation_expiry_hours,
+      login_link_expiry_hours: @membership_setting.login_link_expiry_hours,
+      admin_login_link_expiry_minutes: @membership_setting.admin_login_link_expiry_minutes,
+      application_verification_expiry_hours: @membership_setting.application_verification_expiry_hours,
+      manual_payment_due_soon_days: @membership_setting.manual_payment_due_soon_days,
+      application_review_time_cap_days: @membership_setting.application_review_time_cap_days,
+      slack_signup_nag_initial_delay_days: @membership_setting.slack_signup_nag_initial_delay_days,
+      slack_signup_nag_repeat_delay_days: @membership_setting.slack_signup_nag_repeat_delay_days
+    }
+  end
 
   def sign_in_as_admin
     account = local_accounts(:active_admin)

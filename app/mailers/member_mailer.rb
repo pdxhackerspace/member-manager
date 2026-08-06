@@ -311,6 +311,22 @@ class MemberMailer < ApplicationMailer
     end
   end
 
+  def slack_signup_nag(user, opts = {})
+    @user = user
+    @organization = organization_name
+    extras = self.class.slack_signup_template_extras(user, now: opts[:now] || Time.current)
+
+    if send_from_template('slack_signup_nag', user, extras)
+      # Email sent from database template
+    else
+      @slack_link_url = extras[:slack_link_url]
+      mail(
+        to: @user.email,
+        subject: "#{@organization}: Join us on Slack"
+      )
+    end
+  end
+
   def admin_dashboard_urgent_digest(staff, items)
     items = items.map { |item| urgent_digest_item(item) }
     @user = staff
@@ -355,6 +371,22 @@ class MemberMailer < ApplicationMailer
     vars = base_template_variables(user)
     merge_template_extras!(vars, extra_args)
     vars
+  end
+
+  def self.slack_signup_template_extras(user, now: Time.current)
+    anchor = user.membership_approved_at
+    days = anchor ? ((now - anchor) / 1.day).floor : 0
+    {
+      days_since_approval: days.to_s,
+      slack_link_url: slack_link_url_for_template
+    }
+  end
+
+  def self.slack_link_url_for_template
+    return '' unless SlackOidcConfig.configured?
+
+    base = ENV.fetch('APP_BASE_URL', 'http://localhost:3000').chomp('/')
+    "#{base}#{Rails.application.routes.url_helpers.slack_link_start_path}"
   end
 
   def self.training_request_contact_fields(user:, share_contact_info:)
@@ -403,6 +435,8 @@ class MemberMailer < ApplicationMailer
     vars[:recipient_role] = extra_args[:recipient_role].to_s if extra_args.key?(:recipient_role)
     vars[:trainer_names] = extra_args[:trainer_names].to_s if extra_args.key?(:trainer_names)
     vars[:contact_details] = extra_args[:contact_details].to_s if extra_args.key?(:contact_details)
+    vars[:days_since_approval] = extra_args[:days_since_approval].to_s if extra_args.key?(:days_since_approval)
+    vars[:slack_link_url] = extra_args[:slack_link_url].to_s if extra_args.key?(:slack_link_url)
   end
 
   def self.merge_parking_notice_template_keys!(vars, extra_args)

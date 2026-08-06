@@ -1,0 +1,49 @@
+require 'test_helper'
+
+module Slack
+  class MemberProfileSyncTest < ActiveSupport::TestCase
+    test 'copies slack profile fields onto a linked member without overwriting existing values' do
+      user = users(:two)
+      user.update_columns(
+        email: 'member-sync@example.com',
+        aliases: [],
+        slack_id: nil,
+        slack_handle: nil,
+        pronouns: nil,
+        bio: nil,
+        avatar: nil
+      )
+
+      slack_user = SlackUser.create!(
+        slack_id: 'U-PROFILE-SYNC',
+        username: 'slackmember',
+        real_name: 'Slack Display Name',
+        email: 'slack-only@example.com',
+        pronouns: 'they/them',
+        title: 'Slack title',
+        raw_attributes: {
+          'profile' => {
+            'image_original' => 'yes',
+            'image_192' => 'https://example.com/avatar.png',
+            'fields' => {
+              'Xf123' => { 'label' => 'GitHub', 'value' => 'https://github.com/example' }
+            }
+          }
+        }
+      )
+
+      MemberProfileSync.apply(user: user, slack_user: slack_user)
+
+      user.reload
+      assert_equal 'U-PROFILE-SYNC', user.slack_id
+      assert_equal 'slackmember', user.slack_handle
+      assert_equal 'they/them', user.pronouns
+      assert_equal 'Slack title', user.bio
+      assert_equal 'https://example.com/avatar.png', user.avatar
+      assert_includes user.aliases, 'Slack Display Name'
+      assert_includes user.extra_emails, 'slack-only@example.com'
+      assert_equal 1, user.user_links.count
+      assert_equal 'GitHub', user.user_links.first.title
+    end
+  end
+end

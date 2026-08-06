@@ -74,6 +74,45 @@ class UserComputeActiveTest < ActiveSupport::TestCase
     assert_equal 'inactive', user.payment_type
   end
 
+  test 'banned member stays inactive with emergency active override' do
+    user = build_user(membership_status: 'banned', dues_status: 'current', emergency_active_override: true)
+    user.save!
+    assert_not user.active?, 'banned should stay inactive even with emergency override'
+  end
+
+  test 'deceased member stays inactive with emergency active override' do
+    user = build_user(membership_status: 'deceased', dues_status: 'current', emergency_active_override: true)
+    user.save!
+    assert_not user.active?, 'deceased should stay inactive even with emergency override'
+  end
+
+  test 'active? returns false for banned member when active column is stale' do
+    user = build_user(membership_status: 'banned', dues_status: 'current')
+    user.save!
+    user.update_columns(active: true)
+    assert_not user.active?, 'banned members should never appear active'
+  end
+
+  test 'active? returns false for deceased member when active column is stale' do
+    user = build_user(membership_status: 'deceased', dues_status: 'current')
+    user.save!
+    user.update_columns(active: true)
+    assert_not user.active?, 'deceased members should never appear active'
+  end
+
+  test 'User.active scope excludes banned and deceased members' do
+    banned = build_user(membership_status: 'banned', dues_status: 'current')
+    banned.save!
+    banned.update_columns(active: true)
+
+    deceased = build_user(membership_status: 'deceased', dues_status: 'current')
+    deceased.save!
+    deceased.update_columns(active: true)
+
+    assert_not User.active.exists?(banned.id)
+    assert_not User.active.exists?(deceased.id)
+  end
+
   test 'applicant member is always inactive' do
     user = build_user(membership_status: 'applicant', dues_status: 'current')
     user.save!

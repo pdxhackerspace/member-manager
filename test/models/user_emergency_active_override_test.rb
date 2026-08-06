@@ -23,4 +23,28 @@ class UserEmergencyActiveOverrideTest < ActiveSupport::TestCase
     u.save!
     assert_not u.active?
   end
+
+  test 'compute_active_status ignores override for banned members' do
+    u = users(:one)
+    u.assign_attributes(
+      membership_status: 'banned',
+      dues_status: 'current',
+      emergency_active_override: true,
+      service_account: false
+    )
+    u.save!
+    assert_not u.active?
+  end
+
+  test 'compute_active_status ignores override for deceased members' do
+    u = users(:one)
+    u.assign_attributes(
+      membership_status: 'deceased',
+      dues_status: 'current',
+      emergency_active_override: true,
+      service_account: false
+    )
+    u.save!
+    assert_not u.active?
+  end
 end

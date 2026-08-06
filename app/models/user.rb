@@ -135,7 +135,7 @@ class User < ApplicationRecord
     )
   }
 
-  scope :active, -> { where(active: true) }
+  scope :active, -> { where(active: true).where.not(membership_status: %w[banned deceased]) }
   scope :key_access_paused, -> { where(key_access_paused: true) }
   scope :key_access_active, -> { where(key_access_paused: false) }
   scope :admin, -> { where(is_admin: true) }
@@ -182,6 +182,8 @@ class User < ApplicationRecord
   end
 
   def active?
+    return false if banned? || deceased?
+
     active
   end
 
@@ -904,6 +906,12 @@ class User < ApplicationRecord
   def compute_active_status
     return if service_account?
 
+    if membership_status.in?(%w[banned deceased])
+      self.active = false
+      self.payment_type = 'inactive' if deceased?
+      return
+    end
+
     if emergency_active_override?
       self.active = true
       return
@@ -922,8 +930,6 @@ class User < ApplicationRecord
                   else
                     false
                   end
-
-    self.payment_type = 'inactive' if membership_status == 'deceased'
   end
 
   def apply_sponsored_guest_duration_months

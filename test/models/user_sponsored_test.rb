@@ -46,10 +46,11 @@ class UserSponsoredTest < ActiveSupport::TestCase
     assert_not user.active?, 'removing sponsored should re-evaluate active status'
   end
 
-  test 'sponsored member does not get payment_type set to inactive when deceased' do
+  test 'deceased sponsored member is inactive and payment_type is set to inactive' do
     user = create_user(is_sponsored: true, membership_status: 'deceased', payment_type: 'paypal')
     user.save!
-    assert_equal 'paypal', user.payment_type
+    assert_not user.active?, 'deceased member should be inactive even when sponsored'
+    assert_equal 'inactive', user.payment_type
   end
 
   # ─── Journal entry for sponsorship ─────────────────────────────────

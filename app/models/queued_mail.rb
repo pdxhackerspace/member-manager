@@ -197,12 +197,12 @@ class QueuedMail < ApplicationRecord
   def deliver_now!
     increment!(:send_attempts)
     QueuedMailMailer.deliver_queued(self).deliver_now
-    sent_at = Time.current
-    update!(sent_at: sent_at, last_error: nil, last_error_at: nil)
+    sent_time = Time.current
+    update!(sent_at: sent_time, last_error: nil, last_error_at: nil)
     MailLogEntry.log_queued_delivery!(self)
-    Nags::NotifySlackSignup.record_delivery!(recipient, at: sent_at) if slack_signup_nag_delivery?
+    record_slack_signup_nag_delivery!(sent_time) if slack_signup_nag_delivery?
   rescue StandardError => e
-    record_delivery_failure!(e)
+    record_delivery_failure!(e) unless sent?
     raise
   end
 
@@ -247,7 +247,17 @@ class QueuedMail < ApplicationRecord
     mailer_action == 'slack_signup_nag' && recipient.present?
   end
 
-  private :slack_signup_nag_delivery?
+  def record_slack_signup_nag_delivery!(sent_time)
+    Nags::NotifySlackSignup.record_delivery!(recipient, at: sent_time)
+  rescue StandardError => e
+    Rails.logger.error(
+      "[QueuedMail] slack_signup_nag stamp failed queued_mail_id=#{id} user_id=#{recipient&.id} " \
+      "#{e.class}: #{e.message}"
+    )
+    raise
+  end
+
+  private :slack_signup_nag_delivery?, :record_slack_signup_nag_delivery!
 
   def self.enqueue_render_variables(action, user, extra_args, template)
     variables = MemberMailer.build_template_variables(user, extra_args)

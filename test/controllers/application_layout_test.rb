@@ -1,6 +1,15 @@
 require 'test_helper'
 
 class ApplicationLayoutTest < ActionDispatch::IntegrationTest
+  setup do
+    @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
+    Rails.application.config.x.local_auth.enabled = true
+  end
+
+  teardown do
+    Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
+  end
+
   test 'footer includes GitHub link when GITHUB_REPOSITORY_URL is set' do
     with_env('GITHUB_REPOSITORY_URL' => 'https://github.com/example/member-zone') do
       get login_path

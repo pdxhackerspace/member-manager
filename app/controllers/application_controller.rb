@@ -30,6 +30,7 @@ class ApplicationController < ActionController::Base
     @true_user = User.find_by(id: session[:user_id])
   end
 
+  before_action :clear_stale_impersonation
   before_action do
     Current.user = current_user
     Current.true_user = true_user
@@ -49,6 +50,13 @@ class ApplicationController < ActionController::Base
   # subtractive, which is the property everything else rests on.
   def impersonating?
     session[:impersonated_user_id].present? && true_user&.is_admin?
+  end
+
+  def clear_stale_impersonation
+    return if session[:impersonated_user_id].blank?
+    return if true_user&.is_admin?
+
+    session.delete(:impersonated_user_id)
   end
 
   def require_authenticated_user!

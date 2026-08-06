@@ -69,7 +69,7 @@ class MessagesController < AuthenticatedController
   end
 
   def create_new
-    unless true_user&.is_admin?
+    unless current_user_admin?
       redirect_to messages_path, alert: 'You are not authorized to send messages.'
       return
     end

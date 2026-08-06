@@ -227,8 +227,8 @@ class UsersController < AuthenticatedController
       @pagy_payments, @payments = pagy(payments_query, limit: 20, page_key: 'payments_page')
     end
 
-    # Admin-only data (true admins, even when impersonating)
-    if true_user_admin?
+    # Admin-only data, resolved against the account being viewed as
+    if current_user_admin?
       # Journals (paginated) - only load for admin view
       if @view_level == :admin
         journals_query = @user.journals.includes(:actor_user).order(changed_at: :desc, created_at: :desc)
@@ -314,7 +314,7 @@ class UsersController < AuthenticatedController
   end
 
   def edit
-    return unless !true_user_admin? && @user == current_user
+    return unless !current_user_admin? && @user == current_user
 
     redirect_to profile_setup_path
     nil
@@ -642,16 +642,14 @@ class UsersController < AuthenticatedController
   end
 
   def authorize_self_or_admin
-    # True admins can edit anyone (even when impersonating)
-    return if true_user_admin?
+    return if current_user_admin?
     return if @user == current_user
 
     redirect_to user_path(current_user), alert: 'You may only edit your own profile.'
   end
 
   def authorize_profile_view
-    # True admins can see everything (even when impersonating)
-    return if true_user_admin?
+    return if current_user_admin?
 
     # Users can see their own profile
     return if user_signed_in? && @user == current_user

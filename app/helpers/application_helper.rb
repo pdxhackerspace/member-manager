@@ -102,11 +102,11 @@ module ApplicationHelper
     end
   end
 
-  # Membership application show: full applicant/referrer contact visibility. Resolves against the
-  # real signed-in account like every other privilege check, so an impersonated session does not
-  # blur the page it is only reachable through in the first place. Blank user means the applicant
-  # reading their own form, where there is nothing to hide from them.
-  def membership_application_contact_pii_visible?(user = true_user)
+  # Membership application show: full applicant/referrer contact visibility. Resolves against
+  # the account being viewed as, like every other privilege check, so impersonating a reviewer
+  # shows what that reviewer would actually be shown. Blank user means the applicant reading
+  # their own form, where there is nothing to hide from them.
+  def membership_application_contact_pii_visible?(user = current_user)
     return true if user.blank?
 
     user.can?(:'applications.view_pii')
@@ -120,15 +120,15 @@ module ApplicationHelper
     MembershipApplication::FORM_ANSWER_LABELS_CONTACT_SENSITIVE.include?(label.to_s.strip)
   end
 
-  # Wrap block output when contact PII should be masked (blur + reveal toggle on ancestor).
+  # Withholds contact details from anyone without applications.view_pii.
+  #
+  # The value is not rendered at all. An earlier version blurred it in CSS behind a "Show
+  # contact details" button, which left the address in the page for anyone who could open
+  # the application — the mask was decoration, not a control.
   def membership_application_masked_contact_capture(&)
-    html = capture(&)
-    if membership_application_mask_contact_pii?
-      content_tag(:span, html,
-                  class: 'd-inline-block w-100',
-                  data: { sensitive_reveal_target: 'blurred' })
-    else
-      html
-    end
+    return capture(&) unless membership_application_mask_contact_pii?
+
+    content_tag(:span, 'Hidden', class: 'text-secondary fst-italic',
+                                 title: 'Requires the applicant contact details privilege')
   end
 end

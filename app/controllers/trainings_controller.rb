@@ -123,14 +123,16 @@ class TrainingsController < AuthenticatedController
   # Directors who hold training.grant_trainer reach this page to appoint trainers even when
   # they train nothing themselves, so trainer capability alone is not the only way in.
   #
-  # Everything on this page asks true_user, never current_user: recording training and
-  # appointing trainers hand out privileges, and an impersonated session must do that on the
-  # real account's authority rather than the target's.
+  # Who may act is decided by the account being viewed as, so impersonating a trainer shows
+  # what that trainer can do. Impersonation is admin-only and lapses if the real account
+  # stops being an administrator, so this can only ever narrow the session's authority.
+  # Who is *recorded* as the trainer is a separate question — see
+  # #selected_trainer_for_recording, which stays on the real account.
   def require_trainer_or_admin
-    return if true_user_admin?
-    return if true_user.trainer_capabilities.any?
-    return if true_user.can_for_any_topic?(:'training.record')
-    return if true_user.can?(:'training.grant_trainer')
+    return if current_user_admin?
+    return if current_user.trainer_capabilities.any?
+    return if current_user.can_for_any_topic?(:'training.record')
+    return if current_user.can?(:'training.grant_trainer')
 
     redirect_to root_path, alert: "You don't have permission to train members."
   end
@@ -148,23 +150,24 @@ class TrainingsController < AuthenticatedController
   end
 
   def trainable_topics_for_actor
-    return TrainingTopic.order(:name) if true_user_admin?
+    return TrainingTopic.order(:name) if current_user_admin?
 
-    topic_ids = true_user.training_topics.ids | true_user.topics_with_privilege(:'training.record').ids
+    topic_ids = current_user.training_topics.ids |
+                current_user.topics_with_privilege(:'training.record').ids
     TrainingTopic.where(id: topic_ids).order(:name)
   end
 
   def can_train_topic?(topic)
-    return true if true_user_admin?
+    return true if current_user_admin?
 
-    true_user&.may_record_training?(topic) || false
+    current_user&.may_record_training?(topic) || false
   end
 
   # Deleting a training here takes away the topic's privileges, the same operation the topic
   # page calls revoking. Being allowed to record training is not that authority, so this asks
   # for training.revoke rather than reusing can_train_topic?.
   def can_revoke_topic_training?(topic)
-    true_user&.may_revoke_training?(topic) || false
+    current_user&.may_revoke_training?(topic) || false
   end
 
   def prepare_record_training_form
@@ -173,7 +176,7 @@ class TrainingsController < AuthenticatedController
     @recording_users = recording_user_options
     @initial_trainee_ids = initial_trainee_ids_from_params
     @initial_topic_id = params[:topic_id].presence
-    return unless true_user_admin?
+    return unless current_user_admin?
 
     @trainer_manage_user = User.find_by(id: params[:trainer_user_id]) if params[:trainer_user_id].present?
     @all_training_topics = TrainingTopic.order(:name)
@@ -189,7 +192,10 @@ class TrainingsController < AuthenticatedController
   end
 
   def trainer_options_for_recording
-    return [true_user] unless true_user_admin?
+    # Which trainers may be picked follows the account being viewed as; who is recorded as
+    # the trainer stays the real account, so a training is always named after whoever was
+    # actually at the keyboard.
+    return [true_user] unless current_user_admin?
 
     trainer_ids = TrainerCapability.distinct.pluck(:user_id)
     trainer_ids << true_user.id
@@ -229,7 +235,7 @@ class TrainingsController < AuthenticatedController
   end
 
   def selected_trainer_for_recording
-    return true_user unless true_user_admin?
+    return true_user unless current_user_admin?
 
     trainer_options_for_recording.find { |trainer| trainer.id.to_s == params[:trainer_id].to_s } || true_user
   end

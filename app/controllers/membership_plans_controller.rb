@@ -1,6 +1,8 @@
 class MembershipPlansController < AuthenticatedController
   # Any signed-in member can look at a shared plan on offer; hidden and personal plans need
   # either plans.view_hidden or membership of the plan itself.
+  # No `new` here: the controller has no such action, and the route is gone (see routes.rb).
+  # Listing it would raise AbstractController::ActionNotFound rather than protect anything.
   before_action -> { require_privilege!(:'plans.manage') }, only: %i[index edit create update destroy]
   before_action -> { require_privilege!(:'plans.manual_payments') }, only: %i[manual_payments mark_dues_received]
   before_action :set_membership_plan, only: %i[show edit update destroy]

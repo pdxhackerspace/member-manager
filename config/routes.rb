@@ -277,7 +277,9 @@ Rails.application.routes.draw do
     resources :links, controller: 'training_topic_links', only: [:create, :update, :destroy]
     resources :topic_roles, controller: 'training_topic_roles', only: [:create, :destroy]
   end
-  resources :membership_plans do
+  # No :new — plans are created from the index, and an unimplemented route was the one
+  # action neither privilege filter covered.
+  resources :membership_plans, except: [:new] do
     collection do
       get :manual_payments
       post :mark_dues_received

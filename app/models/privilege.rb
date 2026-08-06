@@ -33,7 +33,10 @@ class Privilege < ApplicationRecord
     { key: 'members.mark_deceased', label: 'Mark members deceased', category: 'Members & profiles' },
     { key: 'members.sponsor', label: 'Sponsor and unsponsor members', category: 'Members & profiles' },
     { key: 'members.delete', label: 'Delete members', category: 'Members & profiles' },
-    { key: 'members.impersonate', label: 'Impersonate members', category: 'Members & profiles' },
+    # No members.impersonate. Impersonation makes authorization resolve against the account
+    # being viewed as, which is only ever a reduction because only an administrator can start
+    # it and administrators hold everything. A non-administrator able to impersonate an
+    # administrator would gain authority instead, so this must not be conferrable by role.
     { key: 'members.grant_admin', label: 'Grant and revoke admin', category: 'Members & profiles' },
     { key: 'members.send_message', label: 'Send new messages to members', category: 'Members & profiles' },
     { key: 'members.sync_authentik', label: 'Push and pull a member to Authentik', category: 'External sources' },

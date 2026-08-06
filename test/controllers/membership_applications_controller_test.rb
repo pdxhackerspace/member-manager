@@ -280,16 +280,63 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
                   text: expected_count.to_s
   end
 
-  test 'show masks applicant contact for a reviewer without the view_pii privilege' do
+  # Asserted against the raw body rather than with assert_select: the mask this replaced was
+  # a CSS blur, so the addresses were in the page the whole time and only a body assertion
+  # would have caught it.
+  test 'show withholds applicant contact from a reviewer without the view_pii privilege' do
     reviewer = sign_in_as_reviewer
     grant_privileges(reviewer, 'applications.view')
     app = membership_application_with_sensitive_answers
     get membership_application_path(app)
 
     assert_response :success
-    assert_includes response.body, 'data-controller="sensitive-reveal"'
-    assert_includes response.body, 'data-sensitive-reveal-target="blurred"'
-    assert_includes response.body, 'Show contact details'
+    assert_no_match(/pii-test@example\.com/, response.body)
+    assert_no_match(/123 Secret Street/, response.body)
+    assert_no_match(/555-000-1111/, response.body)
+    assert_no_match(/referrer@example\.com/, response.body)
+    assert_no_match(/555-222-3333/, response.body)
+    assert_no_match(/sensitive-reveal/, response.body)
+    assert_includes response.body, 'Hidden'
+  end
+
+  test 'show sends applicant contact to a reviewer holding view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.view_pii')
+    app = membership_application_with_sensitive_answers
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_match(/pii-test@example\.com/, response.body)
+    assert_match(/123 Secret Street/, response.body)
+  end
+
+  test 'the application list withholds applicant emails without view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member')
+    membership_application_with_sensitive_answers
+
+    get membership_applications_path(status: 'all')
+
+    assert_response :success
+    # The link-member button used to carry the address in a data attribute.
+    assert_no_match(/pii-test@example\.com/, response.body)
+  end
+
+  test 'show link modal withholds applicant email without view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member')
+    app = MembershipApplication.create!(
+      email: 'masked-show-link-modal@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_application_path(app)
+
+    assert_response :success
+    assert_no_match(/masked-show-link-modal@example\.com/, response.body)
+    assert_includes response.body, 'Hidden'
   end
 
   test 'show does not mask for a reviewer holding view_pii' do
@@ -311,17 +358,68 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/data-controller="sensitive-reveal"/, response.body)
   end
 
-  # The page is reachable while impersonating only because the privilege resolves against the
-  # real account, so the contact details on it follow the same account.
-  test 'show does not mask while impersonating a member without view_pii' do
+  # Authorization follows the account being viewed as, so impersonating a member who cannot
+  # reach the application queue shows what that member would get: nothing.
+  test 'impersonating a member without applications.view cannot open an application' do
     sign_in_as_admin
     post impersonate_user_path(users(:one).id)
     app = membership_application_with_sensitive_answers
 
     get membership_application_path(app)
 
+    assert_response :redirect
+  end
+
+  # An administrator holds view_pii through the admin bypass, so this is the case that
+  # proves impersonation reaches the redaction and not just the navigation.
+  test 'impersonating a reviewer without view_pii withholds contact details' do
+    sign_in_as_admin
+    reviewer = users(:one)
+    grant_privileges(reviewer, 'applications.view')
+    post impersonate_user_path(reviewer.id)
+    app = membership_application_with_sensitive_answers
+
+    get membership_application_path(app)
+
     assert_response :success
-    assert_no_match(/data-controller="sensitive-reveal"/, response.body)
+    assert_no_match(/pii-test@example\.com/, response.body)
+    assert_includes response.body, 'Hidden'
+  end
+
+  test 'index link modal masks applicant email for a reviewer without view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member')
+    app = MembershipApplication.create!(
+      email: 'masked-link-modal@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'unlinked')
+
+    assert_response :success
+    assert_select 'button[data-ma-link-action=?]', link_user_membership_application_path(app)
+    assert_select "button[data-application-email='#{app.email}']", count: 0
+    assert_no_match(/masked-link-modal@example\.com/, response.body)
+    assert_includes response.body, 'Hidden'
+  end
+
+  test 'index link modal includes applicant email for a reviewer holding view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member', 'applications.view_pii')
+    app = MembershipApplication.create!(
+      email: 'visible-link-modal@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'unlinked')
+
+    assert_response :success
+    assert_select 'button[data-application-email=?]', app.email
+    assert_match(/visible-link-modal@example\.com/, response.body)
   end
 
   test 'vote_ai_feedback creates vote when AI feedback processed' do

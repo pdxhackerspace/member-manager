@@ -1,4 +1,5 @@
 <% ma_nav = { q: params[:q].presence }.compact %>
+<% mask_contact = membership_application_mask_contact_pii? %>
 
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
@@ -139,7 +140,11 @@
               <% received_apps = @received_applications_by_email.fetch(verification.email.downcase, []) %>
               <% mail_logs = @verification_mail_logs_by_email.fetch(verification.email.downcase, []) %>
               <tr>
-                <td><code><%= verification.email %></code></td>
+                <td>
+                  <%= membership_application_masked_contact_capture do %>
+                    <code><%= verification.email %></code>
+                  <% end %>
+                </td>
                 <td>
                   <% if verification.expired? %>
                     <span class="badge text-bg-danger">Expired</span>
@@ -294,7 +299,11 @@
                     <button type="button" class="btn btn-sm btn-primary"
                             data-bs-toggle="modal" data-bs-target="#maLinkMemberModal"
                             data-ma-link-action="<%= link_user_membership_application_path(app) %>"
-                            data-application-email="<%= h(app.email) %>">
+                            <%# Withheld without applications.view_pii — this attribute put the
+                                address in the page for every reviewer who could load the list. %>
+                            <% unless membership_application_mask_contact_pii? %>
+                              data-application-email="<%= h(app.email) %>"
+                            <% end %>>
                       Link member
                     </button>
                   <% end %>
@@ -319,5 +328,5 @@
 <% end %><%# turbo_frame_tag membership_applications_table %>
 
 <% if @users_for_application_link.any? %>
-  <%= render 'link_member_modal', users: @users_for_application_link, dynamic: true, application_email: '' %>
+  <%= render 'link_member_modal', users: @users_for_application_link, dynamic: true, application_email: '', mask_contact: mask_contact %>
 <% end %>

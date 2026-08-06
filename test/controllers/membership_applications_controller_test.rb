@@ -369,6 +369,41 @@ class MembershipApplicationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'Hidden'
   end
 
+  test 'index link modal masks applicant email for a reviewer without view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member')
+    app = MembershipApplication.create!(
+      email: 'masked-link-modal@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'unlinked')
+
+    assert_response :success
+    assert_select 'button[data-ma-link-action=?]', link_user_membership_application_path(app)
+    assert_select "button[data-application-email='#{app.email}']", count: 0
+    assert_select '#maLinkMemberModal [data-sensitive-reveal-target=?]', 'blurred'
+  end
+
+  test 'index link modal includes applicant email for a reviewer holding view_pii' do
+    reviewer = sign_in_as_reviewer
+    grant_privileges(reviewer, 'applications.view', 'applications.link_member', 'applications.view_pii')
+    app = MembershipApplication.create!(
+      email: 'visible-link-modal@example.com',
+      status: 'approved',
+      submitted_at: Time.current,
+      reviewed_at: Time.current
+    )
+
+    get membership_applications_path(status: 'unlinked')
+
+    assert_response :success
+    assert_select "button[data-application-email=?]", app.email
+    assert_select '#maLinkMemberModal [data-sensitive-reveal-target=?]', 'blurred', count: 0
+  end
+
   test 'vote_ai_feedback creates vote when AI feedback processed' do
     sign_in_as_admin
     app = MembershipApplication.create!(

@@ -223,6 +223,24 @@ class ImpersonationPrivilegesTest < ActionDispatch::IntegrationTest
     assert_equal admin, request.responded_by
   end
 
+  test 'demoted admin stops impersonating and stale session does not resume on repromotion' do
+    admin = sign_in_as_admin
+    post impersonate_user_path(@target.id)
+
+    get root_path
+    assert_includes response.body, 'Stop Impersonating'
+
+    admin.update!(is_admin: false)
+
+    get root_path
+    assert_not_includes response.body, 'Stop Impersonating'
+
+    admin.update!(is_admin: true)
+
+    get root_path
+    assert_not_includes response.body, 'Stop Impersonating'
+  end
+
   private
 
   # Signs in as an administrator, starts impersonating, then drops the admin flag. The

@@ -63,6 +63,23 @@ module Nags
       end
     end
 
+    test 'does not enqueue duplicate nags while mail is pending review' do
+      EmailTemplate.find_by!(key: 'slack_signup_nag').update!(send_immediately: false)
+      due_user(email: 'queued-dedupe@example.com')
+
+      travel_to @now do
+        assert_difference 'QueuedMail.count', 1 do
+          NotifySlackSignup.call(now: @now)
+        end
+      end
+
+      travel_to @now + 1.day do
+        assert_no_difference 'QueuedMail.count' do
+          NotifySlackSignup.call(now: @now + 1.day)
+        end
+      end
+    end
+
     test 'does not stamp nag time when mail is queued for review' do
       EmailTemplate.find_by!(key: 'slack_signup_nag').update!(send_immediately: false)
       user = due_user(email: 'queued-nag@example.com')

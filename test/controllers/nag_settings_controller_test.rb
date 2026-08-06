@@ -1,38 +1,34 @@
 require 'test_helper'
 
-class SettingsControllerTest < ActionDispatch::IntegrationTest
+class NagSettingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @original_local_auth_enabled = Rails.application.config.x.local_auth.enabled
     Rails.application.config.x.local_auth.enabled = true
     sign_in_as_admin
+    NagSetting.seed_defaults!
+    MembershipSetting.instance.update!(
+      slack_signup_nag_initial_delay_days: 7,
+      slack_signup_nag_repeat_delay_days: 14
+    )
   end
 
   teardown do
     Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
-  test 'should get index' do
-    get settings_url
-    assert_response :success
-  end
-
-  test 'settings index links map defaults separately from application group defaults' do
-    get settings_url
+  test 'index lists slack signup nag with preview counts' do
+    get nag_settings_url
 
     assert_response :success
-    assert_select 'a[href=?]', default_settings_path, text: /Application group defaults/
-    assert_select 'a[href=?]', map_default_settings_path, text: /Map defaults/
+    assert_match 'Slack signup reminder', response.body
+    assert_match 'would be emailed today', response.body
   end
 
-  test 'nags attention count is zero when slack source is disabled' do
+  test 'show lists due members' do
     now = Time.zone.local(2026, 8, 5, 7, 0, 0)
-    NagSetting.seed_defaults!
-    NagSetting.find_by!(key: 'slack_signup').update!(enabled: true)
-    member_sources(:slack).update!(enabled: false)
-
     user = User.create!(
-      email: 'settings-nag-attention@example.com',
-      full_name: 'Settings Nag Attention',
+      email: 'due-preview@example.com',
+      full_name: 'Due Preview User',
       active: true,
       service_account: false,
       membership_status: 'paying',
@@ -48,13 +44,21 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     )
 
     travel_to now do
-      get settings_url
+      get nag_setting_url('slack_signup')
     end
 
     assert_response :success
-    assert_select 'a[href=?]', nag_settings_path do
-      assert_select '.badge.text-bg-warning-subtle', count: 0
-    end
+    assert_match 'Due Preview User', response.body
+  end
+
+  test 'update toggles nag enabled state' do
+    nag = NagSetting.find_by!(key: 'slack_signup')
+    nag.update!(enabled: false)
+
+    patch nag_setting_url('slack_signup'), params: { nag_setting: { enabled: '1' } }
+
+    assert_redirected_to nag_settings_url
+    assert nag.reload.enabled?
   end
 
   private

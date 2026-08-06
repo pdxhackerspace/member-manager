@@ -6,7 +6,8 @@ class SettingsController < AdminController
       email_templates: EmailTemplate.needs_review.count,
       interests: Interest.needs_review.count,
       payment_processors: PaymentProcessor.enabled.where(sync_status: %w[degraded failing]).count,
-      recharge: RechargePayment.where(user_id: nil, dont_link: false).count
+      recharge: RechargePayment.where(user_id: nil, dont_link: false).count,
+      nags_due: nags_due_attention_count
     }
   end
 
@@ -17,5 +18,12 @@ class SettingsController < AdminController
     enabled_controllers.where(ping_status: 'failed').count +
       enabled_controllers.where(sync_status: 'failed').count +
       enabled_controllers.where(backup_status: 'failed').count
+  end
+
+  def nags_due_attention_count
+    return 0 unless NagSetting.enabled?('slack_signup')
+    return 0 unless MemberSource.enabled?('slack')
+
+    Nags::SlackSignupEligibility.count_due
   end
 end

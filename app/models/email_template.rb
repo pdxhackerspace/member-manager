@@ -27,7 +27,11 @@ class EmailTemplate < ApplicationRecord
     '{{requester_slack}}' => 'Slack handle of the member requesting training (if shared)',
     '{{recipient_role}}' => 'Whether this notification is for a member or trainer',
     '{{trainer_names}}' => 'Comma-separated trainer names notified for a request',
-    '{{contact_details}}' => 'Rendered contact details block for training request notifications'
+    '{{contact_details}}' => 'Rendered contact details block for training request notifications',
+    '{{days_since_approval}}' => 'Days since the member was approved (Slack signup nag only)',
+    '{{slack_link_url}}' => 'URL to associate a Slack account (Slack signup nag only; blank when unavailable)',
+    '{{slack_link_html}}' => 'Slack self-link paragraph for HTML bodies (blank when unavailable)',
+    '{{slack_link_text}}' => 'Slack self-link line for plain-text bodies (blank when unavailable)'
   }.freeze
 
   TEMPLATE_EDITOR_VARIABLES = {
@@ -564,6 +568,31 @@ class EmailTemplate < ApplicationRecord
         Thank you for helping grow our community's skills!
 
         Best regards,
+        The {{organization_name}} Team
+      TEXT
+    },
+    'slack_signup_nag' => {
+      name: 'Slack Signup Reminder',
+      description: 'Gentle reminder to active members without a linked Slack account',
+      subject: '{{organization_name}}: Join us on Slack',
+      body_html: <<~HTML,
+        <p>Hi {{member_name}},</p>
+        <p>We noticed your {{organization_name}} profile is not linked to our Slack workspace yet.</p>
+        <p>Slack is where members coordinate shop time, ask questions, and hear about events. When you have a moment, please join us there.</p>
+        {{slack_link_html}}
+        <p>If you do not have a Slack account yet, reply to this email or ask an admin for an invite.</p>
+        <p>Thanks,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        Hi {{member_name}},
+
+        We noticed your {{organization_name}} profile is not linked to our Slack workspace yet.
+
+        Slack is where members coordinate shop time, ask questions, and hear about events. When you have a moment, please join us there.
+
+        {{slack_link_text}}If you do not have a Slack account yet, reply to this email or ask an admin for an invite.
+
+        Thanks,
         The {{organization_name}} Team
       TEXT
     }

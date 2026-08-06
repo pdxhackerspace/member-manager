@@ -1,0 +1,59 @@
+<div class="d-flex align-items-end justify-content-between mb-3">
+  <div>
+    <h1 class="h-page-title mb-0">Nags</h1>
+    <div class="text-13 text-secondary mt-1">
+      <span class="text-body"><%= @nag_settings.size %></span> configured
+    </div>
+  </div>
+  <div>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary btn-sm" %>
+  </div>
+</div>
+
+<% unless @slack_source_enabled %>
+  <div class="alert alert-secondary text-13 py-2 mb-3">
+    Slack member source is disabled. Preview counts still reflect members who would be eligible if Slack were enabled.
+  </div>
+<% end %>
+
+<% @nag_settings.each do |nag| %>
+  <% if nag.key == 'slack_signup' %>
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="status-dot <%= nag.enabled? ? 'status-success' : 'status-muted' %>"></span>
+              <h2 class="h5 mb-0"><%= nag.name %></h2>
+            </div>
+            <p class="text-13 text-secondary mb-2"><%= nag.description %></p>
+            <div class="text-13">
+              <span class="fw-medium text-body"><%= @slack_due_count %></span>
+              <span class="text-secondary">would be emailed today ·</span>
+              <span class="text-secondary"><%= @slack_without_slack_count %> active without Slack</span>
+            </div>
+            <div class="text-12 text-secondary mt-1">
+              Timing:
+              <%= @membership_setting.slack_signup_nag_initial_delay_days %> days after approval,
+              every <%= @membership_setting.slack_signup_nag_repeat_delay_days %> days
+              · <%= link_to "Edit in Membership settings", membership_settings_path, class: "text-secondary" %>
+            </div>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <%= form_with model: nag, url: nag_setting_path(nag.key), method: :patch, local: true, class: "d-flex align-items-center gap-2 mb-0" do |f| %>
+              <div class="form-check form-switch mb-0">
+                <%= f.check_box :enabled, class: 'form-check-input', role: 'switch', id: "nag_enabled_#{nag.key}" %>
+                <%= f.label :enabled, nag.enabled? ? 'Enabled' : 'Disabled', class: 'form-check-label text-13 text-nowrap', for: "nag_enabled_#{nag.key}" %>
+              </div>
+              <%= f.submit 'Save', class: 'btn btn-outline-secondary btn-sm', data: { turbo: false } %>
+            <% end %>
+            <%= link_to "View due list", nag_setting_path(nag.key), class: "btn btn-outline-secondary btn-sm" %>
+            <% if @slack_email_template %>
+              <%= link_to "Email template", email_template_path(@slack_email_template), class: "btn btn-outline-secondary btn-sm" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+<% end %>

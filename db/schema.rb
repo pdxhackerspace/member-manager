@@ -614,6 +614,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.integer "manual_payment_due_soon_days", default: 7, null: false
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
+    t.integer "slack_signup_nag_initial_delay_days", default: 7, null: false
+    t.integer "slack_signup_nag_repeat_delay_days", default: 14, null: false
     t.datetime "updated_at", null: false
     t.boolean "use_builtin_membership_application", default: true, null: false
   end
@@ -634,6 +636,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.index ["sender_id", "created_at"], name: "index_messages_on_sender_id_and_created_at"
     t.index ["sender_id", "deleted_by_sender_at"], name: "index_messages_on_sender_id_and_deleted_by_sender_at"
     t.index ["sender_id"], name: "index_messages_on_sender_id"
+  end
+
+  create_table "nag_settings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.boolean "enabled", default: false, null: false
+    t.string "key", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_nag_settings_on_enabled"
+    t.index ["key"], name: "index_nag_settings_on_key", unique: true
   end
 
   create_table "parking_notice_events", force: :cascade do |t|
@@ -1121,6 +1134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.string "sign_name"
     t.string "slack_handle"
     t.string "slack_id"
+    t.datetime "slack_signup_nag_sent_at"
     t.datetime "updated_at", null: false
     t.boolean "use_full_name_for_greeting", default: true, null: false
     t.boolean "use_username_for_greeting", default: false, null: false
@@ -1138,6 +1152,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"
+    t.index ["slack_signup_nag_sent_at"], name: "index_users_on_slack_signup_nag_sent_at"
     t.index ["username"], name: "index_users_on_username", unique: true, where: "(username IS NOT NULL)"
   end
 

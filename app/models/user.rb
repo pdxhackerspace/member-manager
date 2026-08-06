@@ -158,6 +158,10 @@ class User < ApplicationRecord
     full_name.presence || email.presence || authentik_id
   end
 
+  def membership_approved_at
+    membership_applications.approved.maximum(:reviewed_at) || created_at
+  end
+
   # Add a name as an alias if it differs from full_name and isn't already present.
   # Returns true if the alias was added, false otherwise.
   def add_alias(name)

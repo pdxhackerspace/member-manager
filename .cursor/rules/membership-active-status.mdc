@@ -1,0 +1,46 @@
+---
+description: Keep User#active derived from Membership::ActiveStatus; never bypass with update_columns
+globs: app/**/*.rb,lib/**/*.rb
+alwaysApply: false
+---
+
+# Membership active status
+
+The rules for whether a member is active live in `Membership::ActiveStatus` (`app/services/membership/active_status.rb`). `User` runs `Membership::ActiveStatus.apply_to` on every `save` via `before_save`.
+
+Priority (first match wins):
+
+1. Banned or deceased -> inactive
+2. Sponsored -> active
+3. Emergency active override -> active
+4. Guest with unexpired limited access -> active
+5. Paying/cancelled/unknown with current dues -> active; lapsed/overdue -> inactive
+
+## Do
+
+- Change membership inputs (`membership_status`, `dues_status`, `dues_due_at`, `is_sponsored`, `emergency_active_override`) and call `user.save!` / `user.update!`.
+- Use `Membership::ActiveStatus.assign_and_save!(user, attrs)` in rake tasks when setting several fields at once.
+- Use `User.active` / `user.active?` to read the stored `active` column — they must agree after a save.
+- Run `rake membership:preview_reconcile_active` after bulk imports or legacy fixes.
+
+## Do not
+
+- Call `update_columns`, `update_column`, or `update_all` on `User` for fields that affect active status: `active`, `membership_status`, `dues_status`, `dues_due_at`, `is_sponsored`, `emergency_active_override`, `payment_type` (when driven by deceased).
+- Assign `user.active = ...` directly for non-service accounts — let `ActiveStatus` compute it.
+- Reimplement banned/deceased/dues rules outside `Membership::ActiveStatus`.
+
+```ruby
+# ❌ bypasses ActiveStatus
+user.update_columns(membership_status: 'banned', active: false)
+
+# ✅
+user.update!(membership_status: 'banned')
+
+# ❌
+user.update_columns(dues_status: 'lapsed')
+
+# ✅
+Membership::ActiveStatus.assign_and_save!(user, dues_status: 'lapsed')
+```
+
+`update_columns` remains acceptable for unrelated fields (sync timestamps, `authentik_id`, geocoding coordinates) when membership state is untouched.

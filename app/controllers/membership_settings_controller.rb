@@ -1,4 +1,5 @@
-class MembershipSettingsController < AdminController
+class MembershipSettingsController < AuthenticatedController
+  before_action -> { require_privilege!(:'membership_settings.manage') }
   def show
     @membership_setting = MembershipSetting.instance
   end
@@ -27,6 +28,7 @@ class MembershipSettingsController < AdminController
                                          manual_payment_due_soon_days
                                          application_review_time_cap_days
                                          slack_signup_nag_initial_delay_days
-                                         slack_signup_nag_repeat_delay_days])
+                                         slack_signup_nag_repeat_delay_days
+                                         slack_signup_nag_max_account_age_months])
   end
 end

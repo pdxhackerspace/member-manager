@@ -1,4 +1,8 @@
-class InvitationsController < AdminController
+class InvitationsController < AuthenticatedController
+  before_action -> { require_privilege!(:'invitations.view') }, only: :index
+  before_action -> { require_privilege!(:'invitations.create') }, only: %i[new create]
+  before_action -> { require_privilege!(:'invitations.cancel') }, only: :cancel
+
   def index
     @invitations = Invitation.newest_first.includes(:invited_by, :user)
   end
@@ -17,7 +21,10 @@ class InvitationsController < AdminController
 
     if @invitation.save
       enqueue_invitation_email(@invitation)
-      redirect_to queued_mails_path,
+      # Sending an invitation does not imply being able to see the mail queue — Front desk
+      # holds invitations.create and nothing else here — so land somewhere the actor can
+      # actually open.
+      redirect_to after_create_path,
                   notice: "#{@invitation.type_label} invitation queued " \
                           "for #{@invitation.email}. Review and approve it to send."
     else
@@ -39,6 +46,13 @@ class InvitationsController < AdminController
   end
 
   private
+
+  def after_create_path
+    return queued_mails_path if can?(:'queued_mail.view')
+    return invitations_path if can?(:'invitations.view')
+
+    root_path
+  end
 
   def enqueue_invitation_email(invitation)
     template = EmailTemplate.find_enabled('member_invitation')

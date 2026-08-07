@@ -5,7 +5,8 @@ module Nags
     setup do
       MembershipSetting.instance.update!(
         slack_signup_nag_initial_delay_days: 7,
-        slack_signup_nag_repeat_delay_days: 14
+        slack_signup_nag_repeat_delay_days: 14,
+        slack_signup_nag_max_account_age_months: 6
       )
     end
 
@@ -62,6 +63,47 @@ module Nags
 
       travel_to now do
         assert_not_includes SlackSignupEligibility.due(now: now), user
+      end
+    end
+
+    test 'due excludes members who joined before the account age limit' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'old-joiner@example.com')
+      user.membership_applications.approved.first.update!(reviewed_at: now - 7.months)
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
+        assert_not_includes SlackSignupEligibility.active_without_slack_scope(now: now), user
+      end
+    end
+
+    test 'active_without_slack_scope includes recent members without slack' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'recent-no-slack@example.com')
+
+      travel_to now do
+        assert_includes SlackSignupEligibility.active_without_slack_scope(now: now), user
+      end
+    end
+
+    test 'due excludes banned members' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'banned-nag@example.com', membership_status: 'banned')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
+      end
+    end
+
+    test 'due excludes deceased members' do
+      now = Time.zone.local(2026, 8, 5, 7, 0, 0)
+      user = eligible_user(now: now, email: 'deceased-nag@example.com', membership_status: 'deceased')
+
+      travel_to now do
+        assert_not_includes SlackSignupEligibility.due(now: now), user
+        assert_not SlackSignupEligibility.due?(user, now: now)
       end
     end
 

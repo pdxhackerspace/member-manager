@@ -1,5 +1,16 @@
-class PaypalPaymentsController < AdminController
+class PaypalPaymentsController < AuthenticatedController
   include Pagy::Method
+
+  before_action -> { require_privilege!(:'payments.view') }, only: %i[index show unmatched_subjects]
+  before_action -> { require_privilege!(:'payments.link') }, only: %i[link_user unlink toggle_dont_link]
+  # Reconciling payments is not the same authority as pulling from the processor, moving
+  # data in or out, or minting a member record. Those belong to payments.sync,
+  # payments.import_export and members.create, none of which this phase enforces; `test`
+  # opens a live connection to PayPal and has no catalog key at all.
+  before_action -> { require_privilege!(:'payments.sync') }, only: :sync
+  before_action -> { require_privilege!(:'payments.import_export') }, only: %i[export import]
+  # create_member is member creation, and test exercises the live processor credentials.
+  before_action :require_admin!, only: %i[create_member test]
 
   def index
     # Determine if we're showing unmatched payments

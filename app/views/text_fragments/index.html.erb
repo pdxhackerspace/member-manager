@@ -4,10 +4,12 @@
     <p class="text-muted mb-0">Edit HTML content fragments used throughout the Member Zone. Set a <strong>Source URL</strong> on a fragment to pull content from the web; GitHub file links are rewritten to raw file URLs automatically.</p>
   </div>
   <div class="d-flex flex-wrap gap-2 justify-content-end">
-    <% if @source_url_sync_count.positive? %>
+    <% if @source_url_sync_count.positive? && current_user_admin? %>
       <%= button_to "Sync all from URLs", sync_all_from_urls_text_fragments_path, method: :post, class: "btn btn-primary", data: { turbo: false } %>
     <% end %>
+    <% if current_user_admin? %>
     <%= button_to "Seed Defaults", seed_text_fragments_path, method: :post, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <% end %>
   </div>
 </div>
 

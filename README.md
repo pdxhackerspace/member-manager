@@ -258,6 +258,19 @@ The document keys everything by name and privilege key rather than by database i
 
 `db/role_definitions/director_roles.json` configures the three director training topics to confer what they conferred before roles existed. Apply it with `MODE=replace`, then detach the seeded `Application approver` and `Application reviewer` bundles from those topics so they stop conferring alongside the imported roles.
 
+Every key in `Privilege::CATALOG` is now enforced somewhere, and `test/models/privilege_catalog_coverage_test.rb` fails if one is added with nothing reading it. Which key governs which page is documented in `docs/ui-privilege-visibility.md`; the navbar and the settings hub filter themselves to what the signed-in account holds, so a holder reaches their pages without knowing the URL.
+
+Two rules govern where a privilege may be added. On administrator pages a privilege is what lets you in, and converting a page to one cannot narrow access, because `is_admin?` bypasses every check. **On member-facing pages a privilege is added with `||`, never `&&`** — access there flows from a data relationship (you are trained in the topic, the notice is yours), and an `&&` would take a member's own materials away from them.
+
+`Role::DEFAULT_ROLES` only seeds roles into a database that does not already have them, so a shipped role that gains a privilege never reaches an existing install. Backfill those:
+
+```bash
+rails roles:backfill_seeds DRY_RUN=1   # report
+rails roles:backfill_seeds             # apply
+```
+
+It only ever adds, and only to roles that already exist under their seeded name — privileges an administrator removed stay removed, and roles they renamed or created are left alone.
+
 ### Local Test Accounts
 
 Local accounts are intended for development or emergency access when Authentik is unavailable:

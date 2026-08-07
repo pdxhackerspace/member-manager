@@ -1,5 +1,6 @@
 <%# locals: user %>
 
+<% if @profile_caps[:ban] %>
 <div class="modal fade" id="banModal" tabindex="-1" aria-labelledby="banModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -30,6 +31,8 @@
   </div>
 </div>
 
+<% end %>
+<% if @profile_caps[:mark_deceased] %>
 <div class="modal fade" id="deceasedModal" tabindex="-1" aria-labelledby="deceasedModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -59,6 +62,8 @@
   </div>
 </div>
 
+<% end %>
+<% if @profile_caps[:delete] %>
 <div class="modal fade" id="deleteMemberModal" tabindex="-1" aria-labelledby="deleteMemberModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -88,6 +93,8 @@
   </div>
 </div>
 
+<% end %>
+<% if @profile_caps[:emergency_override] %>
 <div class="modal fade" id="applyOverrideModal" tabindex="-1" aria-labelledby="applyOverrideModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -125,3 +132,5 @@
     </div>
   </div>
 </div>
+
+<% end %>

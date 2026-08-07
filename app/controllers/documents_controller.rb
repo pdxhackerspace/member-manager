@@ -71,6 +71,9 @@ class DocumentsController < AuthenticatedController
   def user_can_access_document?(user, document)
     return false unless user
 
+    # Whoever may list every document may open one; the index already requires this key.
+    return true if can?(:'training.documents.view_all')
+
     # Document is shown on all profiles
     return true if document.show_on_all_profiles?
 
@@ -86,8 +89,7 @@ class DocumentsController < AuthenticatedController
   end
 
   # Topics this member may attach documents to: the ones they can train, plus the ones a
-  # curator role scopes training.documents.manage to. Read from the real signed-in account,
-  # like every other privilege check, so impersonation confers nothing.
+  # curator role scopes training.documents.manage to.
   def manageable_topic_ids
     return @manageable_topic_ids if defined?(@manageable_topic_ids)
 

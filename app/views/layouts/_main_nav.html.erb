@@ -1,0 +1,35 @@
+<%# Renders whatever MainNavigationHelper#visible_nav_entries leaves standing. Sections that
+    filtered down to one entry arrive here as flat entries, so there is no one-item dropdown
+    to render. %>
+<% visible_nav_entries.each do |entry| %>
+  <% if entry[:items] %>
+    <li class="nav-item dropdown" data-nav-section="<%= entry[:key] %>">
+      <a class="nav-link dropdown-toggle <%= 'active' if nav_entry_active?(entry) %>"
+         href="#"
+         role="button"
+         data-bs-toggle="dropdown"
+         aria-expanded="false">
+        <%= entry[:label] %>
+      </a>
+      <ul class="dropdown-menu">
+        <% entry[:items].each do |item| %>
+          <% if item == :divider %>
+            <li><hr class="dropdown-divider"></li>
+          <% else %>
+            <li data-nav-key="<%= item[:key] %>">
+              <%= link_to item[:label], item[:path],
+                          class: "dropdown-item #{'active' if nav_entry_active?(item)}",
+                          target: item[:target] %>
+            </li>
+          <% end %>
+        <% end %>
+      </ul>
+    </li>
+  <% else %>
+    <li class="nav-item" data-nav-key="<%= entry[:key] %>">
+      <%= link_to entry[:label], entry[:path],
+                  class: "nav-link #{'active' if nav_entry_active?(entry)}",
+                  target: entry[:target] %>
+    </li>
+  <% end %>
+<% end %>

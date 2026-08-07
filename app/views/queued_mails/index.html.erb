@@ -36,7 +36,9 @@
   </li>
 </ul>
 
-<% if @filter == 'pending' && @pending_count > 0 %>
+<%# Approving or rejecting the whole queue in one click is a different scale from reviewing
+    a message, and no catalog key separates them — so it stays with administrators. %>
+<% if @filter == 'pending' && @pending_count > 0 && current_user_admin? %>
   <div class="d-flex gap-2 mb-3">
     <% if smtp_configured? %>
       <%= button_to "Approve & Send All", approve_all_queued_mails_path, method: :post,
@@ -100,9 +102,11 @@
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", queued_mail_path(qm), class: "btn btn-outline-primary" %>
                   <% if qm.delivery_failed? %>
+                    <% if current_user_admin? %>
                     <%= button_to "Retry", retry_queued_mail_path(qm), method: :post,
                         class: "btn btn-outline-warning",
                         data: { turbo_confirm: "Retry sending this email to #{qm.to}?" } %>
+                    <% end %>
                   <% end %>
                   <% if qm.pending? %>
                     <% if smtp_configured? %>

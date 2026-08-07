@@ -95,14 +95,16 @@ class TrainingCatalogController < AuthenticatedController
   end
 
   def authorize_topic_visibility!
-    return if current_user_admin?
+    return if current_user_admin? || can?(:'training.catalog.view_all')
     return if @training_topic.offered_to_members?
 
     redirect_to training_catalog_path, alert: 'That training topic is not available.'
   end
 
+  # A privilege here only ever widens what a member sees: every member keeps the topics on
+  # offer, and training.catalog.view_all adds the ones that are not.
   def visible_topics
-    return TrainingTopic.all if current_user_admin?
+    return TrainingTopic.all if current_user_admin? || can?(:'training.catalog.view_all')
 
     TrainingTopic.offered_for_members
   end
@@ -111,7 +113,7 @@ class TrainingCatalogController < AuthenticatedController
   # (trained in the topic, a trainer for it, or marked `show_on_all_profiles`).
   def visible_documents_for(topic)
     documents = topic.documents.ordered
-    return documents if current_user_admin?
+    return documents if current_user_admin? || can?(:'training.documents.view_all')
 
     trained = Training.exists?(trainee: current_user, training_topic: topic)
     trainer = TrainerCapability.exists?(user: current_user, training_topic: topic)

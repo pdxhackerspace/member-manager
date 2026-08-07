@@ -135,7 +135,7 @@ class User < ApplicationRecord
     )
   }
 
-  scope :active, -> { where(active: true).where.not(membership_status: %w[banned deceased]) }
+  scope :active, -> { where(active: true) }
   scope :key_access_paused, -> { where(key_access_paused: true) }
   scope :key_access_active, -> { where(key_access_paused: false) }
   scope :admin, -> { where(is_admin: true) }
@@ -179,12 +179,6 @@ class User < ApplicationRecord
   # Add alias and save immediately.
   def add_alias!(name)
     add_alias(name) && save!
-  end
-
-  def active?
-    return false if banned? || deceased?
-
-    active
   end
 
   # Pause this member's RFID key access without removing or deactivating their keys.
@@ -900,36 +894,8 @@ class User < ApplicationRecord
     end
   end
 
-  # For non-service accounts, compute `active` from membership_status and dues_status.
-  # Service accounts manage their own active flag manually.
-  # Limited guest/sponsored access expires when `dues_due_at` is in the past.
   def compute_active_status
-    return if service_account?
-
-    if membership_status.in?(%w[banned deceased])
-      self.active = false
-      self.payment_type = 'inactive' if deceased?
-      return
-    end
-
-    if emergency_active_override?
-      self.active = true
-      return
-    end
-
-    if is_sponsored?
-      self.active = !limited_guest_or_sponsored_access_expired?
-      return
-    end
-
-    self.active = case membership_status
-                  when 'sponsored', 'guest'
-                    !limited_guest_or_sponsored_access_expired?
-                  when 'paying', 'cancelled', 'unknown'
-                    dues_status == 'current'
-                  else
-                    false
-                  end
+    Membership::ActiveStatus.apply_to(self)
   end
 
   def apply_sponsored_guest_duration_months

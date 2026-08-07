@@ -31,11 +31,44 @@ class PrivilegeCoverageTest < ActiveSupport::TestCase
   FILTER_NAMES = %w[require_authenticated_user! require_admin! require_privilege!
                     require_true_admin!].freeze
 
+  # Filters that decide *who* may act, as opposed to merely that someone is signed in.
+  AUTHORIZATION_FILTERS = %w[require_admin! require_privilege! require_true_admin!].freeze
+
+  # Both forms of privilege check, for the lambda filters that are the usual shape.
+  PRIVILEGE_CALLS = %w[require_privilege! require_any_privilege!].freeze
+
+  # Controllers where being signed in is the whole rule, because access follows from the
+  # record rather than from a privilege: your own profile, your own messages, the training
+  # catalogue offered to every member. Everything else must name an authority.
+  #
+  # Adding a controller here is a decision to serve it to any signed-in member. Converting
+  # one off AdminController without a privilege filter would otherwise land it here
+  # silently, which is exactly the mistake this catches.
+  MEMBER_FACING_CONTROLLERS = %w[
+    users messages profile_setup member_parking_permits user_links search
+    training_catalog training_requests documents rag membership_plans trainings
+    training_topics training_topic_links settings login_links
+  ].freeze
+
   test 'every routed action is authenticated, admin gated, or privilege gated' do
     unguarded = routed_actions.reject { |controller, action| guarded?(controller, action) }
 
     assert_empty unguarded.map { |controller, action| "#{controller}##{action}" }.sort,
                  'these actions are reachable with no authentication or authorization filter'
+  end
+
+  # Being signed in is not authorization. A controller moved off AdminController without a
+  # privilege filter would still satisfy the test above, because require_authenticated_user!
+  # comes along with AuthenticatedController — this is the assertion that notices.
+  test 'privileged actions name an authority rather than only requiring a session' do
+    unauthorized = routed_actions.reject do |controller, action|
+      PUBLIC_ACTIONS[controller]&.include?(action) ||
+        MEMBER_FACING_CONTROLLERS.include?(controller) ||
+        authorized?(controller, action)
+    end
+
+    assert_empty unauthorized.map { |controller, action| "#{controller}##{action}" }.sort,
+                 'these actions are reachable by any signed-in member with no admin or privilege check'
   end
 
   test 'the public allowlist only names actions that actually exist' do
@@ -59,6 +92,22 @@ class PrivilegeCoverageTest < ActiveSupport::TestCase
 
       [controller, action]
     end.uniq
+  end
+
+  def authorized?(controller, action)
+    klass = controller_class(controller)
+    return false unless klass
+    return true unless klass.action_methods.include?(action) || klass.method_defined?(action.to_sym, false)
+
+    callbacks_for(klass).any? { |callback| decides_authority?(callback) && covers?(callback, action) }
+  end
+
+  # A named admin filter, or an inline lambda calling require_privilege!.
+  def decides_authority?(callback)
+    name = callback.filter
+    return AUTHORIZATION_FILTERS.include?(name.to_s) if name.is_a?(Symbol)
+
+    name.respond_to?(:source_location) && lambda_calls_privilege?(name)
   end
 
   def guarded?(controller, action)
@@ -102,7 +151,8 @@ class PrivilegeCoverageTest < ActiveSupport::TestCase
     file, line = callable.source_location
     return false unless file && File.exist?(file)
 
-    File.readlines(file)[line - 1].to_s.include?('require_privilege!')
+    source = File.readlines(file)[line - 1].to_s
+    PRIVILEGE_CALLS.any? { |call| source.include?(call) }
   rescue StandardError
     false
   end

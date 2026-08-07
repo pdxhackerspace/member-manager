@@ -2,7 +2,14 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-class AuthentikUsersController < AdminController
+class AuthentikUsersController < AuthenticatedController
+  before_action -> { require_privilege!(:'sources.authentik.view') }, only: %i[index show]
+  before_action -> { require_privilege!(:'sources.authentik.sync') }, only: :sync
+  before_action -> { require_privilege!(:'members.unlink_sources') }, only: %i[link_user unlink_user]
+  # Both of these write to the identity provider rather than reading from it, and a bad
+  # push is not undone by pulling again.
+  before_action :require_admin!, only: %i[accept_changes push_to_authentik]
+
   before_action :set_authentik_user, only: %i[show link_user unlink_user accept_changes push_to_authentik]
 
   def index

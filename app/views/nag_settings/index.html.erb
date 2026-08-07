@@ -35,7 +35,8 @@
             <div class="text-12 text-secondary mt-1">
               Timing:
               <%= @membership_setting.slack_signup_nag_initial_delay_days %> days after approval,
-              every <%= @membership_setting.slack_signup_nag_repeat_delay_days %> days
+              every <%= @membership_setting.slack_signup_nag_repeat_delay_days %> days,
+              members who joined within <%= @membership_setting.slack_signup_nag_max_account_age_months %> <%= 'month'.pluralize(@membership_setting.slack_signup_nag_max_account_age_months) %>
               · <%= link_to "Edit in Membership settings", membership_settings_path, class: "text-secondary" %>
             </div>
           </div>

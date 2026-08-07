@@ -2,7 +2,8 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-class RfidReadersController < AdminController
+class RfidReadersController < AuthenticatedController
+  before_action -> { require_privilege!(:'access.manage_readers') }
   before_action :set_rfid_reader, only: %i[show edit update destroy regenerate_key]
 
   def index

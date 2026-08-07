@@ -6,7 +6,9 @@
   <div class="d-flex gap-2">
     <%= link_to "New Access Controller Type", new_access_controller_type_path, class: "btn btn-primary" %>
     <%= link_to "Access Controllers", access_controllers_path, class: "btn btn-outline-primary" %>
+    <% if can?(:'access.export_users') %>
     <%= link_to "Export users.json", export_users_access_controller_types_path, class: "btn btn-outline-primary", data: { turbo: false } %>
+    <% end %>
     <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
   </div>
 </div>

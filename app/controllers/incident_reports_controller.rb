@@ -1,4 +1,6 @@
-class IncidentReportsController < AdminController
+class IncidentReportsController < AuthenticatedController
+  before_action -> { require_privilege!(:'incidents.manage') }
+
   before_action :set_incident_report,
                 only: %i[show edit update destroy add_link remove_link remove_photo download_pdf download_photo]
 

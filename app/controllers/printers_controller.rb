@@ -1,4 +1,5 @@
-class PrintersController < AdminController
+class PrintersController < AuthenticatedController
+  before_action -> { require_privilege!(:'parking.manage_printers') }
   before_action :set_printer, only: %i[edit update destroy test_print]
 
   def index

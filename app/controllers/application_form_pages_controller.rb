@@ -1,4 +1,5 @@
-class ApplicationFormPagesController < AdminController
+class ApplicationFormPagesController < AuthenticatedController
+  before_action -> { require_privilege!(:'applications.configure_form') }
   before_action :set_page, only: %i[edit update destroy]
 
   def index

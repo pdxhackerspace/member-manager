@@ -1,4 +1,10 @@
-class TextFragmentsController < AdminController
+class TextFragmentsController < AuthenticatedController
+  before_action -> { require_privilege!(:'text_fragments.manage') },
+                only: %i[index show edit update sync_from_url]
+  # Bulk operations stay with administrators: seed resets every fragment to its built-in
+  # default, and sync_all_from_urls fetches and overwrites all of them from remote URLs.
+  # Neither has a catalog key of its own to grant.
+  before_action :require_admin!, only: %i[seed sync_all_from_urls]
   before_action :set_text_fragment, only: %i[show edit update sync_from_url]
 
   def index

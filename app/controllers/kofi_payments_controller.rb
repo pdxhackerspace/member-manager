@@ -1,5 +1,10 @@
-class KofiPaymentsController < AdminController
+class KofiPaymentsController < AuthenticatedController
   require 'csv'
+
+  before_action -> { require_privilege!(:'payments.view') }, only: %i[index show]
+  before_action -> { require_privilege!(:'payments.link') }, only: :link_user
+  # Bulk data movement belongs to payments.import_export, which this phase does not enforce.
+  before_action -> { require_privilege!(:'payments.import_export') }, only: %i[import_csv export import]
 
   def index
     @payments = KofiPayment.ordered

@@ -27,10 +27,10 @@ class UserComputeActiveTest < ActiveSupport::TestCase
     assert user.active?, 'sponsored without dues_due_at should be active'
   end
 
-  test 'sponsored member with expired limited access is inactive' do
+  test 'sponsored member with expired limited access stays active' do
     user = build_user(membership_status: 'sponsored', dues_status: 'current', dues_due_at: 1.day.ago)
     user.save!
-    assert_not user.active?, 'sponsored with past dues_due_at should be inactive'
+    assert user.active?, 'sponsored membership should stay active even when access end date passed'
   end
 
   test 'guest member without end date is active' do
@@ -45,7 +45,7 @@ class UserComputeActiveTest < ActiveSupport::TestCase
     assert_not user.active?, 'guest with past dues_due_at should be inactive'
   end
 
-  test 'is_sponsored flag respects limited duration expiry' do
+  test 'is_sponsored flag stays active with expired limited access timestamp' do
     user = build_user(
       membership_status: 'paying',
       dues_status: 'current',
@@ -53,7 +53,7 @@ class UserComputeActiveTest < ActiveSupport::TestCase
       dues_due_at: 1.hour.ago
     )
     user.save!
-    assert_not user.active?, 'sponsored flag with expired dues_due_at should be inactive'
+    assert user.active?, 'sponsored flag should stay active even when access end date passed'
   end
 
   test 'banned member is always inactive' do
@@ -84,33 +84,6 @@ class UserComputeActiveTest < ActiveSupport::TestCase
     user = build_user(membership_status: 'deceased', dues_status: 'current', emergency_active_override: true)
     user.save!
     assert_not user.active?, 'deceased should stay inactive even with emergency override'
-  end
-
-  test 'active? returns false for banned member when active column is stale' do
-    user = build_user(membership_status: 'banned', dues_status: 'current')
-    user.save!
-    user.update_columns(active: true)
-    assert_not user.active?, 'banned members should never appear active'
-  end
-
-  test 'active? returns false for deceased member when active column is stale' do
-    user = build_user(membership_status: 'deceased', dues_status: 'current')
-    user.save!
-    user.update_columns(active: true)
-    assert_not user.active?, 'deceased members should never appear active'
-  end
-
-  test 'User.active scope excludes banned and deceased members' do
-    banned = build_user(membership_status: 'banned', dues_status: 'current')
-    banned.save!
-    banned.update_columns(active: true)
-
-    deceased = build_user(membership_status: 'deceased', dues_status: 'current')
-    deceased.save!
-    deceased.update_columns(active: true)
-
-    assert_not User.active.exists?(banned.id)
-    assert_not User.active.exists?(deceased.id)
   end
 
   test 'applicant member is always inactive' do

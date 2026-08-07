@@ -21,11 +21,13 @@ module Nags
       )
     SQL
 
+    DELIVERABLE_EMAIL_SQL = "users.email IS NOT NULL AND users.email ~ '\\S'".freeze
+
     def self.due(now: Time.current)
       initial_cutoff = now - MembershipSetting.slack_signup_nag_initial_delay_days.days
       repeat_cutoff = now - MembershipSetting.slack_signup_nag_repeat_delay_days.days
 
-      base_scope
+      base_scope(now: now)
         .where("#{APPROVAL_ANCHOR_SQL} <= ?", initial_cutoff)
         .where('slack_signup_nag_sent_at IS NULL OR slack_signup_nag_sent_at <= ?', repeat_cutoff)
         .where(WITHOUT_PENDING_NAG_MAIL_SQL)
@@ -36,12 +38,16 @@ module Nags
       due(now: now).count
     end
 
-    def self.total_without_slack
-      base_scope.count
+    def self.total_without_slack(now: Time.current)
+      base_scope(now: now).count
+    end
+
+    def self.active_without_slack_scope(now: Time.current)
+      base_scope(now: now)
     end
 
     def self.due?(user, now: Time.current)
-      return false unless base_user?(user)
+      return false unless base_user?(user, now: now)
       return false if pending_nag_mail?(user)
 
       initial_cutoff = now - MembershipSetting.slack_signup_nag_initial_delay_days.days
@@ -57,28 +63,42 @@ module Nags
                          sent_at: nil)
     end
 
-    DELIVERABLE_EMAIL_SQL = "users.email IS NOT NULL AND users.email ~ '\\S'".freeze
-
-    def self.base_scope
-      User.where(active: true)
-          .non_service_accounts
-          .where.missing(:slack_user)
-          .where(slack_id: [nil, ''])
-          .where(slack_handle: [nil, ''])
-          .where(DELIVERABLE_EMAIL_SQL)
+    def self.within_account_age?(user, now: Time.current)
+      user.membership_approved_at >= account_age_cutoff(now: now)
     end
 
-    def self.base_user?(user)
+    def self.account_age_cutoff(now: Time.current)
+      now - MembershipSetting.slack_signup_nag_max_account_age_months.months
+    end
+
+    def self.base_scope(now: Time.current)
+      within_account_age(
+        User.active
+            .non_service_accounts
+            .where.missing(:slack_user)
+            .where(slack_id: [nil, ''])
+            .where(slack_handle: [nil, ''])
+            .where(DELIVERABLE_EMAIL_SQL),
+        now: now
+      )
+    end
+
+    def self.base_user?(user, now: Time.current)
       user.active? &&
         !user.service_account? &&
         lacks_slack_identity?(user) &&
-        user.email.present?
+        user.email.present? &&
+        within_account_age?(user, now: now)
     end
 
     def self.lacks_slack_identity?(user)
       user.slack_user.blank? && user.slack_id.blank? && user.slack_handle.blank?
     end
 
-    private_class_method :base_scope, :base_user?, :lacks_slack_identity?
+    def self.within_account_age(relation, now: Time.current)
+      relation.where("#{APPROVAL_ANCHOR_SQL} >= ?", account_age_cutoff(now: now))
+    end
+
+    private_class_method :base_scope, :base_user?, :lacks_slack_identity?, :within_account_age
   end
 end

@@ -109,22 +109,40 @@
             </div>
           </div>
 
-          <h2 class="h-section-label mt-4 mb-3">Slack signup nag</h2>
+          <h2 class="h-section-label mt-4 mb-3">Slack signup reminder</h2>
           <p class="text-13 text-secondary mb-3">
             Timing for the automated Slack signup reminder.
-            <%= link_to "Manage nags", nag_settings_path, class: "text-secondary" %>.
+            <%= link_to "Manage reminders", reminder_settings_path, class: "text-secondary" %>.
           </p>
 
           <div class="mb-3">
-            <%= f.label :slack_signup_nag_initial_delay_days, "Initial delay after approval (days)", class: "form-label" %>
-            <%= f.number_field :slack_signup_nag_initial_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+            <%= f.label :slack_signup_reminder_initial_delay_days, "Initial delay after approval (days)", class: "form-label" %>
+            <%= f.number_field :slack_signup_reminder_initial_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
             <div class="form-text">Days after application approval before the first Slack signup reminder is sent.</div>
           </div>
 
           <div class="mb-4">
-            <%= f.label :slack_signup_nag_repeat_delay_days, "Repeat interval (days)", class: "form-label" %>
-            <%= f.number_field :slack_signup_nag_repeat_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+            <%= f.label :slack_signup_reminder_repeat_delay_days, "Repeat interval (days)", class: "form-label" %>
+            <%= f.number_field :slack_signup_reminder_repeat_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
             <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
+          </div>
+
+          <h2 class="h-section-label mt-4 mb-3">Application link reminder</h2>
+          <p class="text-13 text-secondary mb-3">
+            Timing for reminders when someone requests a membership application link but has not used it yet.
+            <%= link_to "Manage reminders", reminder_settings_path, class: "text-secondary" %>.
+          </p>
+
+          <div class="mb-3">
+            <%= f.label :application_link_reminder_delay_days, "Reminder after sending an application link (days)", class: "form-label" %>
+            <%= f.number_field :application_link_reminder_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+            <div class="form-text">Days after the application link email before the first reminder is sent, and between subsequent reminders.</div>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :application_link_reminder_max_count, "Maximum reminders after sending an application link", class: "form-label" %>
+            <%= f.number_field :application_link_reminder_max_count, class: "form-control", min: 1, style: "max-width: 150px;" %>
+            <div class="form-text">Stop reminding after this many emails or when the link expires, whichever comes first.</div>
           </div>
 
           <div class="d-flex gap-2">

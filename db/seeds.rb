@@ -68,8 +68,8 @@ MemberSource.seed_defaults!
 Rails.logger.debug { "Seeded #{MemberSource.count} member sources." }
 
 # Seed nag settings
-NagSetting.seed_defaults!
-Rails.logger.debug { "Seeded #{NagSetting.count} nag settings." }
+ReminderSetting.seed_defaults!
+Rails.logger.debug { "Seeded #{ReminderSetting.count} reminder settings." }
 
 # Seed incoming webhooks
 IncomingWebhook.seed_defaults!

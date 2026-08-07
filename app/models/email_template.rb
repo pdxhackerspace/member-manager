@@ -28,7 +28,7 @@ class EmailTemplate < ApplicationRecord
     '{{recipient_role}}' => 'Whether this notification is for a member or trainer',
     '{{trainer_names}}' => 'Comma-separated trainer names notified for a request',
     '{{contact_details}}' => 'Rendered contact details block for training request notifications',
-    '{{days_since_approval}}' => 'Days since the member was approved (Slack signup nag only)',
+    '{{days_since_approval}}' => 'Days since the member was approved (Slack signup reminder only)',
     '{{slack_link_url}}' => 'URL to associate a Slack account (Slack signup nag only; blank when unavailable)',
     '{{slack_link_html}}' => 'Slack self-link paragraph for HTML bodies (blank when unavailable)',
     '{{slack_link_text}}' => 'Slack self-link line for plain-text bodies (blank when unavailable)'
@@ -369,7 +369,7 @@ class EmailTemplate < ApplicationRecord
         Open in Member Zone: {{application_url}}
       TEXT
     },
-    'staff_application_nag' => {
+    'staff_application_reminder' => {
       name: 'Staff: Application Reminder',
       description: 'Reminder to ED / Associate ED trained staff when an application is pending after one week',
       subject: '{{organization_name}}: Application overdue for review - {{member_name}}',
@@ -571,7 +571,7 @@ class EmailTemplate < ApplicationRecord
         The {{organization_name}} Team
       TEXT
     },
-    'slack_signup_nag' => {
+    'slack_signup_reminder' => {
       name: 'Slack Signup Reminder',
       description: 'Gentle reminder to active members without a linked Slack account',
       subject: '{{organization_name}}: Join us on Slack',
@@ -595,8 +595,35 @@ class EmailTemplate < ApplicationRecord
         Thanks,
         The {{organization_name}} Team
       TEXT
+    },
+    'application_link_reminder' => {
+      name: 'Application Link Reminder',
+      description: 'Reminder when someone requested a membership application link but has not submitted yet',
+      subject: '{{organization_name}}: Complete your membership application',
+      body_html: <<~HTML,
+        <p>Hello,</p>
+        <p>You recently requested a link to apply for membership at {{organization_name}}, but we have not received your application yet.</p>
+        <p style="margin-top: 20px;"><a href="{{application_url}}">Continue your membership application</a></p>
+        <p>This link expires soon. If you no longer wish to apply, you can ignore this email.</p>
+        <p>Best regards,<br>The {{organization_name}} Team</p>
+      HTML
+      body_text: <<~TEXT
+        Hello,
+
+        You recently requested a link to apply for membership at {{organization_name}}, but we have not received your application yet.
+
+        Continue your membership application: {{application_url}}
+
+        This link expires soon. If you no longer wish to apply, you can ignore this email.
+
+        Best regards,
+        The {{organization_name}} Team
+      TEXT
     }
-  }.freeze
+  }.tap do |templates|
+    templates['slack_signup_nag'] = templates['slack_signup_reminder']
+    templates['staff_application_nag'] = templates['staff_application_reminder']
+  end.freeze
 
   validates :key, presence: true, uniqueness: true
   validates :name, presence: true

@@ -1,0 +1,86 @@
+module Reminders
+  class ApplicationLinkEligibility
+    AWAITING_APPLICATION_SQL = <<~SQL.squish
+      NOT EXISTS (
+        SELECT 1
+        FROM membership_applications
+        WHERE membership_applications.status != 'draft'
+          AND membership_applications.email_lookup_digest = application_verifications.email_lookup_digest
+      )
+    SQL
+
+    WITHOUT_PENDING_REMINDER_MAIL_SQL = <<~SQL.squish
+      NOT EXISTS (
+        SELECT 1
+        FROM queued_mails
+        WHERE queued_mails.to = application_verifications.email
+          AND queued_mails.mailer_action = 'application_link_reminder'
+          AND queued_mails.status IN ('pending', 'approved')
+          AND queued_mails.sent_at IS NULL
+      )
+    SQL
+
+    def self.due(now: Time.current)
+      delay = MembershipSetting.application_link_reminder_delay_days.days
+      max_count = MembershipSetting.application_link_reminder_max_count
+      cutoff = now - delay
+
+      base_scope
+        .where(application_link_reminder_count: ...max_count)
+        .where(
+          '(application_link_reminder_sent_at IS NULL AND application_verifications.created_at <= ?) OR ' \
+          '(application_link_reminder_sent_at IS NOT NULL AND application_link_reminder_sent_at <= ?)',
+          cutoff, cutoff
+        )
+        .where(WITHOUT_PENDING_REMINDER_MAIL_SQL)
+        .order(:created_at)
+    end
+
+    def self.count_due(now: Time.current)
+      due(now: now).count
+    end
+
+    def self.total_awaiting
+      base_scope.count
+    end
+
+    def self.due?(verification, now: Time.current)
+      return false unless base_verification?(verification)
+      return false if pending_reminder_mail?(verification)
+
+      delay = MembershipSetting.application_link_reminder_delay_days.days
+      max_count = MembershipSetting.application_link_reminder_max_count
+      cutoff = now - delay
+
+      verification.application_link_reminder_count < max_count &&
+        reminder_anchor(verification) <= cutoff
+    end
+
+    def self.pending_reminder_mail?(verification)
+      QueuedMail.exists?(
+        to: verification.email,
+        mailer_action: 'application_link_reminder',
+        status: %w[pending approved],
+        sent_at: nil
+      )
+    end
+
+    def self.base_scope
+      ApplicationVerification
+        .where('expires_at > ?', Time.current)
+        .where(AWAITING_APPLICATION_SQL)
+    end
+
+    def self.base_verification?(verification)
+      !verification.expired? &&
+        verification.awaiting_application? &&
+        verification.email.present?
+    end
+
+    def self.reminder_anchor(verification)
+      verification.application_link_reminder_sent_at || verification.created_at
+    end
+
+    private_class_method :base_scope, :base_verification?, :reminder_anchor
+  end
+end

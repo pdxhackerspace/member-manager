@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -214,6 +214,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
   end
 
   create_table "application_verifications", force: :cascade do |t|
+    t.integer "application_link_reminder_count", default: 0, null: false
+    t.datetime "application_link_reminder_sent_at"
     t.boolean "confirmed_code_of_conduct", default: false, null: false
     t.boolean "confirmed_open_house", default: false, null: false
     t.datetime "created_at", null: false
@@ -556,7 +558,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.string "ai_feedback_recommendation"
     t.integer "ai_feedback_score"
     t.text "ai_feedback_score_rationale"
-    t.datetime "application_nag_sent_at"
+    t.datetime "application_reminder_sent_at"
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "email_lookup_digest"
@@ -571,7 +573,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["ai_feedback_processed_at"], name: "index_membership_applications_on_ai_feedback_processed_at"
-    t.index ["application_nag_sent_at"], name: "index_membership_applications_on_application_nag_sent_at"
+    t.index ["application_reminder_sent_at"], name: "index_membership_applications_on_application_reminder_sent_at"
     t.index ["email"], name: "index_membership_applications_on_email"
     t.index ["email_lookup_digest"], name: "index_membership_applications_on_email_lookup_digest"
     t.index ["outcome_queued_mail_id"], name: "index_membership_applications_on_outcome_queued_mail_id"
@@ -606,6 +608,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
 
   create_table "membership_settings", force: :cascade do |t|
     t.integer "admin_login_link_expiry_minutes", default: 15, null: false
+    t.integer "application_link_reminder_delay_days", default: 3, null: false
+    t.integer "application_link_reminder_max_count", default: 3, null: false
     t.integer "application_review_time_cap_days", default: 15, null: false
     t.integer "application_verification_expiry_hours", default: 24, null: false
     t.datetime "created_at", null: false
@@ -614,8 +618,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.integer "manual_payment_due_soon_days", default: 7, null: false
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
-    t.integer "slack_signup_nag_initial_delay_days", default: 7, null: false
-    t.integer "slack_signup_nag_repeat_delay_days", default: 14, null: false
+    t.integer "slack_signup_reminder_initial_delay_days", default: 7, null: false
+    t.integer "slack_signup_reminder_repeat_delay_days", default: 14, null: false
     t.datetime "updated_at", null: false
     t.boolean "use_builtin_membership_application", default: true, null: false
   end
@@ -636,17 +640,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.index ["sender_id", "created_at"], name: "index_messages_on_sender_id_and_created_at"
     t.index ["sender_id", "deleted_by_sender_at"], name: "index_messages_on_sender_id_and_deleted_by_sender_at"
     t.index ["sender_id"], name: "index_messages_on_sender_id"
-  end
-
-  create_table "nag_settings", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.text "description"
-    t.boolean "enabled", default: false, null: false
-    t.string "key", null: false
-    t.string "name", null: false
-    t.datetime "updated_at", null: false
-    t.index ["enabled"], name: "index_nag_settings_on_enabled"
-    t.index ["key"], name: "index_nag_settings_on_key", unique: true
   end
 
   create_table "parking_notice_events", force: :cascade do |t|
@@ -850,6 +843,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.index ["processed_at"], name: "index_recharge_payments_on_processed_at", order: :desc
     t.index ["recharge_id"], name: "index_recharge_payments_on_recharge_id", unique: true
     t.index ["user_id"], name: "index_recharge_payments_on_user_id"
+  end
+
+  create_table "reminder_settings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.boolean "enabled", default: false, null: false
+    t.string "key", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_reminder_settings_on_enabled"
+    t.index ["key"], name: "index_reminder_settings_on_key", unique: true
   end
 
   create_table "rfid_readers", force: :cascade do |t|
@@ -1134,7 +1138,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.string "sign_name"
     t.string "slack_handle"
     t.string "slack_id"
-    t.datetime "slack_signup_nag_sent_at"
+    t.datetime "slack_signup_reminder_sent_at"
     t.datetime "updated_at", null: false
     t.boolean "use_full_name_for_greeting", default: true, null: false
     t.boolean "use_username_for_greeting", default: false, null: false
@@ -1152,7 +1156,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.index ["membership_plan_id"], name: "index_users_on_membership_plan_id"
     t.index ["paypal_account_id"], name: "index_users_on_paypal_account_id"
     t.index ["recharge_customer_id"], name: "index_users_on_recharge_customer_id"
-    t.index ["slack_signup_nag_sent_at"], name: "index_users_on_slack_signup_nag_sent_at"
+    t.index ["slack_signup_reminder_sent_at"], name: "index_users_on_slack_signup_reminder_sent_at"
     t.index ["username"], name: "index_users_on_username", unique: true, where: "(username IS NOT NULL)"
   end
 

@@ -31,6 +31,20 @@ module Membership
       user.is_sponsored? || user.membership_status == 'sponsored' || user.payment_type == 'sponsored'
     end
 
+    # Used by membership:recalculate_status after the blanket reset in step 1.
+    def self.recalculate_sponsored_candidate?(user)
+      sponsored?(user) || user.sheet_entry&.status.to_s.downcase.include?('sponsored')
+    end
+
+    def self.restore_sponsored_membership!(user)
+      assign_and_save!(
+        user,
+        membership_status: 'sponsored',
+        payment_type: 'sponsored',
+        dues_status: 'current'
+      )
+    end
+
     def self.apply_to(user)
       return if user.service_account?
 

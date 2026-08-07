@@ -31,20 +31,14 @@ namespace :membership do
     puts "  Reset #{User.count} users to unknown/inactive"
     puts ''
 
-    # Step 2: Set sponsored users from sheet entries
-    puts 'Step 2: Setting sponsored users from sheet entries...'
+    # Step 2: Restore sponsored members before payment-based recalculation.
+    puts 'Step 2: Setting sponsored members...'
     sponsored_count = 0
 
-    SheetEntry.where('LOWER(status) LIKE ?', '%sponsored%').find_each do |sheet_entry|
-      user = sheet_entry.user
-      next unless user
+    User.find_each do |user|
+      next unless Membership::ActiveStatus.recalculate_sponsored_candidate?(user)
 
-      Membership::ActiveStatus.assign_and_save!(
-        user,
-        membership_status: 'sponsored',
-        payment_type: 'sponsored',
-        dues_status: 'current'
-      )
+      Membership::ActiveStatus.restore_sponsored_membership!(user)
       sponsored_count += 1
       puts "  Sponsored: #{user.display_name}"
     end

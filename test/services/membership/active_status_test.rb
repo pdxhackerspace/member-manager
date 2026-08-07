@@ -110,6 +110,58 @@ module Membership
       assert_not user.reload.active
     end
 
+    test 'restore_sponsored_membership fixes is_sponsored member after recalculate reset' do
+      user = User.create!(
+        authentik_id: 'recalc-sponsored-flag',
+        full_name: 'Sponsored Flag Member',
+        is_sponsored: true,
+        membership_status: 'paying',
+        dues_status: 'current',
+        payment_type: 'paypal'
+      )
+      ActiveStatus.assign_and_save!(
+        user,
+        membership_status: 'unknown',
+        dues_status: 'unknown',
+        membership_plan_id: nil
+      )
+
+      assert ActiveStatus.recalculate_sponsored_candidate?(user.reload)
+
+      ActiveStatus.restore_sponsored_membership!(user)
+
+      user.reload
+      assert_equal 'sponsored', user.membership_status
+      assert_equal 'current', user.dues_status
+      assert_equal 'sponsored', user.payment_type
+      assert user.active?
+    end
+
+    test 'restore_sponsored_membership fixes payment_type sponsored after recalculate reset' do
+      user = User.create!(
+        authentik_id: 'recalc-payment-sponsored',
+        full_name: 'Payment Sponsored Member',
+        membership_status: 'paying',
+        dues_status: 'current',
+        payment_type: 'sponsored'
+      )
+      ActiveStatus.assign_and_save!(
+        user,
+        membership_status: 'unknown',
+        dues_status: 'unknown',
+        membership_plan_id: nil
+      )
+
+      assert ActiveStatus.recalculate_sponsored_candidate?(user.reload)
+
+      ActiveStatus.restore_sponsored_membership!(user)
+
+      user.reload
+      assert_equal 'sponsored', user.membership_status
+      assert_equal 'current', user.dues_status
+      assert user.active?
+    end
+
     private
 
     def build_user(**attrs)

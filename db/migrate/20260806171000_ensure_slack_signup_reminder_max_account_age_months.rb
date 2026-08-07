@@ -12,9 +12,6 @@ class EnsureSlackSignupReminderMaxAccountAgeMonths < ActiveRecord::Migration[8.1
   end
 
   def down
-    return unless column_exists?(:membership_settings, :slack_signup_reminder_max_account_age_months)
-    return if column_exists?(:membership_settings, :slack_signup_nag_max_account_age_months)
-
-    remove_column :membership_settings, :slack_signup_reminder_max_account_age_months
+    raise ActiveRecord::IrreversibleMigration
   end
 end

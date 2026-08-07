@@ -35,14 +35,15 @@ module Reminders
 
         self.class.record_delivery!(verification, at: @now) if result.is_a?(QueuedMail::ImmediateDelivery)
       end
-    rescue StandardError => e
-      Rails.logger.error(
-        "[NotifyApplicationLink] verification_id=#{verification&.id} delivery failed: #{e.class}: #{e.message}"
-      )
     end
 
     def deliver_reminder_mail(verification, extras)
       QueuedMail.enqueue_application_link_reminder(verification, reason: 'Application link reminder', **extras)
+    rescue StandardError => e
+      Rails.logger.error(
+        "[NotifyApplicationLink] verification_id=#{verification.id} delivery failed: #{e.class}: #{e.message}"
+      )
+      nil
     end
   end
 end

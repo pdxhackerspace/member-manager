@@ -235,8 +235,9 @@ class UsersController < AuthenticatedController
       load_training_history(@user) if @active_tab == :training_history
     end
 
-    # Load payment history for admin and self views (paginated)
-    if @view_level == :admin || @view_level == :self
+    # Payment history follows the same rule as Journal, Access and Mail: self always sees their
+    # own; in the admin layout it loads only when payments.view reveals the tab.
+    if @view_level == :self || (@view_level == :admin && @profile_caps[:view_payments])
       @payment_event_filter = params[:event_type].presence
       payments_query = PaymentHistory.for_user(@user, event_type: @payment_event_filter)
       @payments_count = payments_query.count

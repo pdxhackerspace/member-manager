@@ -54,6 +54,30 @@ class MemberProfileCapabilitiesTest < ActionDispatch::IntegrationTest
 
   # ─── Each tab follows its own privilege ───────────────────────────────
 
+  test 'members.view_profile alone does not expose payment history via direct tab URL' do
+    create_profile_payment_event!(@member, details: 'Secret payment from profile-gate-test')
+
+    holder('members.view_profile')
+
+    get user_path(@member, tab: :payments)
+
+    assert_response :success
+    assert_no_match(/Payment Events/i, response.body)
+    assert_no_match(/profile-gate-test/, response.body)
+  end
+
+  test 'payments.view loads payment history on the payments tab' do
+    create_profile_payment_event!(@member, details: 'Visible payment from profile-gate-test')
+
+    holder('members.view_profile', 'payments.view')
+
+    get user_path(@member, tab: :payments)
+
+    assert_response :success
+    assert_match(/Payment Events/i, response.body)
+    assert_match(/profile-gate-test/, response.body)
+  end
+
   {
     'payments.view' => 'payments',
     'access.view_logs' => 'access',
@@ -229,5 +253,18 @@ class MemberProfileCapabilitiesTest < ActionDispatch::IntegrationTest
     member = sign_in_as_plain_member
     privilege_keys.each { |key| grant_privileges(member, key) }
     sign_in_as_plain_member
+  end
+
+  def create_profile_payment_event!(user, details:)
+    PaymentEvent.create!(
+      user: user,
+      event_type: 'payment',
+      source: 'manual',
+      occurred_at: Time.current,
+      details: details,
+      amount: 25.00,
+      currency: 'USD',
+      external_id: 'PROFILE-GATE-TEST'
+    )
   end
 end

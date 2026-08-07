@@ -77,7 +77,7 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test 'active members with no slack excludes members who joined before the account age limit' do
-    MembershipSetting.instance.update!(slack_signup_nag_max_account_age_months: 6)
+    MembershipSetting.instance.update!(slack_signup_reminder_max_account_age_months: 6)
 
     recent = User.create!(
       authentik_id: 'authentik-no-slack-recent',

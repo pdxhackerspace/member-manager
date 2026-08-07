@@ -73,22 +73,34 @@
             <div class="form-text">Maximum review time shown to applicants on the status page. Admins still see the actual average.</div>
           </dd>
 
-          <dt class="col-sm-6 mt-3">Slack signup nag — initial delay</dt>
+          <dt class="col-sm-6 mt-3">Slack signup reminder — initial delay</dt>
           <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.slack_signup_nag_initial_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_initial_delay_days) %>
-            <div class="form-text">Days after approval before the first Slack signup reminder. <%= link_to "Nags settings", nag_settings_path, class: "text-secondary" %>.</div>
+            <strong><%= @membership_setting.slack_signup_reminder_initial_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_reminder_initial_delay_days) %>
+            <div class="form-text">Days after approval before the first Slack signup reminder. <%= link_to "Reminders settings", reminder_settings_path, class: "text-secondary" %>.</div>
           </dd>
 
-          <dt class="col-sm-6 mt-3">Slack signup nag — repeat interval</dt>
+          <dt class="col-sm-6 mt-3">Slack signup reminder — repeat interval</dt>
           <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.slack_signup_nag_repeat_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_repeat_delay_days) %>
+            <strong><%= @membership_setting.slack_signup_reminder_repeat_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_reminder_repeat_delay_days) %>
             <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
           </dd>
 
-          <dt class="col-sm-6 mt-3">Slack signup nag — account age limit</dt>
+          <dt class="col-sm-6 mt-3">Slack signup reminder — account age limit</dt>
           <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.slack_signup_nag_max_account_age_months %></strong> <%= 'month'.pluralize(@membership_setting.slack_signup_nag_max_account_age_months) %>
+            <strong><%= @membership_setting.slack_signup_reminder_max_account_age_months %></strong> <%= 'month'.pluralize(@membership_setting.slack_signup_reminder_max_account_age_months) %>
             <div class="form-text">Only members who joined within this window are nudged to join Slack.</div>
+          </dd>
+
+          <dt class="col-sm-6 mt-3">Application link reminder — delay</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.application_link_reminder_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.application_link_reminder_delay_days) %>
+            <div class="form-text">Days after sending an application link before the first reminder, and between subsequent reminders.</div>
+          </dd>
+
+          <dt class="col-sm-6 mt-3">Application link reminder — maximum</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.application_link_reminder_max_count %></strong>
+            <div class="form-text">Stop after this many reminders or when the link expires, whichever comes first.</div>
           </dd>
         </dl>
       </div>

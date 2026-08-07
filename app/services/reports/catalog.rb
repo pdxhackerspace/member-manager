@@ -168,7 +168,7 @@ module Reports
         empty_message: 'Every recent active member has a linked Slack account.'
       ) do
         ScopeQuery.new(
-          Nags::SlackSignupEligibility.active_without_slack_scope.order(Catalog::NAME_ORDER)
+          Reminders::SlackSignupEligibility.active_without_slack_scope.order(Catalog::NAME_ORDER)
         )
       end,
 

@@ -11,7 +11,7 @@ class SettingsController < AuthenticatedController
       interests: Interest.needs_review.count,
       payment_processors: PaymentProcessor.enabled.where(sync_status: %w[degraded failing]).count,
       recharge: RechargePayment.where(user_id: nil, dont_link: false).count,
-      nags_due: nags_due_attention_count
+      reminders_due: reminders_due_attention_count
     }
   end
 
@@ -34,10 +34,18 @@ class SettingsController < AuthenticatedController
       enabled_controllers.where(backup_status: 'failed').count
   end
 
-  def nags_due_attention_count
-    return 0 unless NagSetting.enabled?('slack_signup')
-    return 0 unless MemberSource.enabled?('slack')
+  def reminders_due_attention_count
+    slack_due = if ReminderSetting.enabled?('slack_signup') && MemberSource.enabled?('slack')
+                  Reminders::SlackSignupEligibility.count_due
+                else
+                  0
+                end
+    application_link_due = if ReminderSetting.enabled?('application_link')
+                             Reminders::ApplicationLinkEligibility.count_due
+                           else
+                             0
+                           end
 
-    Nags::SlackSignupEligibility.count_due
+    slack_due + application_link_due
   end
 end

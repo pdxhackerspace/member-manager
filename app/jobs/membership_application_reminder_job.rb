@@ -1,4 +1,4 @@
-class MembershipApplicationNagJob < ApplicationJob
+class MembershipApplicationReminderJob < ApplicationJob
   queue_as :default
 
   def perform

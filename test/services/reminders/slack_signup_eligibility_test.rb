@@ -1,12 +1,12 @@
 require 'test_helper'
 
-module Nags
+module Reminders
   class SlackSignupEligibilityTest < ActiveSupport::TestCase
     setup do
       MembershipSetting.instance.update!(
-        slack_signup_nag_initial_delay_days: 7,
-        slack_signup_nag_repeat_delay_days: 14,
-        slack_signup_nag_max_account_age_months: 6
+        slack_signup_reminder_initial_delay_days: 7,
+        slack_signup_reminder_repeat_delay_days: 14,
+        slack_signup_reminder_max_account_age_months: 6
       )
     end
 
@@ -109,7 +109,7 @@ module Nags
 
     test 'due excludes members nagged inside repeat window' do
       now = Time.zone.local(2026, 8, 5, 7, 0, 0)
-      user = eligible_user(now: now, email: 'recent-nag@example.com', slack_signup_nag_sent_at: now - 3.days)
+      user = eligible_user(now: now, email: 'recent-nag@example.com', slack_signup_reminder_sent_at: now - 3.days)
 
       travel_to now do
         assert_not_includes SlackSignupEligibility.due(now: now), user
@@ -118,7 +118,7 @@ module Nags
 
     test 'due includes members nagged outside repeat window' do
       now = Time.zone.local(2026, 8, 5, 7, 0, 0)
-      user = eligible_user(now: now, email: 'old-nag@example.com', slack_signup_nag_sent_at: now - 15.days)
+      user = eligible_user(now: now, email: 'old-nag@example.com', slack_signup_reminder_sent_at: now - 15.days)
 
       travel_to now do
         assert_includes SlackSignupEligibility.due(now: now), user
@@ -156,7 +156,7 @@ module Nags
         body_html: '<p>Hi</p>',
         body_text: 'Hi',
         reason: 'Slack signup reminder',
-        mailer_action: 'slack_signup_nag',
+        mailer_action: 'slack_signup_reminder',
         recipient: user,
         status: 'pending'
       )
@@ -176,7 +176,7 @@ module Nags
         body_html: '<p>Hi</p>',
         body_text: 'Hi',
         reason: 'Slack signup reminder',
-        mailer_action: 'slack_signup_nag',
+        mailer_action: 'slack_signup_reminder',
         recipient: user,
         status: 'rejected',
         reviewed_by: users(:one),
@@ -204,7 +204,7 @@ module Nags
         dues_status: 'current',
         membership_status: 'paying',
         created_at: now - 10.days,
-        slack_signup_nag_sent_at: nil
+        slack_signup_reminder_sent_at: nil
       )
       user.slack_user&.destroy
 
@@ -216,13 +216,13 @@ module Nags
     private
 
     def eligible_user(now:, email:, **attrs)
-      nag_sent_at = attrs.delete(:slack_signup_nag_sent_at)
+      nag_sent_at = attrs.delete(:slack_signup_reminder_sent_at)
       active_override = attrs.delete(:active)
 
       user = User.create!(
         {
           email: email,
-          full_name: 'Slack Nag Candidate',
+          full_name: 'Slack Reminder Candidate',
           active: true,
           service_account: false,
           membership_status: 'paying',
@@ -233,7 +233,7 @@ module Nags
 
       column_updates = {}
       column_updates[:active] = active_override unless active_override.nil?
-      column_updates[:slack_signup_nag_sent_at] = nag_sent_at unless nag_sent_at.nil?
+      column_updates[:slack_signup_reminder_sent_at] = nag_sent_at unless nag_sent_at.nil?
       user.update_columns(column_updates) if column_updates.any?
       MembershipApplication.create!(
         user: user,

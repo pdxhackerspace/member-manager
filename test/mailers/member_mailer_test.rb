@@ -121,8 +121,8 @@ class MemberMailerTest < ActionMailer::TestCase
       key: 'slack_signup_nag_test',
       name: 'Slack Signup Test',
       subject: 'Join Slack',
-      body_html: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_html],
-      body_text: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_text],
+      body_html: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_reminder')[:body_html],
+      body_text: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_reminder')[:body_text],
       enabled: true
     )
 
@@ -151,8 +151,8 @@ class MemberMailerTest < ActionMailer::TestCase
       key: 'slack_signup_nag_test',
       name: 'Slack Signup Test',
       subject: 'Join Slack',
-      body_html: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_html],
-      body_text: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_nag')[:body_text],
+      body_html: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_reminder')[:body_html],
+      body_text: EmailTemplate::DEFAULT_TEMPLATES.fetch('slack_signup_reminder')[:body_text],
       enabled: true
     )
 

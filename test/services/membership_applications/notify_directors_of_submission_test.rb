@@ -9,7 +9,7 @@ module MembershipApplications
     setup do
       ActionMailer::Base.deliveries.clear
       clear_enqueued_jobs
-      EmailTemplate.where(key: 'staff_application_nag').delete_all
+      EmailTemplate.where(key: 'staff_application_reminder').delete_all
       ensure_staff_new_application_template!
       @app = MembershipApplication.create!(email: 'notify-directors@example.com', status: 'submitted')
     end

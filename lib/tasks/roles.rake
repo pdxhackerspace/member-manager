@@ -42,4 +42,23 @@ namespace :roles do
 
     puts "#{dry_run ? 'Would apply' : 'Applied'}: #{result.summary}"
   end
+
+  desc 'Add privileges the shipped roles have gained to roles already in the database ' \
+       '(DRY_RUN=1 to preview)'
+  task backfill_seeds: :environment do
+    dry_run = ENV['DRY_RUN'].present?
+    results = Roles::SeedBackfill.new(dry_run: dry_run).call
+
+    if results.empty?
+      puts 'Every shipped role already has the privileges it ships with. Nothing to do.'
+      next
+    end
+
+    results.each do |result|
+      puts "#{dry_run ? 'Would add to' : 'Added to'} #{result.role_name}: #{result.added_keys.join(', ')}"
+    end
+    puts
+    puts "#{results.sum { |r| r.added_keys.size }} privilege(s) across #{results.size} role(s)."
+    puts 'Run without DRY_RUN=1 to apply.' if dry_run
+  end
 end

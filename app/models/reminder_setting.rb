@@ -1,8 +1,13 @@
-class NagSetting < ApplicationRecord
+class ReminderSetting < ApplicationRecord
   CATALOG = {
     'slack_signup' => {
       name: 'Slack signup reminder',
       description: 'Gentle reminder to active members without a linked Slack account.',
+      enabled: false
+    },
+    'application_link' => {
+      name: 'Application link reminder',
+      description: 'Reminder when someone requested a membership application link but has not submitted yet.',
       enabled: false
     }
   }.freeze

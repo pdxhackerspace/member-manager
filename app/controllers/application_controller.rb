@@ -126,4 +126,13 @@ class ApplicationController < ActionController::Base
       redirect_to login_path, alert: 'Please sign in to continue.'
     end
   end
+
+  # A few pages are reachable by more than one route through the catalog — a cash payment
+  # belongs to whoever records it, but anyone who can see payments at all can read it. The
+  # denial names the first key, which is the one to grant if a holder is unsure why.
+  def require_any_privilege!(*privileges)
+    return if privileges.any? { |privilege| can?(privilege) }
+
+    require_privilege!(privileges.first)
+  end
 end

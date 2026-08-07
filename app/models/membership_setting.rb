@@ -7,8 +7,11 @@ class MembershipSetting < ApplicationRecord
   validates :application_verification_expiry_hours, presence: true, numericality: { greater_than: 0 }
   validates :manual_payment_due_soon_days, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :application_review_time_cap_days, presence: true, numericality: { greater_than: 0 }
-  validates :slack_signup_nag_initial_delay_days, presence: true, numericality: { greater_than: 0 }
-  validates :slack_signup_nag_repeat_delay_days, presence: true, numericality: { greater_than: 0 }
+  validates :slack_signup_reminder_initial_delay_days, presence: true, numericality: { greater_than: 0 }
+  validates :slack_signup_reminder_repeat_delay_days, presence: true, numericality: { greater_than: 0 }
+  validates :slack_signup_reminder_max_account_age_months, presence: true, numericality: { greater_than: 0 }
+  validates :application_link_reminder_delay_days, presence: true, numericality: { greater_than: 0 }
+  validates :application_link_reminder_max_count, presence: true, numericality: { greater_than: 0 }
 
   # Singleton pattern - only one row should exist
   def self.instance
@@ -21,8 +24,11 @@ class MembershipSetting < ApplicationRecord
       application_verification_expiry_hours: 24,
       manual_payment_due_soon_days: 7,
       application_review_time_cap_days: 15,
-      slack_signup_nag_initial_delay_days: 7,
-      slack_signup_nag_repeat_delay_days: 14
+      slack_signup_reminder_initial_delay_days: 7,
+      slack_signup_reminder_repeat_delay_days: 14,
+      slack_signup_reminder_max_account_age_months: 6,
+      application_link_reminder_delay_days: 3,
+      application_link_reminder_max_count: 3
     )
   end
 
@@ -63,11 +69,23 @@ class MembershipSetting < ApplicationRecord
     instance.use_builtin_membership_application?
   end
 
-  def self.slack_signup_nag_initial_delay_days
-    instance.slack_signup_nag_initial_delay_days
+  def self.slack_signup_reminder_initial_delay_days
+    instance.slack_signup_reminder_initial_delay_days
   end
 
-  def self.slack_signup_nag_repeat_delay_days
-    instance.slack_signup_nag_repeat_delay_days
+  def self.slack_signup_reminder_repeat_delay_days
+    instance.slack_signup_reminder_repeat_delay_days
+  end
+
+  def self.slack_signup_reminder_max_account_age_months
+    instance.slack_signup_reminder_max_account_age_months
+  end
+
+  def self.application_link_reminder_delay_days
+    instance.application_link_reminder_delay_days
+  end
+
+  def self.application_link_reminder_max_count
+    instance.application_link_reminder_max_count
   end
 end

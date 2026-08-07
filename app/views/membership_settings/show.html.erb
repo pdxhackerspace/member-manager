@@ -1,132 +1,88 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex align-items-end justify-content-between mb-3">
   <div>
-    <h1 class="h3 mb-1">Membership Settings</h1>
-    <p class="text-muted mb-0">Configure system-wide membership grace periods.</p>
+    <h1 class="h-page-title mb-0">Membership Settings</h1>
+    <div class="text-13 text-secondary mt-1">Timing and grace periods for payments, access, applications, and reminders.</div>
   </div>
   <div class="d-flex gap-2">
-    <%= link_to "Edit", edit_membership_settings_path, class: "btn btn-primary" %>
-    <%= link_to "Back to Settings", settings_path, class: "btn btn-secondary" %>
+    <%= link_to "Edit", edit_membership_settings_path, class: "btn btn-primary btn-sm" %>
+    <%= link_to "Back to Settings", settings_path, class: "btn btn-outline-secondary btn-sm" %>
   </div>
 </div>
 
-<div class="row">
+<div class="row g-3">
   <div class="col-lg-8">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <dl class="row mb-0">
-          <dt class="col-sm-6">Payment Grace Period</dt>
-          <dd class="col-sm-6">
-            <strong><%= @membership_setting.payment_grace_period_days %></strong> days
-            <div class="form-text">Days after payment due date before membership is marked as lapsed.</div>
-          </dd>
+    <%= render "setting_group", title: "Payments" do %>
+      <%= render "show_field",
+          label: "Payment grace period",
+          value: safe_join([content_tag(:strong, @membership_setting.payment_grace_period_days), " days"]),
+          help: "Days after payment due date before membership is marked as lapsed." %>
+      <%= render "show_field",
+          label: "Manual payment “due soon” window",
+          value: safe_join([content_tag(:strong, @membership_setting.manual_payment_due_soon_days), " ",
+                            "day".pluralize(@membership_setting.manual_payment_due_soon_days)]),
+          help: "Admin dashboard and manual payments list treat dues as “due soon” when the next due date is today, overdue, or within this many calendar days." %>
+      <%= render "show_field",
+          label: "Reactivation grace period",
+          value: safe_join([content_tag(:strong, @membership_setting.reactivation_grace_period_months), " months"]),
+          help: "Months a lapsed member can reactivate without needing to reapply." %>
+    <% end %>
 
-          <dt class="col-sm-6 mt-3">Manual payment “due soon” window</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.manual_payment_due_soon_days %></strong> <%= 'day'.pluralize(@membership_setting.manual_payment_due_soon_days) %>
-            <div class="form-text">
-              Admin dashboard and manual payments list treat dues as “due soon” when the next due date is today, overdue, or within this many calendar days.
-            </div>
-          </dd>
+    <%= render "setting_group", title: "Login / invitations" do %>
+      <%= render "show_field",
+          label: "Invitation expiry",
+          value: invitation_expiry_display(@membership_setting),
+          help: "How long invitation links remain valid before they expire." %>
+      <%= render "show_field",
+          label: "Member login link expiry",
+          value: login_link_expiry_display(@membership_setting),
+          help: "How long member login links remain valid before they expire." %>
+      <%= render "show_field",
+          label: "Admin login link expiry",
+          value: safe_join([content_tag(:strong, @membership_setting.admin_login_link_expiry_minutes), " minutes"]),
+          help: "How long admin login links remain valid (shorter for security)." %>
+    <% end %>
 
-          <dt class="col-sm-6 mt-3">Reactivation Grace Period</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.reactivation_grace_period_months %></strong> months
-            <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
-          </dd>
+    <%= render "setting_group", title: "Applications" do %>
+      <%= render "show_field",
+          label: "Application email verification expiry",
+          value: application_verification_expiry_display(@membership_setting),
+          help: "How long application email verification links remain valid." %>
+      <%= render "show_field",
+          label: "Application review time cap",
+          value: safe_join([content_tag(:strong, @membership_setting.application_review_time_cap_days), " ",
+                            "day".pluralize(@membership_setting.application_review_time_cap_days)]),
+          help: "Maximum review time shown to applicants on the status page. Admins still see the actual average." %>
+    <% end %>
 
-          <dt class="col-sm-6 mt-3">Invitation Expiry</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.invitation_expiry_hours %></strong> hours
-            <% if @membership_setting.invitation_expiry_hours >= 24 %>
-              (<%= @membership_setting.invitation_expiry_hours / 24 %> <%= 'day'.pluralize(@membership_setting.invitation_expiry_hours / 24) %>)
-            <% end %>
-            <div class="form-text">How long invitation links remain valid before they expire.</div>
-          </dd>
-
-          <dt class="col-sm-6 mt-3">Member Login Link Expiry</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.login_link_expiry_hours %></strong> hours
-            <% if @membership_setting.login_link_expiry_hours >= 24 %>
-              (<%= @membership_setting.login_link_expiry_hours / 24 %> <%= 'day'.pluralize(@membership_setting.login_link_expiry_hours / 24) %>)
-            <% end %>
-            <div class="form-text">How long member login links remain valid before they expire.</div>
-          </dd>
-
-          <dt class="col-sm-6 mt-3">Admin Login Link Expiry</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.admin_login_link_expiry_minutes %></strong> minutes
-            <div class="form-text">How long admin login links remain valid (shorter for security).</div>
-          </dd>
-
-          <dt class="col-sm-6 mt-3">Application Email Verification Expiry</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.application_verification_expiry_hours %></strong> hours
-            <% if @membership_setting.application_verification_expiry_hours >= 24 %>
-              (<%= @membership_setting.application_verification_expiry_hours / 24 %> <%= 'day'.pluralize(@membership_setting.application_verification_expiry_hours / 24) %>)
-            <% end %>
-            <div class="form-text">How long application email verification links remain valid.</div>
-          </dd>
-
-          <dt class="col-sm-6 mt-3">Application review time cap</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.application_review_time_cap_days %></strong> <%= 'day'.pluralize(@membership_setting.application_review_time_cap_days) %>
-            <div class="form-text">Maximum review time shown to applicants on the status page. Admins still see the actual average.</div>
-          </dd>
-
-          <dt class="col-sm-6 mt-3">Slack signup nag — initial delay</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.slack_signup_nag_initial_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_initial_delay_days) %>
-            <div class="form-text">Days after approval before the first Slack signup reminder. <%= link_to "Nags settings", nag_settings_path, class: "text-secondary" %>.</div>
-          </dd>
-
-          <dt class="col-sm-6 mt-3">Slack signup nag — repeat interval</dt>
-          <dd class="col-sm-6 mt-3">
-            <strong><%= @membership_setting.slack_signup_nag_repeat_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_repeat_delay_days) %>
-            <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
-          </dd>
-        </dl>
-      </div>
-    </div>
+    <%= render "setting_group", title: "Reminders", context: link_to("Reminders settings", reminder_settings_path, class: "text-secondary") do %>
+      <%= render "show_field",
+          label: "Slack signup reminder — initial delay",
+          value: safe_join([content_tag(:strong, @membership_setting.slack_signup_reminder_initial_delay_days), " ",
+                            "day".pluralize(@membership_setting.slack_signup_reminder_initial_delay_days)]),
+          help: "Days after approval before the first Slack signup reminder." %>
+      <%= render "show_field",
+          label: "Slack signup reminder — repeat interval",
+          value: safe_join([content_tag(:strong, @membership_setting.slack_signup_reminder_repeat_delay_days), " ",
+                            "day".pluralize(@membership_setting.slack_signup_reminder_repeat_delay_days)]),
+          help: "Minimum days between Slack signup reminders for the same member." %>
+      <%= render "show_field",
+          label: "Slack signup reminder — account age limit",
+          value: safe_join([content_tag(:strong, @membership_setting.slack_signup_reminder_max_account_age_months), " ",
+                            "month".pluralize(@membership_setting.slack_signup_reminder_max_account_age_months)]),
+          help: "Only members who joined within this window are nudged to join Slack." %>
+      <%= render "show_field",
+          label: "Application link reminder — delay",
+          value: safe_join([content_tag(:strong, @membership_setting.application_link_reminder_delay_days), " ",
+                            "day".pluralize(@membership_setting.application_link_reminder_delay_days)]),
+          help: "Days after sending an application link before the first reminder, and between subsequent reminders." %>
+      <%= render "show_field",
+          label: "Application link reminder — maximum",
+          value: content_tag(:strong, @membership_setting.application_link_reminder_max_count),
+          help: "Stop after this many reminders or when the link expires, whichever comes first." %>
+    <% end %>
   </div>
 
   <div class="col-lg-4">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h5 class="card-title mb-0">About Grace Periods</h5>
-      </div>
-      <div class="card-body">
-        <p class="small text-muted mb-2">
-          <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
-          before their membership status changes to lapsed.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Manual payment “due soon”:</strong> How far ahead to highlight manual / cash payment plans on the dashboard and manual payments list.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
-          to resume their membership without going through the full application process again.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Invitation Expiry:</strong> When an admin sends an invitation, the link is valid for this 
-          many hours. After expiry, the recipient must be invited again.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Member Login Link Expiry:</strong> Members can request a login link from the sign-in page.
-          Links can only be used once and expire after this many hours.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Admin Login Link Expiry:</strong> Admin login links expire faster for security.
-          Links can only be used once and expire after this many minutes.
-        </p>
-        <p class="small text-muted mb-0">
-          <strong>Application Email Verification:</strong> When someone starts a membership application,
-          they must verify their email address. The verification link expires after this many hours.
-        </p>
-        <p class="small text-muted mb-0 mt-2">
-          <strong>Application review time cap:</strong> The estimated review time on the applicant status page
-          never exceeds this many days, even when recent reviews took longer.
-        </p>
-      </div>
-    </div>
+    <%= render "about_sidebar" %>
   </div>
 </div>

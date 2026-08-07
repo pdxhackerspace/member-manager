@@ -1,6 +1,6 @@
 class PagesController < ApplicationController
   before_action :require_authenticated_user!, only: %i[help help_faq help_admin_faq]
-  before_action :require_admin!, only: [:help_admin_faq]
+  before_action -> { require_privilege!(:'help.admin_faq') }, only: [:help_admin_faq]
 
   def apply
     # Public page - no authentication required

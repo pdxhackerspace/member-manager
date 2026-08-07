@@ -1,4 +1,4 @@
-class DashboardController < AdminController
+class DashboardController < AuthenticatedController
   include MemberHomeTabs
   include TrainingHistoryData
 
@@ -14,6 +14,8 @@ class DashboardController < AdminController
     slack_inactive: 'slack-inactive',
     no_email: 'no-email'
   }.freeze
+
+  before_action -> { require_privilege!(:'dashboard.admin') }
 
   def index
     @home_user = true_user || current_user

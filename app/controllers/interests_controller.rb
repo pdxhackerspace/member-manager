@@ -1,4 +1,5 @@
-class InterestsController < AdminController
+class InterestsController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.interests') }
   before_action :set_interest, only: %i[edit update destroy members merge_form merge approve]
 
   SEED_INTERESTS = [

@@ -1,48 +1,3 @@
-# Helper module for membership rake tasks
-module MembershipTaskHelpers
-  def self.find_matching_plan(plans, amount)
-    return nil if amount.blank? || amount <= 0
-
-    # Try exact match first
-    exact_match = plans.find { |p| p.cost == amount }
-    return exact_match if exact_match
-
-    # Try matching within a small tolerance (for rounding differences)
-    tolerance = 0.50
-    close_match = plans.find { |p| (p.cost - amount).abs <= tolerance }
-    return close_match if close_match
-
-    nil
-  end
-
-  # Calculate the cutoff date based on a plan's billing frequency
-  # Returns the date before which a payment would be considered lapsed
-  def self.cutoff_for_plan(plan)
-    return 1.month.ago unless plan # Default to monthly if no plan
-
-    case plan.billing_frequency
-    when 'yearly'
-      1.year.ago
-    when 'one-time'
-      100.years.ago
-    else
-      1.month.ago
-    end
-  end
-
-  # Human-readable description of the billing period
-  def self.billing_period_description(plan)
-    return '1 month (default)' unless plan
-
-    case plan.billing_frequency
-    when 'monthly' then '1 month'
-    when 'yearly' then '1 year'
-    when 'one-time' then 'never (one-time)'
-    else '1 month (default)'
-    end
-  end
-end
-
 namespace :membership do
   desc 'Reset and recalculate membership status based on sheet entries and recent payments'
   task recalculate_status: :environment do
@@ -65,30 +20,27 @@ namespace :membership do
 
     # Step 1: Reset everyone
     puts 'Step 1: Resetting all users...'
-    User.update_all(
-      membership_status: 'unknown',
-      dues_status: 'unknown',
-      active: false,
-      membership_plan_id: nil
-    )
+    User.find_each do |user|
+      next if Membership::ActiveStatus.terminal_membership?(user)
+
+      Membership::ActiveStatus.assign_and_save!(
+        user,
+        membership_status: 'unknown',
+        dues_status: 'unknown',
+        membership_plan_id: nil
+      )
+    end
     puts "  Reset #{User.count} users to unknown/inactive"
     puts ''
 
-    # Step 2: Set sponsored users from sheet entries
-    puts 'Step 2: Setting sponsored users from sheet entries...'
+    # Step 2: Restore sponsored members before payment-based recalculation.
+    puts 'Step 2: Setting sponsored members...'
     sponsored_count = 0
 
-    SheetEntry.where('LOWER(status) LIKE ?', '%sponsored%').find_each do |sheet_entry|
-      user = sheet_entry.user
-      next unless user
+    User.find_each do |user|
+      next unless Membership::ActiveStatus.recalculate_sponsored_candidate?(user)
 
-      user.update_columns(
-        membership_status: 'sponsored',
-        payment_type: 'sponsored',
-        dues_status: 'current', # Sponsored members are always current
-        active: true,
-        updated_at: Time.current
-      )
+      Membership::ActiveStatus.restore_sponsored_membership!(user)
       sponsored_count += 1
       puts "  Sponsored: #{user.display_name}"
     end
@@ -102,8 +54,9 @@ namespace :membership do
     plan_matched_count = 0
 
     User.find_each do |user|
+      next if Membership::ActiveStatus.terminal_membership?(user)
       # Skip if already sponsored (don't downgrade)
-      next if user.membership_status == 'sponsored'
+      next if Membership::ActiveStatus.sponsored?(user)
 
       # Collect all payments (PayPal and Recharge) with normalized structure
       all_payments = []
@@ -139,10 +92,7 @@ namespace :membership do
       if latest_payment[:amount].present?
         matched_plan = MembershipTaskHelpers.find_matching_plan(membership_plans, latest_payment[:amount])
         if matched_plan
-          user.update_columns(
-            membership_plan_id: matched_plan.id,
-            updated_at: Time.current
-          )
+          Membership::ActiveStatus.assign_and_save!(user, membership_plan_id: matched_plan.id)
           plan_matched_count += 1
         end
       end
@@ -153,13 +103,11 @@ namespace :membership do
       # Process payments to determine current status
       # We check if the latest payment is within the plan's billing period
       if latest_payment[:time] >= cutoff_date
-        # Recent payment - set as current and active
-        user.update_columns(
+        Membership::ActiveStatus.assign_and_save!(
+          user,
           membership_status: 'paying',
           dues_status: 'current',
-          payment_type: latest_payment[:type],
-          active: true,
-          updated_at: Time.current
+          payment_type: latest_payment[:type]
         )
         paying_count += 1
         plan_info = if matched_plan
@@ -169,11 +117,10 @@ namespace :membership do
                     end
         puts "  Paying: #{user.display_name} (#{latest_payment[:type]})#{plan_info}"
       else
-        # Payment is older than the billing period - lapsed
-        user.update_columns(
+        Membership::ActiveStatus.assign_and_save!(
+          user,
           dues_status: 'lapsed',
-          payment_type: latest_payment[:type],
-          updated_at: Time.current
+          payment_type: latest_payment[:type]
         )
         lapsed_count += 1
         plan_info = if matched_plan
@@ -546,5 +493,15 @@ namespace :membership do
   desc 'Preview membership cleanup (dry run, no changes)'
   task preview_cleanup: :environment do
     MembershipCleanup.new(dry_run: true).run
+  end
+
+  desc 'Preview recomputing stored active flags from membership state'
+  task preview_reconcile_active: :environment do
+    MembershipActiveReconciler.new(dry_run: true).run
+  end
+
+  desc 'Recompute stored active flags where they disagree with membership state'
+  task reconcile_active: :environment do
+    MembershipActiveReconciler.new(dry_run: false).run
   end
 end

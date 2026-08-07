@@ -161,14 +161,14 @@ module Reports
       Definition.new(
         key: 'active-no-slack',
         title: 'Active members with no Slack account',
-        description: 'Active members who have never been linked to a Slack account.',
+        description: 'Active members who joined recently and have never been linked to a Slack account.',
         category: 'slack',
         partial: 'simple_user_table',
         locals: { columns: %i[membership_status dues_status] },
-        empty_message: 'Every active member has a linked Slack account.'
+        empty_message: 'Every recent active member has a linked Slack account.'
       ) do
         ScopeQuery.new(
-          User.where(active: true).non_service_accounts.where.missing(:slack_user).order(NAME_ORDER)
+          Reminders::SlackSignupEligibility.active_without_slack_scope.order(Catalog::NAME_ORDER)
         )
       end,
 

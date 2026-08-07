@@ -16,6 +16,13 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test 'settings index loads after nag settings table rename' do
+    get settings_url
+
+    assert_response :success
+    assert_select 'a[href=?]', reminder_settings_path
+  end
+
   test 'settings index links map defaults separately from application group defaults' do
     get settings_url
 
@@ -24,15 +31,15 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href=?]', map_default_settings_path, text: /Map defaults/
   end
 
-  test 'nags attention count is zero when slack source is disabled' do
+  test 'reminders attention count is zero when slack source is disabled' do
     now = Time.zone.local(2026, 8, 5, 7, 0, 0)
-    NagSetting.seed_defaults!
-    NagSetting.find_by!(key: 'slack_signup').update!(enabled: true)
+    ReminderSetting.seed_defaults!
+    ReminderSetting.find_by!(key: 'slack_signup').update!(enabled: true)
     member_sources(:slack).update!(enabled: false)
 
     user = User.create!(
-      email: 'settings-nag-attention@example.com',
-      full_name: 'Settings Nag Attention',
+      email: 'settings-reminder-attention@example.com',
+      full_name: 'Settings Reminder Attention',
       active: true,
       service_account: false,
       membership_status: 'paying',
@@ -52,7 +59,30 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_select 'a[href=?]', nag_settings_path do
+    assert_select 'a[href=?]', reminder_settings_path do
+      assert_select '.badge.text-bg-warning-subtle', count: 0
+    end
+  end
+
+  test 'application link reminder attention count is zero when builtin apply is disabled' do
+    now = Time.zone.local(2026, 8, 6, 7, 15, 0)
+    ReminderSetting.seed_defaults!
+    ReminderSetting.find_by!(key: 'application_link').update!(enabled: true)
+    MembershipSetting.instance.update!(use_builtin_membership_application: false)
+    ApplicationVerification.create!(
+      email: 'settings-link-due@example.com',
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true,
+      created_at: now - 4.days,
+      expires_at: now + 2.days
+    )
+
+    travel_to now do
+      get settings_url
+    end
+
+    assert_response :success
+    assert_select 'a[href=?]', reminder_settings_path do
       assert_select '.badge.text-bg-warning-subtle', count: 0
     end
   end

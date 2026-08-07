@@ -7,8 +7,14 @@
 <% all_training_topics = TrainingTopic.order(:name).to_a %>
 <% untrained_topics = all_training_topics.reject { |topic| trained_topic_ids.include?(topic.id) } %>
 <% grantable_topics = all_training_topics.reject { |topic| can_train_topic_ids.include?(topic.id) } %>
+<%# Recording training and appointing trainers are trainers' work, not the profile viewer's.
+    These mirror TrainingsController#require_trainer_or_admin at the coarse level; that
+    controller still decides topic by topic. %>
+<% can_record_training = @profile_caps[:record_training] %>
+<% can_grant_trainer = @profile_caps[:grant_trainer] %>
 
-<div data-controller="sensitive-reveal">
+<div <%= 'data-controller=sensitive-reveal'.html_safe if @profile_caps[:view_private_contact] %>>
+<% if @profile_caps[:view_private_contact] %>
 <div class="alert alert-secondary d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
   <p class="mb-0 small">Member email, mailing address, and phone fields are blurred until you show them.</p>
   <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0"
@@ -16,6 +22,7 @@
     <span data-sensitive-reveal-target="label">Show contact details</span>
   </button>
 </div>
+<% end %>
 
 <div class="row g-3">
   <div class="col-lg-8">
@@ -50,7 +57,9 @@
         <div class="profile-field-row">
           <span class="profile-field-label">Email</span>
           <span class="profile-field-value">
-            <% if user.email.present? %>
+            <% if !@profile_caps[:view_private_contact] %>
+              <span class="empty">Hidden</span>
+            <% elsif user.email.present? %>
               <span data-sensitive-reveal-target="blurred"><%= mail_to(user.email) %></span>
             <% else %>
               <span class="empty">Not provided</span>
@@ -61,7 +70,9 @@
         <div class="profile-field-row">
           <span class="profile-field-label">Extra emails</span>
           <span class="profile-field-value">
-            <% if user.extra_emails.present? && user.extra_emails.any? %>
+            <% if !@profile_caps[:view_private_contact] %>
+              <span class="empty">Hidden</span>
+            <% elsif user.extra_emails.present? && user.extra_emails.any? %>
               <span data-sensitive-reveal-target="blurred">
                 <%= safe_join(user.extra_emails.map { |email| mail_to(email) }, tag.br) %>
               </span>
@@ -74,7 +85,9 @@
         <div class="profile-field-row">
           <span class="profile-field-label">Mailing address</span>
           <span class="profile-field-value">
-            <% if user.mailing_address.present? %>
+            <% if !@profile_caps[:view_private_contact] %>
+              <span class="empty">Hidden</span>
+            <% elsif user.mailing_address.present? %>
               <span data-sensitive-reveal-target="blurred"><%= simple_format(user.mailing_address, class: "mb-0") %></span>
             <% else %>
               <span class="empty">Not provided</span>
@@ -85,7 +98,9 @@
         <div class="profile-field-row">
           <span class="profile-field-label">Phone number</span>
           <span class="profile-field-value">
-            <% if user.phone_number.present? %>
+            <% if !@profile_caps[:view_private_contact] %>
+              <span class="empty">Hidden</span>
+            <% elsif user.phone_number.present? %>
               <span data-sensitive-reveal-target="blurred"><%= user.phone_number %></span>
             <% else %>
               <span class="empty">Not provided</span>
@@ -150,7 +165,8 @@
           <span class="profile-field-value"><%= visibility_label %></span>
         </div>
 
-        <div class="profile-field-row">
+        <% if @profile_caps[:edit_notes] %>
+        <div class="profile-field-row" data-action-key="members.edit_notes">
           <span class="profile-field-label">Notes</span>
           <span class="profile-field-value">
             <% if user.notes.present? %>
@@ -160,6 +176,7 @@
             <% end %>
           </span>
         </div>
+        <% end %>
       </div>
     </div>
 
@@ -175,19 +192,19 @@
               <% trained_topics.each do |topic| %>
                 <span class="cert-pill d-inline-flex align-items-center">
                   <%= topic.name %>
-                  <%= button_to remove_training_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
+                  <% if can_record_training %><%= button_to remove_training_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
                       method: :delete,
                       class: "btn-link-danger ms-1 p-0 border-0 bg-transparent lh-1",
                       title: "Remove #{topic.name} training",
                       form: { class: 'd-inline', data: { turbo: false, turbo_confirm: "Remove #{topic.name} training from #{user.display_name}?" } } do %>
                     <i class="bi bi-x-lg"></i>
-                  <% end %>
+                  <% end %><% end %>
                 </span>
               <% end %>
             <% else %>
               <span class="profile-field-value empty">None recorded</span>
             <% end %>
-            <% if untrained_topics.any? %>
+            <% if can_record_training && untrained_topics.any? %>
               <div class="dropdown d-inline-block ms-auto">
                 <button class="btn-link-add" type="button" data-bs-toggle="dropdown" aria-expanded="false">+ Add training</button>
                 <ul class="dropdown-menu dropdown-menu-end" style="max-height: 320px; overflow-y: auto;">
@@ -213,19 +230,19 @@
               <% can_train_topics.each do |topic| %>
                 <span class="cert-pill d-inline-flex align-items-center">
                   <%= topic.name %>
-                  <%= button_to remove_trainer_capability_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
+                  <% if can_grant_trainer %><%= button_to remove_trainer_capability_path(user_id: user.id, topic_id: topic.id, return_to: 'profile'),
                       method: :delete,
                       class: "btn-link-danger ms-1 p-0 border-0 bg-transparent lh-1",
                       title: "Revoke #{topic.name} trainer capability",
                       form: { class: 'd-inline', data: { turbo: false, turbo_confirm: "Remove #{topic.name} trainer capability from #{user.display_name}?" } } do %>
                     <i class="bi bi-x-lg"></i>
-                  <% end %>
+                  <% end %><% end %>
                 </span>
               <% end %>
             <% else %>
               <span class="profile-field-value empty">None</span>
             <% end %>
-            <% if grantable_topics.any? %>
+            <% if can_grant_trainer && grantable_topics.any? %>
               <div class="dropdown d-inline-block ms-auto">
                 <button class="btn-link-add" type="button" data-bs-toggle="dropdown" aria-expanded="false">+ Add Can Train</button>
                 <ul class="dropdown-menu dropdown-menu-end" style="max-height: 320px; overflow-y: auto;">
@@ -258,16 +275,22 @@
           </span>
         </div>
 
-        <div class="profile-field-row admin-rfid-row">
+        <%# Seeing which fobs a member holds, issuing or removing one, and pausing access are
+            three separate authorities — the Key fob manager role carries all three, but they
+            are granted independently. %>
+        <% if @profile_caps[:view_rfids] %>
+        <div class="profile-field-row admin-rfid-row" data-action-key="access.view_rfids">
           <span class="profile-field-label">RFID keys</span>
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <% if user.rfids.any? %>
               <% user.rfids.each do |rfid_record| %>
                 <span class="rfid-key">
                   <span class="font-monospace"><%= rfid_record.rfid %></span>
-                  <%= button_to "Remove", rfid_path(rfid_record), method: :delete,
-                      class: "btn-link-danger ms-1",
-                      form: { data: { turbo: false, turbo_confirm: "Remove key fob #{rfid_record.rfid} from #{user.display_name}?" } } %>
+                  <% if @profile_caps[:manage_rfids] %>
+                    <%= button_to "Remove", rfid_path(rfid_record), method: :delete,
+                        class: "btn-link-danger ms-1",
+                        form: { data: { turbo: false, turbo_confirm: "Remove key fob #{rfid_record.rfid} from #{user.display_name}?" } } %>
+                  <% end %>
                 </span>
               <% end %>
             <% else %>
@@ -279,19 +302,25 @@
               </span>
             <% end %>
             <span class="d-inline-flex align-items-center gap-3 ms-auto">
-              <%= link_to "+ Add key", new_rfid_path(rfid: { user_id: user.id }), class: "btn-link-add" %>
-              <% if user.key_access_paused? %>
-                <%= button_to "Resume access", resume_key_access_user_path(user), method: :post,
-                    class: "btn-link-action", form: { class: "d-inline" },
-                    data: { turbo: false } %>
-              <% else %>
-                <%= button_to "Pause access", pause_key_access_user_path(user), method: :post,
-                    class: "btn-link-action", form: { class: "d-inline" },
-                    data: { turbo: false, turbo_confirm: "Pause RFID key access for #{user.display_name}? Their keys are kept but stop syncing to the access controllers." } %>
+              <% if @profile_caps[:manage_rfids] %>
+                <%= link_to "+ Add key", new_rfid_path(rfid: { user_id: user.id }), class: "btn-link-add",
+                    data: { action_key: "access.manage_rfids" } %>
+              <% end %>
+              <% if @profile_caps[:pause_access] %>
+                <% if user.key_access_paused? %>
+                  <%= button_to "Resume access", resume_key_access_user_path(user), method: :post,
+                      class: "btn-link-action", form: { class: "d-inline" },
+                      data: { turbo: false } %>
+                <% else %>
+                  <%= button_to "Pause access", pause_key_access_user_path(user), method: :post,
+                      class: "btn-link-action", form: { class: "d-inline" },
+                      data: { turbo: false, turbo_confirm: "Pause RFID key access for #{user.display_name}? Their keys are kept but stop syncing to the access controllers." } %>
+                <% end %>
               <% end %>
             </span>
           </div>
         </div>
+        <% end %>
       </div>
     </div>
 
@@ -314,9 +343,11 @@
             <% end %>
           </span>
           <% if user.authentik_id.present? %>
-            <%= button_to "Disassociate", unlink_authentik_user_path(user), method: :post,
+            <% if @profile_caps[:unlink_sources] %>
+              <%= button_to "Disassociate", unlink_authentik_user_path(user), method: :post,
                 class: "btn-link-danger",
                 form: { data: { turbo: false, turbo_confirm: "Disassociate this Authentik account from #{user.display_name}?" } } %>
+            <% end %>
           <% else %>
             <span></span>
           <% end %>
@@ -332,9 +363,11 @@
             <% end %>
           </span>
           <% if user.sheet_entry.present? %>
-            <%= button_to "Disassociate", unlink_sheet_user_path(user), method: :post,
+            <% if @profile_caps[:unlink_sources] %>
+              <%= button_to "Disassociate", unlink_sheet_user_path(user), method: :post,
                 class: "btn-link-danger",
                 form: { data: { turbo: false, turbo_confirm: "Disassociate this sheet entry from #{user.display_name}?" } } %>
+            <% end %>
           <% else %>
             <span></span>
           <% end %>

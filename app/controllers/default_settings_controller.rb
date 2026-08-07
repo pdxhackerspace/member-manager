@@ -1,4 +1,5 @@
-class DefaultSettingsController < AdminController
+class DefaultSettingsController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.defaults') }
   def show
     @default_setting = DefaultSetting.instance
   end

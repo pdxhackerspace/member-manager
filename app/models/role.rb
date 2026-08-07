@@ -16,7 +16,10 @@ class Role < ApplicationRecord
     {
       name: 'Front desk',
       description: 'Greeters who need to identify members and watch the application queue.',
-      privileges: %w[members.view_list members.view_profile applications.view invitations.create]
+      # invitations.view as well as create: sending one without being able to open the list
+      # leaves nowhere to land afterwards and no way to see what is outstanding.
+      privileges: %w[members.view_list members.view_profile applications.view
+                     invitations.view invitations.create]
     },
     {
       name: 'Application reviewer',
@@ -57,8 +60,10 @@ class Role < ApplicationRecord
     {
       name: 'Communications editor',
       description: 'Maintains email templates and the outgoing mail queue.',
+      # mail_log.view as well: approving a message without being able to confirm it sent
+      # leaves the job half done.
       privileges: %w[email_templates.view email_templates.edit queued_mail.view queued_mail.approve
-                     text_fragments.manage]
+                     mail_log.view text_fragments.manage]
     }
   ].freeze
 

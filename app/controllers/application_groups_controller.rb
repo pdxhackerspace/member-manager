@@ -1,4 +1,5 @@
-class ApplicationGroupsController < AdminController
+class ApplicationGroupsController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.applications') }
   before_action :set_application
   before_action :set_application_group, only: %i[show edit update destroy add_user remove_user sync_to_authentik]
 

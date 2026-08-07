@@ -1,5 +1,6 @@
 # Admin interface for viewing and managing incoming webhook URL configurations.
-class IncomingWebhooksController < AdminController
+class IncomingWebhooksController < AuthenticatedController
+  before_action -> { require_privilege!(:'webhooks.incoming.manage') }
   before_action :set_incoming_webhook, only: %i[edit update]
 
   def index

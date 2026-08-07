@@ -1,7 +1,17 @@
-class EmailTemplatesController < AdminController
+class EmailTemplatesController < AuthenticatedController
   HTML_BLOCK_TAGS = %w[p div h1 h2 h3 h4 h5 h6 li tr].freeze
   HTML_LINK_URL_TAGS = %w[p li].freeze
   HTML_SPACED_TAGS = %w[td th].freeze
+
+  before_action -> { require_privilege!(:'email_templates.view') }, only: %i[index show preview]
+  before_action -> { require_privilege!(:'email_templates.edit') }, only: %i[edit update]
+  before_action -> { require_privilege!(:'email_templates.test_send') }, only: :test_send
+  before_action -> { require_privilege!(:'email_templates.ai_rewrite') }, only: :rewrite_with_ai
+  # These stay with administrators. seed overwrites every template from its built-in
+  # default and toggle can switch off a transactional message entirely; neither has a
+  # catalog key to grant, and mark_reviewed/mark_needs_review record a sign-off that only
+  # means something if the person giving it can see every template.
+  before_action :require_admin!, only: %i[seed toggle mark_reviewed mark_needs_review]
 
   before_action :set_email_template,
                 only: %i[show edit update preview toggle mark_reviewed mark_needs_review rewrite_with_ai]

@@ -9,11 +9,11 @@ module MembershipApplications
     setup do
       ActionMailer::Base.deliveries.clear
       clear_enqueued_jobs
-      EmailTemplate.where(key: 'staff_application_nag').delete_all
+      EmailTemplate.where(key: 'staff_application_reminder').delete_all
       EmailTemplate.create!(
-        key: 'staff_application_nag',
-        name: 'Staff Application Nag',
-        subject: 'Nag {{member_name}} after {{application_age_days}} days',
+        key: 'staff_application_reminder',
+        name: 'Staff Application Reminder',
+        subject: 'Reminder {{member_name}} after {{application_age_days}} days',
         body_html: '<p>{{application_url}}</p><p>{{submitted_at}}</p>',
         body_text: "Open: {{application_url}}\nSubmitted: {{submitted_at}}",
         enabled: true
@@ -38,19 +38,19 @@ module MembershipApplications
         end
       end
 
-      assert_equal now, application.reload.application_nag_sent_at
+      assert_equal now, application.reload.application_reminder_sent_at
       assert_equal [users(:one).email, users(:two).email].sort,
                    ActionMailer::Base.deliveries.flat_map(&:to).sort
 
       mail = ActionMailer::Base.deliveries.first
-      assert_equal 'Nag Applicant after 8 days', mail.subject
+      assert_equal 'Reminder Applicant after 8 days', mail.subject
       assert_includes mail.text_part.body.decoded, "/membership_applications/#{application.id}"
       assert_includes mail.text_part.body.decoded, 'April 23, 2026'
     end
 
-    test 'queues nag emails through Action Mailer before delivery' do
+    test 'queues reminder emails through Action Mailer before delivery' do
       now = Time.zone.local(2026, 5, 1, 9, 0, 0)
-      stale_application(now: now, email: 'queued-nag@example.com')
+      stale_application(now: now, email: 'queued-reminder@example.com')
       train_staff(users(:one))
 
       travel_to now do
@@ -67,7 +67,7 @@ module MembershipApplications
       train_staff(users(:one))
       stale_application(now: now, email: 'already-approved@example.com', status: 'approved')
       stale_application(now: now, email: 'already-rejected@example.com', status: 'rejected')
-      stale_application(now: now, email: 'recently-nagged@example.com', application_nag_sent_at: now - 2.days)
+      stale_application(now: now, email: 'recently-reminded@example.com', application_reminder_sent_at: now - 2.days)
       MembershipApplication.create!(
         email: 'too-new@example.com',
         status: 'submitted',
@@ -84,12 +84,12 @@ module MembershipApplications
       end
     end
 
-    test 'emails applications again when the previous nag is at least three days old' do
+    test 'emails applications again when the previous reminder is at least three days old' do
       now = Time.zone.local(2026, 5, 1, 9, 0, 0)
       application = stale_application(
         now: now,
         email: 'repeat-due@example.com',
-        application_nag_sent_at: now - 3.days
+        application_reminder_sent_at: now - 3.days
       )
       train_staff(users(:one))
 
@@ -101,15 +101,15 @@ module MembershipApplications
         end
       end
 
-      assert_equal now, application.reload.application_nag_sent_at
+      assert_equal now, application.reload.application_reminder_sent_at
     end
 
-    test 'does not repeat nag before three days have passed' do
+    test 'does not repeat reminder before three days have passed' do
       now = Time.zone.local(2026, 5, 1, 9, 0, 0)
       application = stale_application(
         now: now,
         email: 'repeat-not-due@example.com',
-        application_nag_sent_at: now - 2.days
+        application_reminder_sent_at: now - 2.days
       )
       train_staff(users(:one))
 
@@ -121,7 +121,7 @@ module MembershipApplications
         end
       end
 
-      assert_equal now - 2.days, application.reload.application_nag_sent_at
+      assert_equal now - 2.days, application.reload.application_reminder_sent_at
     end
 
     test 'deduplicates reviewers and only marks sent when a recipient exists' do
@@ -140,7 +140,7 @@ module MembershipApplications
         end
       end
 
-      assert_equal now, application.reload.application_nag_sent_at
+      assert_equal now, application.reload.application_reminder_sent_at
       assert_equal [users(:one).email], ActionMailer::Base.deliveries.flat_map(&:to)
     end
 
@@ -156,7 +156,7 @@ module MembershipApplications
         end
       end
 
-      assert_nil application.reload.application_nag_sent_at
+      assert_nil application.reload.application_reminder_sent_at
     end
 
     test 'does not email applications parked as needs review' do
@@ -176,18 +176,18 @@ module MembershipApplications
         end
       end
 
-      assert_nil application.reload.application_nag_sent_at
+      assert_nil application.reload.application_reminder_sent_at
     end
 
     private
 
-    def stale_application(now:, email:, status: 'submitted', application_nag_sent_at: nil)
+    def stale_application(now:, email:, status: 'submitted', application_reminder_sent_at: nil)
       MembershipApplication.create!(
         email: email,
         status: status,
         submitted_at: now - 8.days,
         created_at: now - 8.days,
-        application_nag_sent_at: application_nag_sent_at
+        application_reminder_sent_at: application_reminder_sent_at
       )
     end
 

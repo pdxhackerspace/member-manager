@@ -1,9 +1,12 @@
-class ParkingNoticesController < AdminController
+class ParkingNoticesController < AuthenticatedController
   include Pagy::Method
   include ParkingNoticePrinting
 
+  before_action -> { require_privilege!(:'parking.manage_notices') }
+
   before_action :set_parking_notice,
                 only: %i[show edit update clear add_note download_pdf print_notice remove_photo download_photo]
+  before_action :require_clearance_authority!, only: :clear
 
   def index
     @parking_notices = ParkingNotice.includes(:issued_by, user: :slack_user).newest_first
@@ -148,6 +151,17 @@ class ParkingNoticesController < AdminController
   end
 
   private
+
+  # A notice flagged as needing staff clearance is the one case where reaching this page is
+  # not enough — that flag exists precisely to hold a notice open until someone with the
+  # authority to clear it looks at it. ParkingNotice#clearable_by? is the single answer,
+  # shared with the member-facing permit page.
+  def require_clearance_authority!
+    return if @parking_notice.clearable_by?(current_user)
+
+    redirect_to parking_notice_path(@parking_notice),
+                alert: 'That notice needs staff clearance.'
+  end
 
   def set_parking_notice
     @parking_notice = ParkingNotice.includes(user: :slack_user).find(params[:id])

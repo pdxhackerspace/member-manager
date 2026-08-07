@@ -76,6 +76,33 @@ class ReportsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/#{Regexp.escape(service.display_name)}/, response.body)
   end
 
+  test 'active members with no slack excludes members who joined before the account age limit' do
+    MembershipSetting.instance.update!(slack_signup_reminder_max_account_age_months: 6)
+
+    recent = User.create!(
+      authentik_id: 'authentik-no-slack-recent',
+      full_name: 'Recent No Slack',
+      email: 'recent-no-slack@example.com',
+      membership_status: 'paying',
+      dues_status: 'current',
+      created_at: 2.months.ago
+    )
+    old = User.create!(
+      authentik_id: 'authentik-no-slack-old',
+      full_name: 'Old No Slack',
+      email: 'old-no-slack@example.com',
+      membership_status: 'paying',
+      dues_status: 'current',
+      created_at: 8.months.ago
+    )
+
+    get report_url('active-no-slack')
+
+    assert_response :success
+    assert_match recent.display_name, response.body
+    assert_no_match(/#{Regexp.escape(old.display_name)}/, response.body)
+  end
+
   test 'lapsed members with access counts only badge-ins after the last payment' do
     user = lapsed_member('authentik-lapsed-access', Date.new(2025, 1, 15))
 

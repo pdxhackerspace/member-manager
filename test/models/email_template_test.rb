@@ -24,7 +24,14 @@ class EmailTemplateTest < ActiveSupport::TestCase
     assert_not_includes keys, '{{days_overdue}}'
   end
 
-  test 'default templates include slack signup nag' do
+  test 'default templates include slack signup reminder and legacy alias' do
+    assert EmailTemplate::DEFAULT_TEMPLATES.key?('slack_signup_reminder')
     assert EmailTemplate::DEFAULT_TEMPLATES.key?('slack_signup_nag')
+    assert_equal EmailTemplate::DEFAULT_TEMPLATES['slack_signup_reminder'],
+                 EmailTemplate::DEFAULT_TEMPLATES['slack_signup_nag']
+  end
+
+  test 'default templates include application link reminder' do
+    assert EmailTemplate::DEFAULT_TEMPLATES.key?('application_link_reminder')
   end
 end

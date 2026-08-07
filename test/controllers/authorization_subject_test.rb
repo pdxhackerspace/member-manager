@@ -16,10 +16,12 @@ class AuthorizationSubjectTest < ActionDispatch::IntegrationTest
     Rails.application.config.x.local_auth.enabled = @original_local_auth_enabled
   end
 
+  # journals_path rather than users_path: the member directory is behind
+  # members.view_list now, so it no longer distinguishes an administrator from a holder.
   test 'an administrator alone reaches an admin page' do
     sign_in_as_admin
 
-    get users_path
+    get journals_path
 
     assert_response :success
   end
@@ -28,7 +30,7 @@ class AuthorizationSubjectTest < ActionDispatch::IntegrationTest
     sign_in_as_admin
     post impersonate_user_path(@member.id)
 
-    get users_path
+    get journals_path
 
     assert_response :redirect
   end
@@ -55,11 +57,11 @@ class AuthorizationSubjectTest < ActionDispatch::IntegrationTest
   test 'authority returns when impersonation ends' do
     sign_in_as_admin
     post impersonate_user_path(@member.id)
-    get users_path
+    get journals_path
     assert_response :redirect
 
     delete stop_impersonation_path
-    get users_path
+    get journals_path
 
     assert_response :success
   end
@@ -67,7 +69,7 @@ class AuthorizationSubjectTest < ActionDispatch::IntegrationTest
   test 'a plain member is unaffected by the subject change' do
     sign_in_as_plain_member
 
-    get users_path
+    get journals_path
 
     assert_response :redirect
   end

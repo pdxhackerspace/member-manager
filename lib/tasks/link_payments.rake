@@ -212,6 +212,8 @@ namespace :payments do
     ).uniq
 
     User.where(id: user_ids_with_payments).find_each do |user|
+      next if Membership::ActiveStatus.sponsored?(user)
+
       updates = {}
 
       # Find most recent payment from each source
@@ -247,12 +249,11 @@ namespace :payments do
       if updates.any?
         # Remove no-op updates
         updates.delete(:payment_type) if updates[:payment_type] == user.payment_type
-        updates.delete(:active) if updates[:active] == user.active?
         updates.delete(:membership_status) if updates[:membership_status] == user.membership_status
         updates.delete(:dues_status) if updates[:dues_status] == user.dues_status
 
         if updates.any?
-          user.update_columns(updates)
+          Membership::ActiveStatus.assign_and_save!(user, updates)
           users_updated += 1
           puts "  #{user.display_name}: #{updates.map { |k, v| "#{k}=#{v}" }.join(', ')}"
         end
@@ -332,7 +333,7 @@ namespace :payments do
       end
 
       if updates.any?
-        user.update_columns(updates)
+        Membership::ActiveStatus.assign_and_save!(user, updates)
         users_updated += 1
         if updates[:membership_start_date] || updates[:membership_ended_date]
           start_str = if updates[:membership_start_date]

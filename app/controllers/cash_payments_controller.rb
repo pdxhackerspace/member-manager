@@ -1,5 +1,11 @@
-class CashPaymentsController < AdminController
+class CashPaymentsController < AuthenticatedController
   include Pagy::Method
+
+  # Recording cash is its own privilege because it moves a member's dues status directly,
+  # with no processor to reconcile against. Reading the ledger is not: a billing coordinator
+  # reconciling a month needs every payment in it, cash included.
+  before_action -> { require_any_privilege!(:'payments.view', :'payments.manage_cash') }, only: %i[index show]
+  before_action -> { require_privilege!(:'payments.manage_cash') }, only: %i[new create edit update destroy]
 
   before_action :set_cash_payment, only: %i[show edit update destroy]
 

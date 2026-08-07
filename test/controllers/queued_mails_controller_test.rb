@@ -239,12 +239,25 @@ class QueuedMailsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Only pending messages/, parsed['error'])
   end
 
-  # ─── Admin access required ────────────────────────────────────────
+  # ─── Access ───────────────────────────────────────────────────────
 
-  test 'non-admin cannot access queue' do
+  test 'signing out closes the queue' do
     delete logout_path
     get queued_mails_path
     assert_redirected_to login_path
+  end
+
+  # This used to be called "non-admin cannot access queue" while actually signing out — so
+  # it never covered a signed-in member without the privilege, which is the case that
+  # matters now that the queue is privilege-gated.
+  test 'a signed-in member without queued_mail.view cannot access the queue' do
+    delete logout_path
+    sign_in_as_plain_member
+
+    get queued_mails_path
+
+    assert_response :redirect
+    assert_no_match(/login/, response.location)
   end
 
   private

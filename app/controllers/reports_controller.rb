@@ -1,7 +1,10 @@
-class ReportsController < AdminController
+class ReportsController < AuthenticatedController
   include Pagy::Method
 
   PER_PAGE = 25
+
+  before_action -> { require_privilege!(:'reports.view') }, only: %i[index show charts]
+  before_action -> { require_privilege!(:'reports.edit_users') }, only: :update_user
 
   # load_report first: the sidebar counts skip whichever report is on screen, because
   # showing it works that number out anyway.

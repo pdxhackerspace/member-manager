@@ -1,4 +1,5 @@
-class AiProvidersController < AdminController
+class AiProvidersController < AuthenticatedController
+  before_action -> { require_privilege!(:'settings.ai_providers') }
   before_action :set_ai_provider, only: %i[edit update destroy]
 
   def index

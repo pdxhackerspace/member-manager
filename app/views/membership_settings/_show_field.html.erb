@@ -1,0 +1,9 @@
+<div class="profile-field-row membership-setting-field-row">
+  <span class="profile-field-label"><%= label %></span>
+  <div class="profile-field-value">
+    <%= value %>
+    <% if local_assigns[:help].present? %>
+      <div class="form-text"><%= help %></div>
+    <% end %>
+  </div>
+</div>

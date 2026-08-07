@@ -1073,6 +1073,14 @@ svg.leaflet-image-layer.leaflet-interactive path {
 }
 .profile-field-edit:hover { text-decoration: underline; }
 
+.profile-field-row.membership-setting-field-row {
+  grid-template-columns: minmax(180px, 38%) 1fr;
+  align-items: start;
+}
+.membership-setting-group-body-form {
+  padding: 12px 14px;
+}
+
 // Admin dashboard: soft frame for each section (search, stats, actions, lists, highlights)
 .card.dashboard-panel {
   --dashboard-panel-bg: color-mix(in srgb, var(--bs-body-bg) 97%, #fff 3%);

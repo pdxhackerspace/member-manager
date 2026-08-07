@@ -21,8 +21,8 @@ class MembershipSettingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match 'Application review time cap', response.body
-    assert_select 'dt', text: 'Application review time cap'
-    assert_select 'dd strong', text: '15'
+    assert_select '.profile-field-label', text: 'Application review time cap'
+    assert_select '.profile-field-value strong', text: '15'
   end
 
   test 'update saves application review time cap' do

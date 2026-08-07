@@ -84,6 +84,12 @@
             <strong><%= @membership_setting.slack_signup_nag_repeat_delay_days %></strong> <%= 'day'.pluralize(@membership_setting.slack_signup_nag_repeat_delay_days) %>
             <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
           </dd>
+
+          <dt class="col-sm-6 mt-3">Slack signup nag — account age limit</dt>
+          <dd class="col-sm-6 mt-3">
+            <strong><%= @membership_setting.slack_signup_nag_max_account_age_months %></strong> <%= 'month'.pluralize(@membership_setting.slack_signup_nag_max_account_age_months) %>
+            <div class="form-text">Only members who joined within this window are nudged to join Slack.</div>
+          </dd>
         </dl>
       </div>
     </div>

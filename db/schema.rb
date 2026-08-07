@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_163000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -615,6 +615,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_000100) do
     t.integer "payment_grace_period_days", default: 14, null: false
     t.integer "reactivation_grace_period_months", default: 3, null: false
     t.integer "slack_signup_nag_initial_delay_days", default: 7, null: false
+    t.integer "slack_signup_nag_max_account_age_months", default: 6, null: false
     t.integer "slack_signup_nag_repeat_delay_days", default: 14, null: false
     t.datetime "updated_at", null: false
     t.boolean "use_builtin_membership_application", default: true, null: false

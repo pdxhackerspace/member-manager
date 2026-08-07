@@ -9,6 +9,7 @@ class MembershipSetting < ApplicationRecord
   validates :application_review_time_cap_days, presence: true, numericality: { greater_than: 0 }
   validates :slack_signup_nag_initial_delay_days, presence: true, numericality: { greater_than: 0 }
   validates :slack_signup_nag_repeat_delay_days, presence: true, numericality: { greater_than: 0 }
+  validates :slack_signup_nag_max_account_age_months, presence: true, numericality: { greater_than: 0 }
 
   # Singleton pattern - only one row should exist
   def self.instance
@@ -22,7 +23,8 @@ class MembershipSetting < ApplicationRecord
       manual_payment_due_soon_days: 7,
       application_review_time_cap_days: 15,
       slack_signup_nag_initial_delay_days: 7,
-      slack_signup_nag_repeat_delay_days: 14
+      slack_signup_nag_repeat_delay_days: 14,
+      slack_signup_nag_max_account_age_months: 6
     )
   end
 
@@ -69,5 +71,9 @@ class MembershipSetting < ApplicationRecord
 
   def self.slack_signup_nag_repeat_delay_days
     instance.slack_signup_nag_repeat_delay_days
+  end
+
+  def self.slack_signup_nag_max_account_age_months
+    instance.slack_signup_nag_max_account_age_months
   end
 end

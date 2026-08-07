@@ -49,7 +49,8 @@ class MembershipSettingsControllerTest < ActionDispatch::IntegrationTest
     patch membership_settings_url, params: {
       membership_setting: membership_setting_params.merge(
         slack_signup_nag_initial_delay_days: 10,
-        slack_signup_nag_repeat_delay_days: 21
+        slack_signup_nag_repeat_delay_days: 21,
+        slack_signup_nag_max_account_age_months: 9
       )
     }
 
@@ -57,6 +58,7 @@ class MembershipSettingsControllerTest < ActionDispatch::IntegrationTest
     @membership_setting.reload
     assert_equal 10, @membership_setting.slack_signup_nag_initial_delay_days
     assert_equal 21, @membership_setting.slack_signup_nag_repeat_delay_days
+    assert_equal 9, @membership_setting.slack_signup_nag_max_account_age_months
   end
 
   private
@@ -72,7 +74,8 @@ class MembershipSettingsControllerTest < ActionDispatch::IntegrationTest
       manual_payment_due_soon_days: @membership_setting.manual_payment_due_soon_days,
       application_review_time_cap_days: @membership_setting.application_review_time_cap_days,
       slack_signup_nag_initial_delay_days: @membership_setting.slack_signup_nag_initial_delay_days,
-      slack_signup_nag_repeat_delay_days: @membership_setting.slack_signup_nag_repeat_delay_days
+      slack_signup_nag_repeat_delay_days: @membership_setting.slack_signup_nag_repeat_delay_days,
+      slack_signup_nag_max_account_age_months: @membership_setting.slack_signup_nag_max_account_age_months
     }
   end
 

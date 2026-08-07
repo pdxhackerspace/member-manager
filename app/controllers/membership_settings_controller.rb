@@ -28,6 +28,7 @@ class MembershipSettingsController < AuthenticatedController
                                          manual_payment_due_soon_days
                                          application_review_time_cap_days
                                          slack_signup_nag_initial_delay_days
-                                         slack_signup_nag_repeat_delay_days])
+                                         slack_signup_nag_repeat_delay_days
+                                         slack_signup_nag_max_account_age_months])
   end
 end

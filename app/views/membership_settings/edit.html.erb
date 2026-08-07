@@ -121,10 +121,16 @@
             <div class="form-text">Days after application approval before the first Slack signup reminder is sent.</div>
           </div>
 
-          <div class="mb-4">
+          <div class="mb-3">
             <%= f.label :slack_signup_nag_repeat_delay_days, "Repeat interval (days)", class: "form-label" %>
             <%= f.number_field :slack_signup_nag_repeat_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
             <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
+          </div>
+
+          <div class="mb-4">
+            <%= f.label :slack_signup_nag_max_account_age_months, "Only remind members who joined within (months)", class: "form-label" %>
+            <%= f.number_field :slack_signup_nag_max_account_age_months, class: "form-control", min: 1, style: "max-width: 150px;" %>
+            <div class="form-text">Members who joined longer ago are excluded from Slack signup nags and the “no Slack account” report.</div>
           </div>
 
           <div class="d-flex gap-2">

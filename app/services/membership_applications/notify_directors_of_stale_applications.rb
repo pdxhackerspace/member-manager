@@ -15,7 +15,8 @@ module MembershipApplications
     end
 
     def call
-      MembershipApplication.awaiting_admin_nag(@now - INITIAL_DELAY, @now - REPEAT_DELAY).find_each do |application|
+      MembershipApplication.awaiting_admin_reminder(@now - INITIAL_DELAY, @now - REPEAT_DELAY)
+                           .find_each do |application|
         notify_application(application)
       end
     end
@@ -24,15 +25,15 @@ module MembershipApplications
 
     def notify_application(application)
       application.with_lock do
-        return unless naggable?(application)
+        return unless reminderable?(application)
 
         recipients = director_recipients
         return if recipients.empty?
 
         recipients.each do |staff|
-          MemberMailer.staff_application_nag(application, staff.email.to_s.strip).deliver_later
+          MemberMailer.staff_application_reminder(application, staff.email.to_s.strip).deliver_later
         end
-        application.update!(application_nag_sent_at: @now)
+        application.update!(application_reminder_sent_at: @now)
       end
     rescue StandardError => e
       Rails.logger.error(
@@ -40,19 +41,19 @@ module MembershipApplications
       )
     end
 
-    def naggable?(application)
+    def reminderable?(application)
       application.status.in?(MembershipApplication::NAGGABLE_PENDING_STATUSES) &&
         application_age_start(application) <= @now - INITIAL_DELAY &&
-        next_nag_due?(application)
+        next_reminder_due?(application)
     end
 
     def application_age_start(application)
       application.submitted_at || application.created_at
     end
 
-    def next_nag_due?(application)
-      application.application_nag_sent_at.nil? ||
-        application.application_nag_sent_at <= @now - REPEAT_DELAY
+    def next_reminder_due?(application)
+      application.application_reminder_sent_at.nil? ||
+        application.application_reminder_sent_at <= @now - REPEAT_DELAY
     end
 
     def director_recipients

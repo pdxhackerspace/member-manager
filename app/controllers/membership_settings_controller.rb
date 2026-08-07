@@ -27,8 +27,10 @@ class MembershipSettingsController < AuthenticatedController
                                          application_verification_expiry_hours
                                          manual_payment_due_soon_days
                                          application_review_time_cap_days
-                                         slack_signup_nag_initial_delay_days
-                                         slack_signup_nag_repeat_delay_days
-                                         slack_signup_nag_max_account_age_months])
+                                         slack_signup_reminder_initial_delay_days
+                                         slack_signup_reminder_repeat_delay_days
+                                         slack_signup_reminder_max_account_age_months
+                                         application_link_reminder_delay_days
+                                         application_link_reminder_max_count])
   end
 end

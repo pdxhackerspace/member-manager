@@ -86,11 +86,19 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
-  # Slack Signup Nag - Daily at 7am
+  # Slack Signup Reminder - Daily at 7am
   Sidekiq::Cron::Job.create(
-    name: 'Slack Signup Nag - Daily at 7am',
+    name: 'Slack Signup Reminder - Daily at 7am',
     cron: '0 7 * * *',
-    class: 'SlackSignupNagJob',
+    class: 'SlackSignupReminderJob',
+    active_job: true
+  )
+
+  # Application Link Reminder - Daily at 7:15am
+  Sidekiq::Cron::Job.create(
+    name: 'Application Link Reminder - Daily at 7:15am',
+    cron: '15 7 * * *',
+    class: 'ApplicationLinkReminderJob',
     active_job: true
   )
 
@@ -102,11 +110,11 @@ Sidekiq.configure_server do |config|
     active_job: true
   )
 
-  # Membership Application Nags - Daily at 9am
+  # Membership Application Reminders - Daily at 9am
   Sidekiq::Cron::Job.create(
-    name: 'Membership Application Nags - Daily at 9am',
+    name: 'Membership Application Reminders - Daily at 9am',
     cron: '0 9 * * *',
-    class: 'MembershipApplicationNagJob',
+    class: 'MembershipApplicationReminderJob',
     active_job: true
   )
 

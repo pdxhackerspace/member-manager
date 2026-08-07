@@ -287,7 +287,7 @@ class MemberMailer < ApplicationMailer
   end
 
   # Remind ED / Associate ED trained staff about stale pending applications.
-  def staff_application_nag(application, staff_email)
+  def staff_application_reminder(application, staff_email)
     applicant = QueuedMail.applicant_recipient_for(application)
     @user = applicant
     @organization = organization_name
@@ -301,7 +301,7 @@ class MemberMailer < ApplicationMailer
       submitted_at: @submitted_at.to_date.to_fs(:long)
     }
 
-    if send_from_template('staff_application_nag', applicant, extra_vars, to: staff_email)
+    if send_from_template('staff_application_reminder', applicant, extra_vars, to: staff_email)
       # Email sent from database template
     else
       mail(
@@ -311,18 +311,35 @@ class MemberMailer < ApplicationMailer
     end
   end
 
-  def slack_signup_nag(user, opts = {})
+  def slack_signup_reminder(user, opts = {})
     @user = user
     @organization = organization_name
     extras = self.class.slack_signup_template_extras(user, now: opts[:now] || Time.current)
 
-    if send_from_template('slack_signup_nag', user, extras)
+    if send_from_template('slack_signup_reminder', user, extras)
       # Email sent from database template
     else
       @slack_link_url = extras[:slack_link_url]
       mail(
         to: @user.email,
         subject: "#{@organization}: Join us on Slack"
+      )
+    end
+  end
+
+  def application_link_reminder(recipient, opts = {})
+    @user = recipient
+    @organization = organization_name
+    @application_url = opts[:application_url] || opts['application_url']
+
+    extra_vars = { application_url: @application_url.to_s }
+
+    if send_from_template('application_link_reminder', recipient, extra_vars, to: recipient.email)
+      # Email sent from database template
+    else
+      mail(
+        to: recipient.email,
+        subject: "#{@organization}: Complete your membership application"
       )
     end
   end
@@ -371,6 +388,15 @@ class MemberMailer < ApplicationMailer
     vars = base_template_variables(user)
     merge_template_extras!(vars, extra_args)
     vars
+  end
+
+  def self.application_link_template_extras(verification)
+    url_options = Rails.application.config.action_mailer.default_url_options
+    application_url = Rails.application.routes.url_helpers.apply_verify_email_url(
+      token: verification.token,
+      **url_options
+    )
+    { application_url: application_url }
   end
 
   def self.slack_signup_template_extras(user, now: Time.current)

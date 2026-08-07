@@ -15,7 +15,7 @@ module Reminders
         SELECT 1
         FROM queued_mails
         WHERE queued_mails.recipient_id = users.id
-          AND queued_mails.mailer_action = 'slack_signup_reminder'
+          AND queued_mails.mailer_action IN ('slack_signup_reminder', 'slack_signup_nag')
           AND queued_mails.status IN ('pending', 'approved')
           AND queued_mails.sent_at IS NULL
       )
@@ -59,8 +59,8 @@ module Reminders
     end
 
     def self.pending_reminder_mail?(user)
-      QueuedMail.exists?(recipient: user, mailer_action: 'slack_signup_reminder', status: %w[pending approved],
-                         sent_at: nil)
+      QueuedMail.exists?(recipient: user, mailer_action: %w[slack_signup_reminder slack_signup_nag],
+                         status: %w[pending approved], sent_at: nil)
     end
 
     def self.within_account_age?(user, now: Time.current)

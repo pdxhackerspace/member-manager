@@ -1,14 +1,5 @@
 module Reminders
   class ApplicationLinkEligibility
-    AWAITING_APPLICATION_SQL = <<~SQL.squish
-      NOT EXISTS (
-        SELECT 1
-        FROM membership_applications
-        WHERE membership_applications.status != 'draft'
-          AND membership_applications.email_lookup_digest = application_verifications.email_lookup_digest
-      )
-    SQL
-
     WITHOUT_PENDING_REMINDER_MAIL_SQL = <<~SQL.squish
       NOT EXISTS (
         SELECT 1
@@ -26,29 +17,18 @@ module Reminders
     end
 
     def self.due(now: Time.current)
-      delay = MembershipSetting.application_link_reminder_delay_days.days
-      max_count = MembershipSetting.application_link_reminder_max_count
-      cutoff = now - delay
-
-      base_scope
-        .where(application_link_reminder_count: ...max_count)
-        .where(
-          '(application_link_reminder_sent_at IS NULL AND application_verifications.created_at <= ?) OR ' \
-          '(application_link_reminder_sent_at IS NOT NULL AND application_link_reminder_sent_at <= ?)',
-          cutoff, cutoff
-        )
-        .where(WITHOUT_PENDING_REMINDER_MAIL_SQL)
-        .order(:created_at)
+      due_ids = candidate_scope(now: now).filter_map { |verification| verification.id if due?(verification, now: now) }
+      ApplicationVerification.where(id: due_ids).order(:created_at)
     end
 
     def self.count_due(now: Time.current)
       return 0 unless active?
 
-      due(now: now).count
+      candidate_scope(now: now).count { |verification| due?(verification, now: now) }
     end
 
     def self.total_awaiting
-      base_scope.count
+      base_scope.count(&:awaiting_application?)
     end
 
     def self.due?(verification, now: Time.current)
@@ -73,9 +53,22 @@ module Reminders
     end
 
     def self.base_scope
-      ApplicationVerification
-        .where('expires_at > ?', Time.current)
-        .where(AWAITING_APPLICATION_SQL)
+      ApplicationVerification.where('expires_at > ?', Time.current)
+    end
+
+    def self.candidate_scope(now: Time.current)
+      delay = MembershipSetting.application_link_reminder_delay_days.days
+      max_count = MembershipSetting.application_link_reminder_max_count
+      cutoff = now - delay
+
+      base_scope
+        .where(application_link_reminder_count: ...max_count)
+        .where(
+          '(application_link_reminder_sent_at IS NULL AND application_verifications.created_at <= ?) OR ' \
+          '(application_link_reminder_sent_at IS NOT NULL AND application_link_reminder_sent_at <= ?)',
+          cutoff, cutoff
+        )
+        .where(WITHOUT_PENDING_REMINDER_MAIL_SQL)
     end
 
     def self.base_verification?(verification)
@@ -88,6 +81,6 @@ module Reminders
       verification.application_link_reminder_sent_at || verification.created_at
     end
 
-    private_class_method :base_scope, :base_verification?, :reminder_anchor
+    private_class_method :base_scope, :candidate_scope, :base_verification?, :reminder_anchor
   end
 end

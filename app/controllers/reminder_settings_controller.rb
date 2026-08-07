@@ -52,10 +52,21 @@ class ReminderSettingsController < AdminController
       @slack_source_enabled = MemberSource.enabled?('slack')
       @slack_email_template = EmailTemplate.find_by(key: 'slack_signup_reminder')
     when 'application_link'
-      @pagy, @due_verifications = pagy(Reminders::ApplicationLinkEligibility.due, limit: PER_PAGE)
-      @application_link_due_count = @pagy.count
-      @application_link_awaiting_count = Reminders::ApplicationLinkEligibility.total_awaiting
-      @application_link_email_template = EmailTemplate.find_by(key: 'application_link_reminder')
+      load_application_link_show_data
     end
+  end
+
+  def load_application_link_show_data
+    @application_link_awaiting_count = Reminders::ApplicationLinkEligibility.total_awaiting
+    @application_link_email_template = EmailTemplate.find_by(key: 'application_link_reminder')
+
+    unless Reminders::ApplicationLinkEligibility.active?
+      @pagy, @due_verifications = pagy(ApplicationVerification.none, limit: PER_PAGE)
+      @application_link_due_count = 0
+      return
+    end
+
+    @pagy, @due_verifications = pagy(Reminders::ApplicationLinkEligibility.due, limit: PER_PAGE)
+    @application_link_due_count = @pagy.count
   end
 end

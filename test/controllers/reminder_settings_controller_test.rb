@@ -10,8 +10,10 @@ class ReminderSettingsControllerTest < ActionDispatch::IntegrationTest
       slack_signup_reminder_initial_delay_days: 7,
       slack_signup_reminder_repeat_delay_days: 14,
       application_link_reminder_delay_days: 3,
-      application_link_reminder_max_count: 3
+      application_link_reminder_max_count: 3,
+      use_builtin_membership_application: true
     )
+    ReminderSetting.find_by!(key: 'application_link').update!(enabled: true)
   end
 
   teardown do
@@ -70,6 +72,44 @@ class ReminderSettingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match verification.email, response.body
+  end
+
+  test 'show hides due verifications when application link reminder is disabled' do
+    now = Time.zone.local(2026, 8, 5, 7, 15, 0)
+    ReminderSetting.find_by!(key: 'application_link').update!(enabled: false)
+    verification = ApplicationVerification.create!(
+      email: 'disabled-show@example.com',
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true,
+      created_at: now - 4.days,
+      expires_at: now + 2.days
+    )
+
+    travel_to now do
+      get reminder_setting_url('application_link')
+    end
+
+    assert_response :success
+    assert_no_match verification.email, response.body
+  end
+
+  test 'show hides due verifications when builtin application is disabled' do
+    now = Time.zone.local(2026, 8, 5, 7, 15, 0)
+    MembershipSetting.instance.update!(use_builtin_membership_application: false)
+    verification = ApplicationVerification.create!(
+      email: 'builtin-off-show@example.com',
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true,
+      created_at: now - 4.days,
+      expires_at: now + 2.days
+    )
+
+    travel_to now do
+      get reminder_setting_url('application_link')
+    end
+
+    assert_response :success
+    assert_no_match verification.email, response.body
   end
 
   test 'update toggles reminder enabled state' do

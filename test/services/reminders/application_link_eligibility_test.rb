@@ -5,8 +5,11 @@ module Reminders
     setup do
       MembershipSetting.instance.update!(
         application_link_reminder_delay_days: 3,
-        application_link_reminder_max_count: 3
+        application_link_reminder_max_count: 3,
+        use_builtin_membership_application: true
       )
+      ReminderSetting.seed_defaults!
+      ReminderSetting.find_by!(key: 'application_link').update!(enabled: true)
     end
 
     test 'due includes active verifications awaiting application past delay' do
@@ -89,6 +92,37 @@ module Reminders
 
       travel_to now do
         assert_equal 0, ApplicationLinkEligibility.count_due(now: now)
+      end
+    end
+
+    test 'due and count_due exclude verifications when application matches by email but not digest' do
+      now = Time.zone.local(2026, 8, 6, 7, 15, 0)
+      verification = awaiting_verification(now: now, email: 'digest-mismatch@example.com')
+      application = MembershipApplication.create!(
+        email: verification.email,
+        status: 'submitted',
+        submitted_at: now - 1.day,
+        created_at: now - 1.day
+      )
+      application.update_columns(
+        email: verification.email,
+        email_lookup_digest: 'legacy-mismatch'
+      )
+
+      travel_to now do
+        assert_not verification.awaiting_application?
+        assert_not ApplicationLinkEligibility.due?(verification, now: now)
+        assert_not_includes ApplicationLinkEligibility.due(now: now), verification
+        assert_equal 0, ApplicationLinkEligibility.count_due(now: now)
+      end
+    end
+
+    test 'count_due matches due scope size' do
+      now = Time.zone.local(2026, 8, 6, 7, 15, 0)
+      awaiting_verification(now: now, email: 'count-match@example.com')
+
+      travel_to now do
+        assert_equal ApplicationLinkEligibility.due(now: now).size, ApplicationLinkEligibility.count_due(now: now)
       end
     end
 

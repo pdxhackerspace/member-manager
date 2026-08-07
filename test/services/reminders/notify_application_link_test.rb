@@ -110,6 +110,50 @@ module Reminders
       assert_equal 0, verification.application_link_reminder_count
     end
 
+    test 'raises when delivery succeeds but stamping fails' do
+      verification = due_verification(email: 'stamp-failure@example.com')
+      original = NotifyApplicationLink.method(:record_delivery!)
+      NotifyApplicationLink.define_singleton_method(:record_delivery!) do |*_args|
+        raise ActiveRecord::StatementInvalid, 'stamp failed'
+      end
+
+      travel_to @now do
+        assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
+          assert_raises(ActiveRecord::StatementInvalid) do
+            NotifyApplicationLink.call(now: @now)
+          end
+        end
+      end
+
+      verification.reload
+      assert_nil verification.application_link_reminder_sent_at
+      assert_equal 0, verification.application_link_reminder_count
+    ensure
+      NotifyApplicationLink.define_singleton_method(:record_delivery!, original)
+    end
+
+    test 'swallows delivery failures without stamping' do
+      verification = due_verification(email: 'delivery-failure@example.com')
+      original = QueuedMail.method(:enqueue_application_link_reminder)
+      QueuedMail.define_singleton_method(:enqueue_application_link_reminder) do |*_args|
+        raise StandardError, 'smtp down'
+      end
+
+      travel_to @now do
+        assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+          assert_nothing_raised do
+            NotifyApplicationLink.call(now: @now)
+          end
+        end
+      end
+
+      verification.reload
+      assert_nil verification.application_link_reminder_sent_at
+      assert_equal 0, verification.application_link_reminder_count
+    ensure
+      QueuedMail.define_singleton_method(:enqueue_application_link_reminder, original)
+    end
+
     private
 
     def due_verification(email:)

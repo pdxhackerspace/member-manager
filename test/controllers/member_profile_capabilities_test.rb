@@ -78,6 +78,19 @@ class MemberProfileCapabilitiesTest < ActionDispatch::IntegrationTest
     assert_match(/profile-gate-test/, response.body)
   end
 
+  test 'members.view_profile still loads own payment history without payments.view' do
+    viewer = sign_in_as_plain_member
+    grant_privileges(viewer, 'members.view_profile')
+    create_profile_payment_event!(viewer, details: 'Own payment from profile-gate-test')
+    sign_in_as_plain_member
+
+    get user_path(viewer, tab: :payments)
+
+    assert_response :success
+    assert_match(/Payment Events/i, response.body)
+    assert_match(/profile-gate-test/, response.body)
+  end
+
   {
     'payments.view' => 'payments',
     'access.view_logs' => 'access',

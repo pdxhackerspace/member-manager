@@ -1,0 +1,11 @@
+<div class="membership-setting-group mb-4">
+  <div class="profile-section-header">
+    <span class="h-section-label"><%= title %></span>
+    <% if local_assigns[:context].present? %>
+      <span class="profile-section-context"><%= context %></span>
+    <% end %>
+  </div>
+  <div class="profile-field-group membership-setting-group-body<%= ' membership-setting-group-body-form' if local_assigns[:form] %>">
+    <%= yield %>
+  </div>
+</div>

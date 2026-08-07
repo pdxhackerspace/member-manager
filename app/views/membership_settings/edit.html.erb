@@ -1,203 +1,158 @@
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex align-items-end justify-content-between mb-3">
   <div>
-    <h1 class="h3 mb-1">Edit Membership Settings</h1>
-    <p class="text-muted mb-0">Configure system-wide membership grace periods.</p>
+    <h1 class="h-page-title mb-0">Edit Membership Settings</h1>
+    <div class="text-13 text-secondary mt-1">Timing and grace periods for payments, access, applications, and reminders.</div>
   </div>
   <div>
-    <%= link_to "Cancel", membership_settings_path, class: "btn btn-secondary" %>
+    <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary btn-sm" %>
   </div>
 </div>
 
-<div class="row">
+<div class="row g-3">
   <div class="col-lg-8">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <%= form_with model: @membership_setting, url: membership_settings_path, method: :patch, local: true do |f| %>
-          <% if @membership_setting.errors.any? %>
-            <div class="alert alert-danger">
-              <h5 class="alert-heading">Please fix the following errors:</h5>
-              <ul class="mb-0">
-                <% @membership_setting.errors.full_messages.each do |msg| %>
-                  <li><%= msg %></li>
-                <% end %>
-              </ul>
-            </div>
-          <% end %>
+    <%= form_with model: @membership_setting, url: membership_settings_path, method: :patch, local: true do |f| %>
+      <% if @membership_setting.errors.any? %>
+        <div class="alert alert-danger mb-3">
+          <h5 class="alert-heading">Please fix the following errors:</h5>
+          <ul class="mb-0">
+            <% @membership_setting.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
 
-          <div class="mb-3">
-            <%= f.label :payment_grace_period_days, "Payment Grace Period (days)", class: "form-label" %>
-            <%= f.number_field :payment_grace_period_days, class: "form-control", min: 0, style: "max-width: 150px;" %>
-            <div class="form-text">Days after payment due date before membership is marked as lapsed.</div>
+      <%= render "setting_group", title: "Payments", form: true do %>
+        <div class="mb-3">
+          <%= f.label :payment_grace_period_days, "Payment grace period (days)", class: "form-label" %>
+          <%= f.number_field :payment_grace_period_days, class: "form-control", min: 0, style: "max-width: 150px;" %>
+          <div class="form-text">Days after payment due date before membership is marked as lapsed.</div>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :manual_payment_due_soon_days, "Manual payment “due soon” window (days)", class: "form-label" %>
+          <%= f.number_field :manual_payment_due_soon_days, class: "form-control", min: 0, style: "max-width: 150px;" %>
+          <div class="form-text">
+            Used for the admin dashboard and the Manual Payment Plan Members list. Members whose next dues date is today, overdue, or within this many calendar days count as due soon.
+            Use <strong>0</strong> to flag only today or overdue (no upcoming window).
           </div>
+        </div>
 
-          <div class="mb-4">
-            <%= f.label :manual_payment_due_soon_days, "Manual payment “due soon” window (days)", class: "form-label" %>
-            <%= f.number_field :manual_payment_due_soon_days, class: "form-control", min: 0, style: "max-width: 150px;" %>
-            <div class="form-text">
-              Used for the admin dashboard and the Manual Payment Plan Members list. Members whose next dues date is today, overdue, or within this many calendar days count as due soon.
-              Use <strong>0</strong> to flag only today or overdue (no upcoming window).
-            </div>
-          </div>
+        <div class="mb-0">
+          <%= f.label :reactivation_grace_period_months, "Reactivation grace period (months)", class: "form-label" %>
+          <%= f.number_field :reactivation_grace_period_months, class: "form-control", min: 0, style: "max-width: 150px;" %>
+          <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
+        </div>
+      <% end %>
 
-          <div class="mb-4">
-            <%= f.label :reactivation_grace_period_months, "Reactivation Grace Period (months)", class: "form-label" %>
-            <%= f.number_field :reactivation_grace_period_months, class: "form-control", min: 0, style: "max-width: 150px;" %>
-            <div class="form-text">Months a lapsed member can reactivate without needing to reapply.</div>
-          </div>
-
-          <div class="mb-4">
-            <%= f.label :invitation_expiry_hours, "Invitation Expiry (hours)", class: "form-label" %>
-            <div class="d-flex align-items-center gap-2">
-              <%= f.number_field :invitation_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "invitation_expiry_hours" %>
-              <div class="d-flex flex-wrap gap-1">
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=24">1 day</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=48">2 days</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=72">3 days</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=168">1 week</button>
-              </div>
-            </div>
-            <div class="form-text">How long invitation links remain valid. Use the shortcuts or enter a custom number of hours.</div>
-          </div>
-
-          <div class="mb-4">
-            <%= f.label :login_link_expiry_hours, "Member Login Link Expiry (hours)", class: "form-label" %>
-            <div class="d-flex align-items-center gap-2">
-              <%= f.number_field :login_link_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "login_link_expiry_hours" %>
-              <div class="d-flex flex-wrap gap-1">
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=1">1 hour</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=3">3 hours</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=24">1 day</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=168">1 week</button>
-              </div>
-            </div>
-            <div class="form-text">How long member login links remain valid. Links can only be used once.</div>
-          </div>
-
-          <div class="mb-4">
-            <%= f.label :admin_login_link_expiry_minutes, "Admin Login Link Expiry (minutes)", class: "form-label" %>
-            <div class="d-flex align-items-center gap-2">
-              <%= f.number_field :admin_login_link_expiry_minutes, class: "form-control", min: 1, style: "max-width: 150px;", id: "admin_login_link_expiry_minutes" %>
-              <div class="d-flex flex-wrap gap-1">
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=5">5 min</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=15">15 min</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=30">30 min</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=60">1 hour</button>
-              </div>
-            </div>
-            <div class="form-text">How long admin login links remain valid. Shorter for security. Links can only be used once.</div>
-          </div>
-
-          <div class="mb-4">
-            <%= f.label :application_verification_expiry_hours, "Application Email Verification Expiry (hours)", class: "form-label" %>
-            <div class="d-flex align-items-center gap-2">
-              <%= f.number_field :application_verification_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "application_verification_expiry_hours" %>
-              <div class="d-flex flex-wrap gap-1">
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=12">12 hours</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=24">1 day</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=48">2 days</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=72">3 days</button>
-              </div>
-            </div>
-            <div class="form-text">How long the email verification link for membership applications remains valid.</div>
-          </div>
-
-          <div class="mb-4">
-            <%= f.label :application_review_time_cap_days, "Application review time cap (days)", class: "form-label" %>
-            <%= f.number_field :application_review_time_cap_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
-            <div class="form-text">
-              Maximum review time shown to applicants on the status page. Admins still see the actual average from recent reviews.
+      <%= render "setting_group", title: "Login / invitations", form: true do %>
+        <div class="mb-3">
+          <%= f.label :invitation_expiry_hours, "Invitation expiry (hours)", class: "form-label" %>
+          <div class="d-flex align-items-center gap-2">
+            <%= f.number_field :invitation_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "invitation_expiry_hours" %>
+            <div class="d-flex flex-wrap gap-1">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=24">1 day</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=48">2 days</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=72">3 days</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('invitation_expiry_hours').value=168">1 week</button>
             </div>
           </div>
+          <div class="form-text">How long invitation links remain valid. Use the shortcuts or enter a custom number of hours.</div>
+        </div>
 
-          <h2 class="h-section-label mt-4 mb-3">Slack signup reminder</h2>
-          <p class="text-13 text-secondary mb-3">
-            Timing for the automated Slack signup reminder.
-            <%= link_to "Manage reminders", reminder_settings_path, class: "text-secondary" %>.
-          </p>
-
-          <div class="mb-3">
-            <%= f.label :slack_signup_reminder_initial_delay_days, "Initial delay after approval (days)", class: "form-label" %>
-            <%= f.number_field :slack_signup_reminder_initial_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
-            <div class="form-text">Days after application approval before the first Slack signup reminder is sent.</div>
+        <div class="mb-3">
+          <%= f.label :login_link_expiry_hours, "Member login link expiry (hours)", class: "form-label" %>
+          <div class="d-flex align-items-center gap-2">
+            <%= f.number_field :login_link_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "login_link_expiry_hours" %>
+            <div class="d-flex flex-wrap gap-1">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=1">1 hour</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=3">3 hours</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=24">1 day</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('login_link_expiry_hours').value=168">1 week</button>
+            </div>
           </div>
+          <div class="form-text">How long member login links remain valid. Links can only be used once.</div>
+        </div>
 
-          <div class="mb-3">
-            <%= f.label :slack_signup_reminder_repeat_delay_days, "Repeat interval (days)", class: "form-label" %>
-            <%= f.number_field :slack_signup_reminder_repeat_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
-            <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
+        <div class="mb-0">
+          <%= f.label :admin_login_link_expiry_minutes, "Admin login link expiry (minutes)", class: "form-label" %>
+          <div class="d-flex align-items-center gap-2">
+            <%= f.number_field :admin_login_link_expiry_minutes, class: "form-control", min: 1, style: "max-width: 150px;", id: "admin_login_link_expiry_minutes" %>
+            <div class="d-flex flex-wrap gap-1">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=5">5 min</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=15">15 min</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=30">30 min</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('admin_login_link_expiry_minutes').value=60">1 hour</button>
+            </div>
           </div>
+          <div class="form-text">How long admin login links remain valid. Shorter for security. Links can only be used once.</div>
+        </div>
+      <% end %>
 
-          <div class="mb-4">
-            <%= f.label :slack_signup_reminder_max_account_age_months, "Only remind members who joined within (months)", class: "form-label" %>
-            <%= f.number_field :slack_signup_reminder_max_account_age_months, class: "form-control", min: 1, style: "max-width: 150px;" %>
-            <div class="form-text">Members who joined longer ago are excluded from Slack signup reminders and the “no Slack account” report.</div>
+      <%= render "setting_group", title: "Applications", form: true do %>
+        <div class="mb-3">
+          <%= f.label :application_verification_expiry_hours, "Application email verification expiry (hours)", class: "form-label" %>
+          <div class="d-flex align-items-center gap-2">
+            <%= f.number_field :application_verification_expiry_hours, class: "form-control", min: 1, style: "max-width: 150px;", id: "application_verification_expiry_hours" %>
+            <div class="d-flex flex-wrap gap-1">
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=12">12 hours</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=24">1 day</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=48">2 days</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('application_verification_expiry_hours').value=72">3 days</button>
+            </div>
           </div>
+          <div class="form-text">How long the email verification link for membership applications remains valid.</div>
+        </div>
 
-          <h2 class="h-section-label mt-4 mb-3">Application link reminder</h2>
-          <p class="text-13 text-secondary mb-3">
-            Timing for reminders when someone requests a membership application link but has not used it yet.
-            <%= link_to "Manage reminders", reminder_settings_path, class: "text-secondary" %>.
-          </p>
-
-          <div class="mb-3">
-            <%= f.label :application_link_reminder_delay_days, "Reminder after sending an application link (days)", class: "form-label" %>
-            <%= f.number_field :application_link_reminder_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
-            <div class="form-text">Days after the application link email before the first reminder is sent, and between subsequent reminders.</div>
+        <div class="mb-0">
+          <%= f.label :application_review_time_cap_days, "Application review time cap (days)", class: "form-label" %>
+          <%= f.number_field :application_review_time_cap_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+          <div class="form-text">
+            Maximum review time shown to applicants on the status page. Admins still see the actual average from recent reviews.
           </div>
+        </div>
+      <% end %>
 
-          <div class="mb-4">
-            <%= f.label :application_link_reminder_max_count, "Maximum reminders after sending an application link", class: "form-label" %>
-            <%= f.number_field :application_link_reminder_max_count, class: "form-control", min: 1, style: "max-width: 150px;" %>
-            <div class="form-text">Stop reminding after this many emails or when the link expires, whichever comes first.</div>
-          </div>
+      <%= render "setting_group", title: "Reminders", context: link_to("Reminders settings", reminder_settings_path, class: "text-secondary"), form: true do %>
+        <div class="mb-3">
+          <%= f.label :slack_signup_reminder_initial_delay_days, "Slack signup reminder — initial delay after approval (days)", class: "form-label" %>
+          <%= f.number_field :slack_signup_reminder_initial_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+          <div class="form-text">Days after application approval before the first Slack signup reminder is sent.</div>
+        </div>
 
-          <div class="d-flex gap-2">
-            <%= f.submit "Save Settings", class: "btn btn-primary" %>
-            <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary" %>
-          </div>
-        <% end %>
+        <div class="mb-3">
+          <%= f.label :slack_signup_reminder_repeat_delay_days, "Slack signup reminder — repeat interval (days)", class: "form-label" %>
+          <%= f.number_field :slack_signup_reminder_repeat_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+          <div class="form-text">Minimum days between Slack signup reminders for the same member.</div>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :slack_signup_reminder_max_account_age_months, "Slack signup reminder — only remind members who joined within (months)", class: "form-label" %>
+          <%= f.number_field :slack_signup_reminder_max_account_age_months, class: "form-control", min: 1, style: "max-width: 150px;" %>
+          <div class="form-text">Members who joined longer ago are excluded from Slack signup reminders and the “no Slack account” report.</div>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :application_link_reminder_delay_days, "Application link reminder — delay after sending (days)", class: "form-label" %>
+          <%= f.number_field :application_link_reminder_delay_days, class: "form-control", min: 1, style: "max-width: 150px;" %>
+          <div class="form-text">Days after the application link email before the first reminder is sent, and between subsequent reminders.</div>
+        </div>
+
+        <div class="mb-0">
+          <%= f.label :application_link_reminder_max_count, "Application link reminder — maximum count", class: "form-label" %>
+          <%= f.number_field :application_link_reminder_max_count, class: "form-control", min: 1, style: "max-width: 150px;" %>
+          <div class="form-text">Stop reminding after this many emails or when the link expires, whichever comes first.</div>
+        </div>
+      <% end %>
+
+      <div class="d-flex gap-2">
+        <%= f.submit "Save settings", class: "btn btn-primary btn-sm" %>
+        <%= link_to "Cancel", membership_settings_path, class: "btn btn-outline-secondary btn-sm" %>
       </div>
-    </div>
+    <% end %>
   </div>
 
   <div class="col-lg-4">
-    <div class="card shadow-sm border-0">
-      <div class="card-header bg-body-tertiary">
-        <h5 class="card-title mb-0">About Grace Periods</h5>
-      </div>
-      <div class="card-body">
-        <p class="small text-muted mb-2">
-          <strong>Payment Grace Period:</strong> When a member's payment is overdue, they have this many days 
-          before their membership status changes to lapsed.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Manual payment “due soon”:</strong> How far ahead to highlight manual / cash payment plans on the dashboard and manual payments list.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Reactivation Grace Period:</strong> After a membership lapses, members have this many months 
-          to resume their membership without going through the full application process again.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Invitation Expiry:</strong> When an admin sends an invitation, the link is valid for this 
-          many hours. After expiry, the recipient must be invited again.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Member Login Link Expiry:</strong> Members can request a login link from the sign-in page.
-          Links can only be used once and expire after this many hours.
-        </p>
-        <p class="small text-muted mb-2">
-          <strong>Admin Login Link Expiry:</strong> Admin login links expire faster for security.
-          Links can only be used once and expire after this many minutes.
-        </p>
-        <p class="small text-muted mb-0">
-          <strong>Application Email Verification:</strong> When someone starts a membership application,
-          they must verify their email address. The verification link expires after this many hours.
-        </p>
-        <p class="small text-muted mb-0 mt-2">
-          <strong>Application review time cap:</strong> The estimated review time on the applicant status page
-          never exceeds this many days, even when recent reviews took longer.
-        </p>
-      </div>
-    </div>
+    <%= render "about_sidebar" %>
   </div>
 </div>

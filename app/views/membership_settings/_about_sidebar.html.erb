@@ -1,0 +1,53 @@
+<div class="card shadow-sm border-0">
+  <div class="card-header bg-body-tertiary">
+    <h5 class="card-title mb-0">About these settings</h5>
+  </div>
+  <div class="card-body text-12 text-secondary">
+    <div class="mb-3">
+      <div class="h-section-label mb-2">Payments</div>
+      <p class="mb-2">
+        <strong class="text-body">Payment grace period</strong> — days after a due date before membership lapses.
+      </p>
+      <p class="mb-2">
+        <strong class="text-body">Manual payment “due soon”</strong> — how far ahead to highlight manual / cash plans on the dashboard and manual payments list.
+      </p>
+      <p class="mb-0">
+        <strong class="text-body">Reactivation grace period</strong> — months a lapsed member can reactivate without reapplying.
+      </p>
+    </div>
+
+    <div class="mb-3">
+      <div class="h-section-label mb-2">Login / invitations</div>
+      <p class="mb-2">
+        <strong class="text-body">Invitation expiry</strong> — how long admin-sent invitation links stay valid.
+      </p>
+      <p class="mb-2">
+        <strong class="text-body">Member login link expiry</strong> — one-time sign-in links from the login page.
+      </p>
+      <p class="mb-0">
+        <strong class="text-body">Admin login link expiry</strong> — shorter-lived links for admin sign-in.
+      </p>
+    </div>
+
+    <div class="mb-3">
+      <div class="h-section-label mb-2">Applications</div>
+      <p class="mb-2">
+        <strong class="text-body">Email verification expiry</strong> — how long application verification links stay valid.
+      </p>
+      <p class="mb-0">
+        <strong class="text-body">Review time cap</strong> — maximum estimated review time shown to applicants; admins still see the actual average.
+      </p>
+    </div>
+
+    <div>
+      <div class="h-section-label mb-2">Reminders</div>
+      <p class="mb-2">
+        <strong class="text-body">Slack signup reminder</strong> — timing for automated reminders to join Slack after approval.
+      </p>
+      <p class="mb-0">
+        <strong class="text-body">Application link reminder</strong> — follow-up when someone requests an application link but has not used it yet.
+        <%= link_to "Reminders settings", reminder_settings_path, class: "text-secondary" %>.
+      </p>
+    </div>
+  </div>
+</div>

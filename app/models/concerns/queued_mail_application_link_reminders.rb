@@ -8,16 +8,17 @@ module QueuedMailApplicationLinkReminders
 
       recipient = verification_recipient_for(verification)
       action = 'application_link_reminder'
+      merged_args = extra_args.merge(application_verification_id: verification.id)
       template = EmailTemplate.find_enabled(action)
-      variables = MemberMailer.build_template_variables(recipient, extra_args)
+      variables = MemberMailer.build_template_variables(recipient, merged_args)
       return deliver_immediately(template, dest, variables) if template&.send_immediately?
 
-      attrs = queued_mail_attrs(dest, reason || 'Application link reminder', nil, action, extra_args)
+      attrs = queued_mail_attrs(dest, reason || 'Application link reminder', nil, action, merged_args)
       record = if template
                  create_queued_mail_from_template(template, variables, attrs)
                else
                  create_queued_mail_from_message(
-                   MemberMailer.application_link_reminder(recipient, **extra_args), attrs
+                   MemberMailer.application_link_reminder(recipient, **merged_args), attrs
                  )
                end
       MailLogEntry.log!(record, 'created', details: "Queued application link reminder to #{dest}")

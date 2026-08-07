@@ -18,8 +18,7 @@ module Reminders
     end
 
     def call
-      return unless ReminderSetting.enabled?('application_link')
-      return unless MembershipSetting.use_builtin_membership_application?
+      return unless ApplicationLinkEligibility.active?
 
       ApplicationLinkEligibility.due(now: @now).find_each { |verification| notify_verification(verification) }
     end

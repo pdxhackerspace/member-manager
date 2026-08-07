@@ -40,11 +40,7 @@ class SettingsController < AuthenticatedController
                 else
                   0
                 end
-    application_link_due = if ReminderSetting.enabled?('application_link')
-                             Reminders::ApplicationLinkEligibility.count_due
-                           else
-                             0
-                           end
+    application_link_due = Reminders::ApplicationLinkEligibility.count_due
 
     slack_due + application_link_due
   end

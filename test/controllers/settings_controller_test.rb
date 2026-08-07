@@ -64,6 +64,29 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test 'application link reminder attention count is zero when builtin apply is disabled' do
+    now = Time.zone.local(2026, 8, 6, 7, 15, 0)
+    ReminderSetting.seed_defaults!
+    ReminderSetting.find_by!(key: 'application_link').update!(enabled: true)
+    MembershipSetting.instance.update!(use_builtin_membership_application: false)
+    ApplicationVerification.create!(
+      email: 'settings-link-due@example.com',
+      confirmed_open_house: true,
+      confirmed_code_of_conduct: true,
+      created_at: now - 4.days,
+      expires_at: now + 2.days
+    )
+
+    travel_to now do
+      get settings_url
+    end
+
+    assert_response :success
+    assert_select 'a[href=?]', reminder_settings_path do
+      assert_select '.badge.text-bg-warning-subtle', count: 0
+    end
+  end
+
   private
 
   def sign_in_as_admin

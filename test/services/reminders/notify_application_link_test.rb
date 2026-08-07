@@ -52,6 +52,47 @@ module Reminders
       end
     end
 
+    test 'skips when builtin application is disabled' do
+      MembershipSetting.instance.update!(use_builtin_membership_application: false)
+      due_verification(email: 'builtin-off@example.com')
+
+      travel_to @now do
+        assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+          NotifyApplicationLink.call(now: @now)
+        end
+      end
+    end
+
+    test 'queued delivery stamps the verification that triggered the reminder' do
+      EmailTemplate.find_by!(key: 'application_link_reminder').update!(send_immediately: false)
+      older = due_verification(email: 'same-link@example.com')
+      newer = ApplicationVerification.create!(
+        email: 'same-link@example.com',
+        confirmed_open_house: true,
+        confirmed_code_of_conduct: true,
+        created_at: @now - 1.day,
+        expires_at: @now + 2.days
+      )
+
+      travel_to @now do
+        NotifyApplicationLink.call(now: @now)
+      end
+
+      queued_mail = QueuedMail.order(:created_at).last
+      assert_equal older.id, queued_mail.mailer_args['application_verification_id']
+
+      delivery_time = @now + 2.hours
+      travel_to delivery_time do
+        queued_mail.update!(status: 'approved', reviewed_by: users(:one), reviewed_at: delivery_time)
+        queued_mail.deliver_now!
+      end
+
+      assert_equal delivery_time, older.reload.application_link_reminder_sent_at
+      assert_equal 1, older.application_link_reminder_count
+      assert_nil newer.reload.application_link_reminder_sent_at
+      assert_equal 0, newer.application_link_reminder_count
+    end
+
     test 'does not stamp reminder time when mail is queued for review' do
       EmailTemplate.find_by!(key: 'application_link_reminder').update!(send_immediately: false)
       verification = due_verification(email: 'queued-link@example.com')

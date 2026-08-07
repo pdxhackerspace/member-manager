@@ -67,6 +67,26 @@ module Reminders
       assert_nil user.reload.slack_signup_reminder_sent_at
     end
 
+    test 'deliver_now stamps legacy slack signup nag mail' do
+      EmailTemplate.find_by!(key: 'slack_signup_reminder').update!(send_immediately: false)
+      user = due_user(email: 'legacy-nag-mail@example.com')
+
+      travel_to @now do
+        NotifySlackSignup.call(now: @now)
+      end
+
+      queued_mail = QueuedMail.order(:created_at).last
+      queued_mail.update!(mailer_action: 'slack_signup_nag')
+      delivery_time = @now + 2.hours
+
+      travel_to delivery_time do
+        queued_mail.update!(status: 'approved', reviewed_by: users(:one), reviewed_at: delivery_time)
+        queued_mail.deliver_now!
+      end
+
+      assert_equal delivery_time, user.reload.slack_signup_reminder_sent_at
+    end
+
     private
 
     def due_user(email:)

@@ -13,12 +13,17 @@ module Reminders
       NOT EXISTS (
         SELECT 1
         FROM queued_mails
-        WHERE queued_mails.to = application_verifications.email
-          AND queued_mails.mailer_action = 'application_link_reminder'
+        WHERE queued_mails.mailer_action = 'application_link_reminder'
           AND queued_mails.status IN ('pending', 'approved')
           AND queued_mails.sent_at IS NULL
+          AND queued_mails.mailer_args ->> 'application_verification_id' = application_verifications.id::text
       )
     SQL
+
+    def self.active?
+      ReminderSetting.enabled?('application_link') &&
+        MembershipSetting.use_builtin_membership_application?
+    end
 
     def self.due(now: Time.current)
       delay = MembershipSetting.application_link_reminder_delay_days.days
@@ -37,6 +42,8 @@ module Reminders
     end
 
     def self.count_due(now: Time.current)
+      return 0 unless active?
+
       due(now: now).count
     end
 
@@ -58,10 +65,10 @@ module Reminders
 
     def self.pending_reminder_mail?(verification)
       QueuedMail.exists?(
-        to: verification.email,
         mailer_action: 'application_link_reminder',
         status: %w[pending approved],
-        sent_at: nil
+        sent_at: nil,
+        mailer_args: { application_verification_id: verification.id }
       )
     end
 

@@ -21,6 +21,8 @@ namespace :membership do
     # Step 1: Reset everyone
     puts 'Step 1: Resetting all users...'
     User.find_each do |user|
+      next if Membership::ActiveStatus.terminal_membership?(user)
+
       Membership::ActiveStatus.assign_and_save!(
         user,
         membership_status: 'unknown',
@@ -52,6 +54,7 @@ namespace :membership do
     plan_matched_count = 0
 
     User.find_each do |user|
+      next if Membership::ActiveStatus.terminal_membership?(user)
       # Skip if already sponsored (don't downgrade)
       next if Membership::ActiveStatus.sponsored?(user)
 

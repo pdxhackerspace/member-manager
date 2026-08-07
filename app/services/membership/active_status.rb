@@ -31,8 +31,14 @@ module Membership
       user.is_sponsored? || user.membership_status == 'sponsored' || user.payment_type == 'sponsored'
     end
 
+    def self.terminal_membership?(user)
+      user.membership_status.in?(%w[banned deceased])
+    end
+
     # Used by membership:recalculate_status after the blanket reset in step 1.
     def self.recalculate_sponsored_candidate?(user)
+      return false if terminal_membership?(user)
+
       sponsored?(user) || user.sheet_entry&.status.to_s.downcase.include?('sponsored')
     end
 

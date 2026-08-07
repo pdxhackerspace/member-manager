@@ -25,4 +25,40 @@ class MembershipRecalculateStatusTest < ActiveSupport::TestCase
     assert_equal 'sponsored', user.payment_type
     assert user.active?
   end
+
+  test 'recalculate_status leaves banned sponsored members inactive' do
+    user = User.create!(
+      authentik_id: 'recalc-banned-sponsored',
+      full_name: 'Banned Sponsored',
+      membership_status: 'banned',
+      is_sponsored: true,
+      dues_status: 'current',
+      payment_type: 'sponsored',
+      active: false
+    )
+
+    capture_io { @task.invoke }
+
+    user.reload
+    assert_equal 'banned', user.membership_status
+    assert_not user.active?
+  end
+
+  test 'recalculate_status leaves deceased sponsored members inactive' do
+    user = User.create!(
+      authentik_id: 'recalc-deceased-sponsored',
+      full_name: 'Deceased Sponsored',
+      membership_status: 'deceased',
+      is_sponsored: true,
+      payment_type: 'sponsored',
+      dues_status: 'current',
+      active: false
+    )
+
+    capture_io { @task.invoke }
+
+    user.reload
+    assert_equal 'deceased', user.membership_status
+    assert_not user.active?
+  end
 end

@@ -162,6 +162,18 @@ module Membership
       assert user.active?
     end
 
+    test 'recalculate_sponsored_candidate rejects banned members even with is_sponsored' do
+      user = build_user(membership_status: 'banned', is_sponsored: true, active: false)
+
+      assert_not ActiveStatus.recalculate_sponsored_candidate?(user)
+    end
+
+    test 'recalculate_sponsored_candidate rejects deceased members even with payment_type sponsored' do
+      user = build_user(membership_status: 'deceased', payment_type: 'sponsored', active: false)
+
+      assert_not ActiveStatus.recalculate_sponsored_candidate?(user)
+    end
+
     private
 
     def build_user(**attrs)

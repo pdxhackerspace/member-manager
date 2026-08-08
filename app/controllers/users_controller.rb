@@ -2,6 +2,8 @@ class UsersController < AuthenticatedController
   include TrainingHistoryData
   include ParkingStatusFiltering
 
+  helper_method :viewing_own_profile?
+
   skip_before_action :require_authenticated_user!, only: [:show]
   before_action :set_user_for_show, only: [:show]
   before_action :set_user,
@@ -235,8 +237,11 @@ class UsersController < AuthenticatedController
       load_training_history(@user) if @active_tab == :training_history
     end
 
-    # Load payment history for admin and self views (paginated)
-    if @view_level == :admin || @view_level == :self
+    # Payment history follows the same rule as Journal, Access and Mail: self always sees their
+    # own; in the admin layout it loads only when payments.view reveals the tab. Holders of
+    # members.view_profile reach the admin layout on their own profile too, so check ownership
+    # separately from @view_level.
+    if @view_level == :self || (@view_level == :admin && (viewing_own_profile? || @profile_caps[:view_payments]))
       @payment_event_filter = params[:event_type].presence
       payments_query = PaymentHistory.for_user(@user, event_type: @payment_event_filter)
       @payments_count = payments_query.count
@@ -692,6 +697,10 @@ class UsersController < AuthenticatedController
   # Whether the profile body should be replaced with a "not available" notice
   # for the given view level, based on the profile's visibility setting.
   # Admin and self view levels always see the full profile.
+  def viewing_own_profile?
+    user_signed_in? && @user == current_user
+  end
+
   def profile_hidden_for_view?(view_level)
     case @user.profile_visibility
     when 'members'
